@@ -11,7 +11,9 @@ intents = disnake.Intents.default()
 intents.members = True
 intents.message_content = True
 
-client = pymongo.MongoClient("mongodb+srv://labyrinthadmin:caLnEOD4u6qqMSJj@labyrinthdb.ng3ca.mongodb.net/myFirstDatabase?retryWrites=true&w=majority")
+load_dotenv()
+
+client = pymongo.MongoClient(f"mongodb+srv://labyrinthadmin:{os.getenv('DBPSS')}@labyrinthdb.ng3ca.mongodb.net/myFirstDatabase?retryWrites=true&w=majority")
 db = client.test
 
 extensions = [
@@ -36,8 +38,6 @@ async def on_ready():
 
 for ext in extensions:
 	bot.load_extension(ext)
-
-load_dotenv()
 
 bot.run(os.getenv('TOKEN'))
 
