@@ -1,7 +1,8 @@
 import disnake
-from disnake.ext import commands
 import logging
+from disnake.ext import commands
 from disnake import Embed
+from enum import Enum
 
 logging.basicConfig(level=logging.INFO)
 
@@ -25,57 +26,83 @@ async def hello(inter):
 async def on_ready():
 	print(f'We have logged in as {bot.user}')
 
-validClasses = ['artificer', 'barbarian', 'bard', 'druid', 'cleric', 'ranger', 'fighter', 'paladin', 'blood hunter', 'sorcerer', 'warlock', 'wizard']
+#validClasses = ['artificer', 'barbarian', 'bard', 'druid', 'cleric', 'ranger', 'fighter', 'paladin', 'blood hunter', 'sorcerer', 'warlock', 'wizard']
 nl = '\n'
 
+#async def validclasses_autocomp(inter, string: str) -> List[str]:
+#	return [chClass for chClass in validClasses if string.casefold() in chClass.casefold()]
+
+class validClass(str, Enum):
+	Artificer = 'Artificer'
+	Barbarian = 'Barbarian'
+	Bard = 'Bard'
+	BloodHunter = 'Blood Hunter'
+	Cleric = 'Cleric'
+	Druid = 'Druid'
+	Fighter = 'Fighter'
+	Monk = 'Monk'
+	Paladin = 'Paladin'
+	Ranger = 'Ranger'
+	Rogue = 'Rogue'
+	Sorcerer = 'Sorcerer'
+	Warlock = 'Warlock'
+	Wizard = 'Wizard'
+
+
 @bot.slash_command(description="Logs your characters badges.")
-async def badgelog(inter):
+async def badgelog(inter: disnake.ApplicationCommandInteraction):
 	pass
 
-@badgelog.sub_command(description="Creates a badge log for your character")
+@badgelog.sub_command()
 async def create(
-	inter,
+	inter: disnake.ApplicationCommandInteraction,
 	sheetlink: str,
-	starting_class: str,
+	starting_class: validClass,
 	starting_class_level: int,
-	multiclass1: str = None,
-	multiclass1_level: int = 0,
-	multiclass2: str = None,
-	multiclass2_level: int = 0,
-	multiclass3: str = None,
-	multiclass3_level: int = 0,
-	multiclass4: str = None,
-	multiclass4_level: int = 0
+	firstmulticlass: validClass = None,
+	firstmulticlass_level: int = 0,
+	secondmulticlass: validClass = None,
+	secondmulticlass_level: int = 0,
+	thirdmulticlass: validClass = None,
+	thirdmulticlass_level: int = 0,
+	fourthmulticlass: validClass = None,
+	fourthmulticlass_level: int = 0
 ):
+	"""Creates a badge log for your character
+	Parameters
+	----------
+	sheetlink: Valid character sheet URL.
+	starting_class: Your very first class level.
+	"""
 	await inter.response.send_message(embed = Embed(
 		title=f"Creating {'username here'}'s badge log!",
-		description=f"""{sheetlink=}\n{starting_class=}\n{starting_class_level=}{nl+'multiclass1='+str(multiclass1) if multiclass1!=None else ''}{nl+'multiclass1_level='+str(multiclass1_level) if multiclass1_level!=0 else ''}{nl+'multiclass2='+str(multiclass2) if multiclass2!=None else ''}{nl+'multiclass2_level='+str(multiclass2_level) if multiclass2_level!=0 else ''}{nl+'multiclass3='+str(multiclass3) if multiclass3!=None else ''}{nl+'multiclass3_level='+str(multiclass3_level) if multiclass3_level!=0 else ''}{nl+'multiclass4='+str(multiclass4) if multiclass4!=None else ''}{nl+'multiclass4_level='+str(multiclass4_level) if multiclass4_level!=0 else ''}"""
+		description=f"""{sheetlink=}\n{starting_class=}\n{starting_class_level=}{nl+'firstmulticlass='+str(firstmulticlass) if firstmulticlass!=None else ''}{nl+'firstmulticlass_level='+str(firstmulticlass_level) if firstmulticlass_level!=0 else ''}{nl+'secondmulticlass='+str(secondmulticlass) if secondmulticlass!=None else ''}{nl+'secondmulticlass_level='+str(secondmulticlass_level) if secondmulticlass_level!=0 else ''}{nl+'thirdmulticlass='+str(thirdmulticlass) if thirdmulticlass!=None else ''}{nl+'thirdmulticlass_level='+str(thirdmulticlass_level) if thirdmulticlass_level!=0 else ''}{nl+'fourthmulticlass='+str(fourthmulticlass) if fourthmulticlass!=None else ''}{nl+'fourthmulticlass_level='+str(fourthmulticlass_level) if fourthmulticlass_level!=0 else ''}"""
 	))
 
-@create.autocomplete("starting_class")
-async def validclasses_autocomp(inter: disnake.CommandInteraction, string: str):
-	string = string.casefold()
-	return [chClass for chClass in validClasses if string in chClass.casefold()]
+#@create.autocomplete("starting_class")
+#async def validclasses_autocomp(inter: disnake.CommandInteraction, string: str):
+#	string = string.casefold()
+#	return [chClass for chClass in validClasses if string in chClass.casefold()]
 
-@create.autocomplete("multiclass1")
-async def validclasses_autocomp(inter: disnake.CommandInteraction, string: str):
-	string = string.casefold()
-	return [chClass for chClass in validClasses if string in chClass.casefold()]
+#@create.autocomplete("firstmulticlass")
+#async def validclasses_autocomp(inter: disnake.CommandInteraction, string: str):
+#	string = string.casefold()
+#	return [chClass for chClass in validClasses if string in chClass.casefold()]
 
-@create.autocomplete("multiclass2")
-async def validclasses_autocomp(inter: disnake.CommandInteraction, string: str):
-	string = string.casefold()
-	return [chClass for chClass in validClasses if string in chClass.casefold()]
+#@create.autocomplete("secondmulticlass")
+#async def validclasses_autocomp(inter: disnake.CommandInteraction, string: str):
+#	string = string.casefold()
+#	return [chClass for chClass in validClasses if string in chClass.casefold()]
 
-@create.autocomplete("multiclass3")
-async def validclasses_autocomp(inter: disnake.CommandInteraction, string: str):
-	string = string.casefold()
-	return [chClass for chClass in validClasses if string in chClass.casefold()]
+#@create.autocomplete("thirdmulticlass")
+#async def validclasses_autocomp(inter: disnake.CommandInteraction, string: str):
+#	string = string.casefold()
+#	return [chClass for chClass in validClasses if string in chClass.casefold()]
 
-@create.autocomplete("multiclass4")
-async def validclasses_autocomp(inter: disnake.CommandInteraction, string: str):
-	string = string.casefold()
-	return [chClass for chClass in validClasses if string in chClass.casefold()]
+#@create.autocomplete("fourthmulticlass")
+#async def validclasses_autocomp(inter: disnake.CommandInteraction, string: str):
+#	string = string.casefold()
+#	return [chClass for chClass in validClasses if string in chClass.casefold()]
 
 
 
