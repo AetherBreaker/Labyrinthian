@@ -3,12 +3,16 @@ import logging
 import os
 from disnake.ext import commands
 from dotenv import load_dotenv
+import pymongo
 
 logging.basicConfig(level=logging.INFO)
 
 intents = disnake.Intents.default()
 intents.members = True
 intents.message_content = True
+
+client = pymongo.MongoClient("mongodb+srv://labyrinthadmin:caLnEOD4u6qqMSJj@labyrinthdb.ng3ca.mongodb.net/myFirstDatabase?retryWrites=true&w=majority")
+db = client.test
 
 extensions = [
 	"badgelogging.badgelog"
@@ -36,3 +40,4 @@ for ext in extensions:
 load_dotenv()
 
 bot.run(os.getenv('TOKEN'))
+
