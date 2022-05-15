@@ -15,9 +15,6 @@ bot = commands.Bot(
 	sync_commands_debug=True,
 	intents=intents,
 	owner_ids=['200632489998417929', '136583737931595777']
-	# In the list above you can specify the IDs of your test guilds.
-	# Why is this kwarg called test_guilds? This is because you're not meant to use
-	# local registration in production, since you may exceed the rate limits.
 )
 
 @bot.slash_command(description="Responds with 'World'")
