@@ -10,9 +10,9 @@ intents = disnake.Intents.default()
 intents.members = True
 intents.message_content = True
 
-#extensions = (
-#	'badgelogging.badgelog'
-#)
+extensions = [
+	"badgelogging.badgelog"
+]
 
 bot = commands.Bot(
 	command_prefix="'",
@@ -30,10 +30,8 @@ async def hello(inter):
 async def on_ready():
 	print(f'We have logged in as {bot.user}')
 
-#for ext in extensions:
-#	bot.load_extension(ext)
-
-bot.load_extension('badgelogging.badgelog')
+for ext in extensions:
+	bot.load_extension(ext)
 
 load_dotenv()
 
