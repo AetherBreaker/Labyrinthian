@@ -80,7 +80,6 @@ async def validclasses_autocomp(inter: disnake.CommandInteraction, string: str):
 	string = string.casefold()
 	return [chClass for chClass in validClasses if string in chClass.casefold()]
 
+
+
 bot.run('OTc0NTQyMTY0MjQ1NzU3OTcy.GdAvmG.DeKmgiiivoTUcrITPEUjm_E18wsKAJuQLx7sBs')
-
-
-
