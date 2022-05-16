@@ -3,8 +3,8 @@ import os
 from disnake.ext import commands
 from dotenv import load_dotenv
 import pymongo
-from pymongo.errors import InvalidName
 
+load_dotenv()
 
 class dbClient:
 	def __init__(self, database, collection):
@@ -24,4 +24,9 @@ class dbClient:
 			self.collection.insert_many([document])
 		else:
 			self.collection.insert_one(document)
-
+	
+	def entExists(self, key, value):
+		if self.collection.find({key: value}) != None:
+			return True
+		else:
+			return False
