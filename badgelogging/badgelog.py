@@ -47,8 +47,8 @@ async def create(
 	starting_class: Your very first class level.
 	"""
 	await inter.response.send_message(embed = Embed(
-		title=f"Creating {'username here'}'s badge log!",
-		description=f"""{sheetlink=}\n{starting_class=}\n{starting_class_level=}{nl+'firstmulticlass='+str(firstmulticlass) if firstmulticlass!=None else ''}{nl+'firstmulticlass_level='+str(firstmulticlass_level) if firstmulticlass_level!=0 else ''}{nl+'secondmulticlass='+str(secondmulticlass) if secondmulticlass!=None else ''}{nl+'secondmulticlass_level='+str(secondmulticlass_level) if secondmulticlass_level!=0 else ''}{nl+'thirdmulticlass='+str(thirdmulticlass) if thirdmulticlass!=None else ''}{nl+'thirdmulticlass_level='+str(thirdmulticlass_level) if thirdmulticlass_level!=0 else ''}{nl+'fourthmulticlass='+str(fourthmulticlass) if fourthmulticlass!=None else ''}{nl+'fourthmulticlass_level='+str(fourthmulticlass_level) if fourthmulticlass_level!=0 else ''}"""
+		title=f"Creating {inter.author.name}'s badge log!",
+		description=f"""<@{inter.author.id}>\n{sheetlink=}\n{starting_class=}\n{starting_class_level=}{nl+'firstmulticlass='+str(firstmulticlass) if firstmulticlass!=None else ''}{nl+'firstmulticlass_level='+str(firstmulticlass_level) if firstmulticlass_level!=0 else ''}{nl+'secondmulticlass='+str(secondmulticlass) if secondmulticlass!=None else ''}{nl+'secondmulticlass_level='+str(secondmulticlass_level) if secondmulticlass_level!=0 else ''}{nl+'thirdmulticlass='+str(thirdmulticlass) if thirdmulticlass!=None else ''}{nl+'thirdmulticlass_level='+str(thirdmulticlass_level) if thirdmulticlass_level!=0 else ''}{nl+'fourthmulticlass='+str(fourthmulticlass) if fourthmulticlass!=None else ''}{nl+'fourthmulticlass_level='+str(fourthmulticlass_level) if fourthmulticlass_level!=0 else ''}"""
 	))
 
 def setup(bot):
