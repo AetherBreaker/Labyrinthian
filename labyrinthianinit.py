@@ -4,7 +4,7 @@ import os
 from disnake.ext import commands
 from dotenv import load_dotenv
 import pymongo
-from pymongo.errors import InvalidName
+from database.helveticaDB import dbClient
 
 logging.basicConfig(level=logging.DEBUG)
 
