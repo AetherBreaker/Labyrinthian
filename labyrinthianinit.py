@@ -4,17 +4,15 @@ import os
 from disnake.ext import commands
 from dotenv import load_dotenv
 import pymongo
+from pymongo.errors import InvalidName
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 intents = disnake.Intents.default()
 intents.members = True
 intents.message_content = True
 
 load_dotenv()
-
-client = pymongo.MongoClient(f"mongodb+srv://labyrinthadmin:{os.getenv('DBPSS')}@labyrinthdb.ng3ca.mongodb.net/myFirstDatabase?retryWrites=true&w=majority")
-db = client.test
 
 extensions = [
 	"badgelogging.badgelog"
@@ -40,4 +38,3 @@ for ext in extensions:
 	bot.load_extension(ext)
 
 bot.run(os.getenv('TOKEN'))
-
