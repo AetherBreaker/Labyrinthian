@@ -2,6 +2,7 @@ import disnake
 from disnake.ext import commands
 from disnake import Embed
 from enum import Enum
+from database.helveticaDB import *
 
 nl = '\n'
 

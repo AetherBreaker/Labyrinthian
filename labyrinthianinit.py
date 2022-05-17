@@ -4,7 +4,7 @@ import os
 from disnake.ext import commands
 from dotenv import load_dotenv
 import pymongo
-from database.helveticaDB import dbClient
+from database.helveticaDB import *
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -13,6 +13,8 @@ intents.members = True
 intents.message_content = True
 
 load_dotenv()
+
+db = dbClient("helveticaDB")
 
 extensions = [
 	"badgelogging.badgelog"
