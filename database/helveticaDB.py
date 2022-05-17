@@ -7,26 +7,21 @@ import pymongo
 load_dotenv()
 
 class dbClient:
-	def __init__(self, database, collection):
-		c = pymongo.MongoClient(f"mongodb+srv://labyrinthadmin:{os.getenv('DBPSS')}@labyrinthdb.ng3ca.mongodb.net/helveticaDB?retryWrites=true&w=majority")
-		self.client = c
-		if database in c.list_database_names():
+	def __init__(self, database):
+		self.client = pymongo.MongoClient(f"mongodb+srv://labyrinthadmin:{os.getenv('DBPSS')}@labyrinthdb.ng3ca.mongodb.net/helveticaDB?retryWrites=true&w=majority")
+		if database in self.client.list_database_names():
 			self.db = self.client[database]
 		else:
 			raise FileNotFoundError(f"'{database}' does not exist!")
-		if collection in self.db.list_collection_names():
-			self.collection = self.db[collection]
-		else:
-			raise FileNotFoundError(f"'{collection}' does not exist in the database!")
 
-	def insertDoc(self, collectionName, document, isMany):
-		if isMany:
-			self.collection.insert_many([document])
-		else:
-			self.collection.insert_one(document)
+def insertDoc(collection, document, isMany):
+	if isMany:
+		collection.insert_many([document])
+	else:
+		collection.insert_one(document)
 	
-	def entExists(self, key, value):
-		if self.collection.find({key: value}) != None:
-			return True
-		else:
-			return False
+def entExists(collection, key, value):
+	if collection.find({key: value}) != None:
+		return True
+	else:
+		return False
