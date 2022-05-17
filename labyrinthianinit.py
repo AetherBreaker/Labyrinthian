@@ -4,7 +4,6 @@ import os
 from disnake.ext import commands
 from dotenv import load_dotenv
 import pymongo
-import pymongo
 import motor.motor_asyncio
 
 logging.basicConfig(level=logging.DEBUG)
@@ -25,6 +24,7 @@ class Labyrinthian(commands.Bot):
 			prefix,
 			test_guilds=[915674780303249449, 951225215801757716],
 			sync_commands_debug=True,
+			owner_ids=['200632489998417929', '136583737931595777'],
 			**options
 		)
 		self.mclient = motor.motor_asyncio.AsyncIOMotorClient(f"mongodb+srv://labyrinthadmin:{os.getenv('DBPSS')}@labyrinthdb.ng3ca.mongodb.net/?retryWrites=true&w=majority")
@@ -34,7 +34,6 @@ class Labyrinthian(commands.Bot):
 bot = Labyrinthian(
 	prefix="'",
 	intents=intents,
-	owner_ids=['200632489998417929', '136583737931595777']
 )
 
 @bot.slash_command(description="Responds with 'World'")
