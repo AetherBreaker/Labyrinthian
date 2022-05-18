@@ -1,3 +1,4 @@
+from asyncio.subprocess import Process
 import re
 from typing import Callable, TypeVar
 
@@ -29,7 +30,7 @@ def search(
 		if len(partial_matches) > 1 or not partial_matches:
 			names = [key(d).lower() for d in list_to_search]
 			fuzzy_map = {key(d).lower(): d for d in list_to_search}
-			fuzzy_results = [r for r in process.extract(value.lower(), names, scorer=fuzz.ratio) if r[1] >= cutoff]
+			fuzzy_results = [r for r in Process.extract(value.lower(), names, scorer=fuzz.ratio) if r[1] >= cutoff]
 			fuzzy_sum = sum(r[1] for r in fuzzy_results)
 			fuzzy_matches_and_confidences = [(fuzzy_map[r[0]], r[1] / fuzzy_sum) for r in fuzzy_results]
 
@@ -70,9 +71,9 @@ def extract_gsheet_id_from_url(url):
 
 def urlCheck(url):
 	# Sheets in order: DDB, Dicecloud, Gsheet
-	if beyond_match := DDB_URL_RE.match(url):
+	if url == DDB_URL_RE.match(url):
 		return url
-	elif dicecloud_match := DICECLOUD_URL_RE.match(url):
+	elif url == DICECLOUD_URL_RE.match(url):
 		return url
 	else:
 		try:
