@@ -1,4 +1,4 @@
-from asyncio.subprocess import Process
+from rapidfuzz import fuzz, process
 import re
 from typing import Callable, TypeVar
 
