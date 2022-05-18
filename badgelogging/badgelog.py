@@ -65,8 +65,8 @@ class Badges(commands.Cog):
 		pass
 
 	@badges.sub_command()
-	async def log(self, inter, charname: str):
-		pass
+	async def log(self, inter, charname: str, badgeinput: float, awardingdm: str):
+		
 
 	@badges.sub_command()
 	async def history(self, inter, charname: str):
