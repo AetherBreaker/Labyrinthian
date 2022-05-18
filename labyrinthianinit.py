@@ -29,7 +29,6 @@ class Labyrinthian(commands.Bot):
 		)
 		self.mclient = motor.motor_asyncio.AsyncIOMotorClient(f"mongodb+srv://labyrinthadmin:{os.getenv('DBPSS')}@labyrinthdb.ng3ca.mongodb.net/?retryWrites=true&w=majority")
 		self.mdb = self.mclient["helveticaDB"]
-		#self.rdb = self.loop.run_until_complete(self.setup_rdb())
 
 bot = Labyrinthian(
 	prefix="'",
