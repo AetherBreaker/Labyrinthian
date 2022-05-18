@@ -3,7 +3,7 @@ from disnake.ext import commands
 from disnake import Embed
 #from enum import Enum
 import datetime
-from badgelogging.URLchecker import urlCheck
+from .URLchecker import urlCheck
 
 class Badges(commands.Cog):
 	def __init__(self, bot):
@@ -33,17 +33,45 @@ class Badges(commands.Cog):
 		starting_class: Your character's starter class.
 		starting_clas_level: The level of your character's starter class.
 		"""
-		if urlCheck(sheetlink):
-			existingEntries = await self.bot.mdb['BLCharList'].find({"user": inter.author.id, "character": charactername.casefold()}).to_list(None)
-			if len(existingEntries) > 0:
-				await inter.response.send_message(f"'{charactername}' already exists!")
-			else:
-				await self.bot.mdb['BLCharList'].insert_one({"user": inter.author.id, "character": charactername.casefold(), "charlvl": starting_class_level, "classes": {"class1": starting_class}, "currentbadges": 0, "lastlog": None, "lastlogtime": datetime.datetime.now()})
-				await inter.response.send_message(f"Registered {charactername}'s badge log with the Adventurers Coalition.")
+		existingEntries = await self.bot.mdb['BLCharList'].find({"user": inter.author.id, "character": charactername.casefold()}).to_list(None)
+		if len(existingEntries) > 0:
+			await inter.response.send_message(f"'{charactername}' already exists!")
+		else:
+			await self.bot.mdb['BLCharList'].insert_one({"user": inter.author.id, "sheet": sheetlink, "character": charactername.casefold(), "charlvl": starting_class_level, "classes": {"class1": starting_class}, "currentbadges": 0, "lastlog": None, "lastlogtime": datetime.datetime.now()})
+			await inter.response.send_message(f"Registered {charactername}'s badge log with the Adventurers Coalition.")
 		#await inter.response.send_message(embed = Embed(
 		#	title=f"Creating {inter.author.name}'s badge log!",
 		#	description=f"""<@{inter.author.id}>\n{sheetlink=}\n{starting_class=}\n{starting_class_level=}"""
 		#))
+
+	@badges.sub_command_group()
+	async def multiclass(self, inter):
+		pass
+
+	@multiclass.sub_command()
+	async def add(self, inter, multiclassname: validClass, multiclasslevel: int):
+		pass
+
+	@multiclass.sub_command()
+	async def remove(self, inter, multiclassname: validClass):
+		pass
+
+	@multiclass.sub_command()
+	async def update(self, inter, multiclassname: validClass, multiclasslevel: int):
+		pass
+
+	@badges.sub_command()
+	async def charlist(self, inter):
+		pass
+
+	@badges.sub_command()
+	async def log(self, inter, charname: str):
+		pass
+
+	@badges.sub_command()
+	async def history(self, inter, charname: str):
+		pass
+
 
 def setup(bot):
 	bot.add_cog(Badges(bot))
