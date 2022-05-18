@@ -1,11 +1,12 @@
 from asyncio.subprocess import Process
 import re
 from typing import Callable, TypeVar
-from rapidfuzz import fuzz, process
+#from rapidfuzz import fuzz, process
 
 
 DDB_URL_RE = re.compile(r"(?:https?://)?(?:www\.dndbeyond\.com|ddb\.ac)(?:/profile/.+)?/characters/(\d+)/?")
 DICECLOUD_URL_RE = re.compile(r"(?:https?://)?dicecloud\.com/character/([\d\w]+)/?")
+
 
 _HaystackT = TypeVar("_HaystackT")
 
@@ -61,6 +62,14 @@ def search(
 URL_KEY_V1_RE = re.compile(r"key=([^&#]+)")
 URL_KEY_V2_RE = re.compile(r"/spreadsheets/d/([a-zA-Z0-9-_]+)")
 
+#Error Class For this situation, should be moved to seperate file later.
+#Also made it a subclass Exception instead of AvraeException, which simply is a subclass from Exceptions as well.
+class ExternalImportError(Exception):
+	def __init__(self, msg):
+		super().__init__(msg)
+
+
+
 def extract_gsheet_id_from_url(url):
 	m2 = URL_KEY_V2_RE.search(url)
 	if m2:
@@ -70,11 +79,13 @@ def extract_gsheet_id_from_url(url):
 		return url
 	raise ExternalImportError("This is not a valid Google Sheets link.")
 
+#ctx must be another parameter provided, from disnake API.
+#ctx is a "context" from the disnake.ext.commands
 def urlCheck(url):
 	# Sheets in order: DDB, Dicecloud, Gsheet
-	if url == DDB_URL_RE.match(url):
+	if DDB_URL_RE.match(url):
 		return url
-	elif url == DICECLOUD_URL_RE.match(url):
+	elif DICECLOUD_URL_RE.match(url):
 		return url
 	else:
 		try:
