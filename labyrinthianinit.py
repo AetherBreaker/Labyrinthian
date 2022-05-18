@@ -1,16 +1,23 @@
 import disnake
 import logging
 import os
+from disnake.errors import Forbidden, HTTPException, InvalidArgument, NotFound
 from disnake.ext import commands
+from disnake.ext.commands.errors import CommandInvokeError
 from dotenv import load_dotenv
 import pymongo
 import motor.motor_asyncio
+import aioredis
+from config import config
 
 logging.basicConfig(level=logging.DEBUG)
 
 intents = disnake.Intents.default()
 intents.members = True
 intents.message_content = True
+intents.guilds = True
+intents.messages = True
+intents.presences = True
 
 load_dotenv()
 
@@ -18,20 +25,53 @@ extensions = [
 	"badgelogging.badgelog"
 ]
 
+async def get_prefix(the_bot, message):
+	if not message.guild:
+		return commands.when_mentioned_or(config.DEFAULT_PREFIX)(the_bot, message)
+	gp = await the_bot.get_guild_prefix(message.guild)
+	return commands.when_mentioned_or(gp)(the_bot, message)
+
 class Labyrinthian(commands.Bot):
-	def __init__(self, prefix, **options):
+	def __init__(self, prefix, help_command=None, description=None, **options):
 		super().__init__(
 			prefix,
-			test_guilds=[915674780303249449, 951225215801757716],
-			sync_commands_debug=True,
-			owner_ids=['200632489998417929', '136583737931595777'],
+			help_command=help_command,
+			description=description,
+			test_guilds=config.COMMAND_TEST_GUILD_IDS,
+			sync_commands_debug=config.TESTING,
+			owner_ids=config.OWNER_ID,
 			**options
 		)
-		self.mclient = motor.motor_asyncio.AsyncIOMotorClient(f"mongodb+srv://labyrinthadmin:{os.getenv('DBPSS')}@labyrinthdb.ng3ca.mongodb.net/?retryWrites=true&w=majority")
-		self.mdb = self.mclient["helveticaDB"]
+		self.state = "init"
+
+		#databases
+		self.mclient = motor.motor_asyncio.AsyncIOMotorClient(config.MONGO_URL)
+		self.mdb = self.mclient[config.MONGODB_DB_NAME]
+		#self.rdb = self.loop.run_until_complete(self.setup_rdb())
+
+		#misc caches
+		self.prefixes = dict()
+		self.muted = set()
+
+#async def setup_rdb(self):
+#	return RedisIO(await aioredis.create_redis_pool(config.REDIS_URL, db=config.REDIS_DB_NUM))
+
+async def get_guild_prefix(self, guild: disnake.Guild) -> str:
+	guild_id = str(guild.id)
+	if guild_id in self.prefixes:
+		return self.prefixes.get(guild_id, config.DEFAULT_PREFIX)
+	# load from db and cache
+	gp_obj = await self.mdb.prefixes.find_one({"guild_id": guild_id})
+	if gp_obj is None:
+		gp = config.DEFAULT_PREFIX
+	else:
+		gp = gp_obj.get("prefix", config.DEFAULT_PREFIX)
+	self.prefixes[guild_id] = gp
+	return 
 
 bot = Labyrinthian(
-	prefix="'",
+	prefix=get_prefix,
+	testing=config.TESTING,
 	intents=intents,
 )
 
