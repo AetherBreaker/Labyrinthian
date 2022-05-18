@@ -1,12 +1,9 @@
 from asyncio.subprocess import Process
 import re
 from typing import Callable, TypeVar
-#from rapidfuzz import fuzz, process
-
 
 DDB_URL_RE = re.compile(r"(?:https?://)?(?:www\.dndbeyond\.com|ddb\.ac)(?:/profile/.+)?/characters/(\d+)/?")
 DICECLOUD_URL_RE = re.compile(r"(?:https?://)?dicecloud\.com/character/([\d\w]+)/?")
-
 
 _HaystackT = TypeVar("_HaystackT")
 
@@ -68,8 +65,6 @@ class ExternalImportError(Exception):
 	def __init__(self, msg):
 		super().__init__(msg)
 
-
-
 def extract_gsheet_id_from_url(url):
 	m2 = URL_KEY_V2_RE.search(url)
 	if m2:
@@ -79,8 +74,6 @@ def extract_gsheet_id_from_url(url):
 		return url
 	raise ExternalImportError("This is not a valid Google Sheets link.")
 
-#ctx must be another parameter provided, from disnake API.
-#ctx is a "context" from the disnake.ext.commands
 def urlCheck(url):
 	# Sheets in order: DDB, Dicecloud, Gsheet
 	if DDB_URL_RE.match(url):
@@ -91,4 +84,5 @@ def urlCheck(url):
 		try:
 			url = extract_gsheet_id_from_url(url)
 		except ExternalImportError:
-			return ctx.send("Sheet type did not match accepted formats.")
+			return "Sheet type did not match accepted formats."
+		return url
