@@ -2,7 +2,7 @@ import disnake
 from disnake.ext import commands
 from disnake import Embed
 import datetime
-from data import URLchecker
+from data.URLchecker import urlCheck
 
 #await cog_before_slash_command_invoke(inter):
 #		funcout = await commands.option_enum(self.bot.mdb['BLCharList'].find({"user": inter.author.id}).distinct({"character"}))
@@ -38,6 +38,7 @@ class Badges(commands.Cog):
 		starting_class: Your character's starter class.
 		starting_clas_level: The level of your character's starter class.
 		"""
+		print(urlCheck(sheetlink))
 		existingEntries = await self.bot.mdb['BLCharList'].find({"user": inter.author.id, "character": charactername.casefold()}).to_list(None)
 		if len(existingEntries) > 0:
 			await inter.response.send_message(f"'{charactername}' already exists!")
