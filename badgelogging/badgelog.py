@@ -1,16 +1,20 @@
 import disnake
 from disnake.ext import commands
 from disnake import Embed
-#from enum import Enum
 import datetime
-from ..data.URLchecker import urlCheck
+from data import URLchecker
+
+#await cog_before_slash_command_invoke(inter):
+#		funcout = await commands.option_enum(self.bot.mdb['BLCharList'].find({"user": inter.author.id}).distinct({"character"}))
 
 class Badges(commands.Cog):
 	def __init__(self, bot):
 		self.bot = bot
+		self.funcout = []
 
 	nl = '\n'
 	validClass = commands.option_enum(['Artificer', 'Barbarian', 'Bard', 'Blood Hunter', 'Cleric', 'Druid', 'Fighter', 'Monk', 'Paladin', 'Ranger', 'Rogue', 'Sorcerer', 'Warlock', 'Wizard'])
+	funcout = []
 
 	@commands.slash_command(description="Log your characters badges.")
 	async def badges(self, inter: disnake.ApplicationCommandInteraction):
@@ -45,48 +49,48 @@ class Badges(commands.Cog):
 		#	description=f"""<@{inter.author.id}>\n{sheetlink=}\n{starting_class=}\n{starting_class_level=}"""
 		#))
 
-	@badges.sub_command()
-	async def edit(self, inter, charname: str, badgeinput: float):
-		pass
+	#@badges.sub_command()
+	#async def edit(self, inter, charname: str, badgeinput: float):
+	#	pass
 
-	#master of the multiclass sub commands
-	@badges.sub_command_group()
-	async def multiclass(self, inter):
-		pass
+	##master of the multiclass sub commands
+	#@badges.sub_command_group()
+	#async def multiclass(self, inter):
+	#	pass
 
-	#adds a multiclass entry to a characters badgelog master
-	@multiclass.sub_command()
-	async def add(self, inter, multiclassname: validClass, multiclasslevel: int):
-		pass
+	##adds a multiclass entry to a characters badgelog master
+	#@multiclass.sub_command()
+	#async def add(self, inter, multiclassname: validClass, multiclasslevel: int):
+	#	pass
 
-	#removes a multiclass entry from a characters badgelog master
-	@multiclass.sub_command()
-	async def remove(self, inter, multiclassname: validClass):
-		pass
+	##removes a multiclass entry from a characters badgelog master
+	#@multiclass.sub_command()
+	#async def remove(self, inter, multiclassname: validClass):
+	#	pass
 
-	#updatese a multiclass entry in a characters badgelog master
-	@multiclass.sub_command()
-	async def update(self, inter, multiclassname: validClass, multiclasslevel: int):
-		pass
+	##updatese a multiclass entry in a characters badgelog master
+	#@multiclass.sub_command()
+	#async def update(self, inter, multiclassname: validClass, multiclasslevel: int):
+	#	pass
 
-	#returns a list of the invoking users character badge logs
-	@badges.sub_command()
-	async def charlist(self, inter):
-		pass
+	##returns a list of the invoking users character badge logs
+	#@badges.sub_command()
+	#async def charlist(self, inter):
+	#	pass
 
-	#creates a new log entry in a characters badge log
-	#inputs:
-	#	character name
-	#	badgee input
-	#	awarding dm
-	@badges.sub_command()
-	async def log(self, inter, charname: str, badgeinput: float, awardingdm: str):
-		pass
+	##creates a new log entry in a characters badge log
+	##inputs:
+	##	character name
+	##	badgee input
+	##	awarding dm
+	#@badges.sub_command()
+	#async def log(self, inter, charname: str, badgeinput: float, awardingdm: str):
+	#	pass
 	
-	#returns a log of the selected characters most recent log entries
-	@badges.sub_command()
-	async def history(self, inter, charname: str):
-		pass
+	##returns a log of the selected characters most recent log entries
+	#@badges.sub_command()
+	#async def history(self, inter, charname: str):
+	#	pass
 
 def setup(bot):
 	bot.add_cog(Badges(bot))
