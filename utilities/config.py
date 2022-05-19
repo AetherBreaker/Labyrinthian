@@ -1,9 +1,12 @@
 import os
 import sys
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # ==== bot config constants / env vars ====
-TOKEN = os.environ.get("DISCORD_BOT_TOKEN", "")
-TESTING = os.environ.get("TESTING") or "test" in sys.argv
+TOKEN = os.getenv("DISCORD_BOT_TOKEN")
+TESTING = os.getenv("TESTING") or "test" in sys.argv
 #ENVIRONMENT = os.getenv("ENVIRONMENT", "production" if not TESTING else "development")
 OWNER_ID = os.getenv("DISCORD_OWNER_USER_ID", 0)
 # slash command test guilds - these only apply in development anyway, so hardcoded
@@ -18,7 +21,7 @@ COMMAND_TEST_GUILD_IDS = (
 
 # ---- mongo/redis ----
 MONGO_URL = os.getenv("MONGO_URL")
-MONGODB_DB_NAME = os.getenv("MONGODB_DB_NAME", "avrae")
+MONGODB_DB_NAME = os.getenv("MONGODB_DB_NAME", "Labyrinthian")
 REDIS_URL = os.getenv("REDIS_URL")
 REDIS_DB_NUM = int(os.getenv("REDIS_DB_NUM", 0))
 
