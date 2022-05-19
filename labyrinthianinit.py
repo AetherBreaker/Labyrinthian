@@ -73,7 +73,6 @@ bot = Labyrinthian(
 	intents=intents,
 )
 
-
 @bot.event
 async def on_ready():
 	print(f'We have logged in as {bot.user}')
