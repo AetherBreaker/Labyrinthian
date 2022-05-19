@@ -4,11 +4,11 @@ import os
 from disnake.errors import Forbidden, HTTPException, InvalidArgument, NotFound
 from disnake.ext import commands
 from disnake.ext.commands.errors import CommandInvokeError
-from dotenv import load_dotenv
 import pymongo
 import motor.motor_asyncio
 import aioredis
-from config import config
+from utilities import config
+from utilities.redisIOAvrae import RedisIO
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -18,8 +18,6 @@ intents.message_content = True
 intents.guilds = True
 intents.messages = True
 intents.presences = True
-
-load_dotenv()
 
 extensions = [
 	"badgelogging.badgelog"
@@ -43,7 +41,7 @@ class Labyrinthian(commands.Bot):
 			**options
 		)
 		self.state = "init"
-
+		
 		#databases
 		self.mclient = motor.motor_asyncio.AsyncIOMotorClient(config.MONGO_URL)
 		self.mdb = self.mclient[config.MONGODB_DB_NAME]
@@ -75,9 +73,6 @@ bot = Labyrinthian(
 	intents=intents,
 )
 
-@bot.slash_command(description="Responds with 'World'")
-async def hello(inter):
-	await inter.response.send_message("World")
 
 @bot.event
 async def on_ready():
@@ -86,4 +81,4 @@ async def on_ready():
 for ext in extensions:
 	bot.load_extension(ext)
 
-bot.run(os.getenv('TOKEN'))
+bot.run(config.TOKEN)
