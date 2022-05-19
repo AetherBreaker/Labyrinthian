@@ -21,7 +21,7 @@ COMMAND_TEST_GUILD_IDS = (
 
 # ---- mongo/redis ----
 MONGO_URL = os.getenv("MONGO_URL")
-MONGODB_DB_NAME = os.getenv("MONGODB_DB_NAME", "Labyrinthian")
+MONGODB_DB_NAME = os.getenv("MONGODB_DB_NAME")
 REDIS_URL = os.getenv("REDIS_URL")
 REDIS_DB_NUM = int(os.getenv("REDIS_DB_NUM", 0))
 
