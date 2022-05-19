@@ -77,12 +77,12 @@ def extract_gsheet_id_from_url(url):
 def urlCheck(url):
 	# Sheets in order: DDB, Dicecloud, Gsheet
 	if DDB_URL_RE.match(url):
-		return url
+		return True
 	elif DICECLOUD_URL_RE.match(url):
-		return url
+		return True
 	else:
 		try:
 			url = extract_gsheet_id_from_url(url)
 		except ExternalImportError:
-			return "Sheet type did not match accepted formats."
-		return url
+			return False
+		return True
