@@ -6,9 +6,6 @@ from data.URLchecker import urlCheck
 import json
 from errors.errors import noValidTemplate
 
-#await cog_before_slash_command_invoke(inter):
-#		funcout = await commands.option_enum(self.bot.sdb[f"BLCharList_{inter.guild.id}"].find({"user": inter.author.id}).distinct({"character"}))
-
 class Badges(commands.Cog):
 	def __init__(self, bot):
 		self.bot = bot
@@ -56,7 +53,7 @@ class Badges(commands.Cog):
 			if character != None:
 				await inter.response.send_message(f"{charname}'s badge log already exists!")
 			else:
-				await self.bot.sdb[f"BLCharList_{inter.guild.id}"].insert_one({"user": str(inter.author.id), "sheet": sheetlink, "character": charname, "charlvl": startingclasslevel, "classes": {startingclass: startingclasslevel}, "currentbadges": 0, "lastlog": None, "lastlogtime": datetime.datetime.now()})
+				await self.bot.sdb[f"BLCharList_{inter.guild.id}"].insert_one({"user": str(inter.author.id), "sheet": sheetlink, "character": charname, "charlvl": startingclasslevel, "classes": {startingclass: startingclasslevel}, "currentbadges": 0, "expectedlevel": 1, "lastlog": None, "lastlogtime": datetime.datetime.now()})
 				await inter.response.send_message(f"Registered {charname}'s badge log with the Adventurers Coalition.")
 		else:
 			inter.response.send_message("Sheet type does not match accepted formats, or is not a valid URL.")
@@ -76,7 +73,8 @@ class Badges(commands.Cog):
 		if character == None:
 			await inter.response.send_message(f"{charname} doesn't exist!")
 		else:
-			await self.bot.sdb[f"BLCharList_{inter.guild.id}"].update_one({"user":str(inter.author.id),"character":charname},{'$set':{"character": newname}})
+			character['character'] = newname
+			await self.bot.sdb[f"BLCharList_{inter.guild.id}"].replace_one({"user":str(inter.author.id),"character":charname}, character)
 			await inter.response.send_message(f"{charname}'s name changed to {newname}")
 
 	@rename.autocomplete("charname")
