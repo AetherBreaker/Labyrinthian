@@ -20,15 +20,14 @@ intents.messages = True
 intents.presences = True
 
 extensions = [
-	"badgelogging.badgelog",
-	"misc.customization"
+	"badgelogging.badgelog"
 ]
 
-async def get_prefix(the_bot, message):
+async def get_prefix(bot, message):
 	if not message.guild:
-		return commands.when_mentioned_or(config.DEFAULT_PREFIX)(the_bot, message)
-	gp = await the_bot.get_guild_prefix(message.guild)
-	return commands.when_mentioned_or(gp)(the_bot, message)
+		return commands.when_mentioned_or(config.DEFAULT_PREFIX)(bot, message)
+	gp = await bot.get_guild_prefix(message.guild)
+	return commands.when_mentioned_or(gp)(bot, message)
 
 class Labyrinthian(commands.Bot):
 	def __init__(self, prefix, help_command=None, description=None, **options):
@@ -61,7 +60,7 @@ class Labyrinthian(commands.Bot):
 		if guild_id in self.prefixes:
 			return self.prefixes.get(guild_id, config.DEFAULT_PREFIX)
 		# load from db and cache
-		gp_obj = await self.mdb.prefixes.find_one({"guild_id": guild_id})
+		gp_obj = await self.sdb.prefixes.find_one({"guild_id": guild_id})
 		if gp_obj is None:
 			gp = config.DEFAULT_PREFIX
 		else:
