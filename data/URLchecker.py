@@ -1,6 +1,7 @@
 from rapidfuzz import fuzz, process
 import re
 from typing import Callable, TypeVar
+from errors.errors import ExternalImportError
 
 DDB_URL_RE = re.compile(r"(?:https?://)?(?:www\.dndbeyond\.com|ddb\.ac)(?:/profile/.+)?/characters/(\d+)/?")
 DICECLOUD_URL_RE = re.compile(r"(?:https?://)?dicecloud\.com/character/([\d\w]+)/?")
@@ -58,12 +59,6 @@ def search(
 
 URL_KEY_V1_RE = re.compile(r"key=([^&#]+)")
 URL_KEY_V2_RE = re.compile(r"/spreadsheets/d/([a-zA-Z0-9-_]+)")
-
-#Error Class For this situation, should be moved to seperate file later.
-#Also made it a subclass Exception instead of AvraeException, which simply is a subclass from Exceptions as well.
-class ExternalImportError(Exception):
-	def __init__(self, msg):
-		super().__init__(msg)
 
 def extract_gsheet_id_from_url(url):
 	m2 = URL_KEY_V2_RE.search(url)
