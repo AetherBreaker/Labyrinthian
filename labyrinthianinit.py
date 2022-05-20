@@ -20,7 +20,8 @@ intents.messages = True
 intents.presences = True
 
 extensions = [
-	"badgelogging.badgelog"
+	"badgelogging.badgelog",
+	"misc.customization"
 ]
 
 async def get_prefix(the_bot, message):
@@ -45,6 +46,7 @@ class Labyrinthian(commands.Bot):
 		#databases
 		self.mclient = motor.motor_asyncio.AsyncIOMotorClient(config.MONGO_URL)
 		self.mdb = self.mclient[config.MONGODB_DB_NAME]
+		self.sdb = self.mclient[config.MONGODB_SERVERDB_NAME]
 		#self.rdb = self.loop.run_until_complete(self.setup_rdb())
 
 		#misc caches
@@ -79,5 +81,10 @@ async def on_ready():
 
 for ext in extensions:
 	bot.load_extension(ext)
+
+@bot.slash_command(description="Reload bot extensions", checks=[commands.is_owner()])
+async def reload(inter, extension: str = commands.Param(choices=extensions)):
+	await inter.response.send_message(f"Reloading the {extension} extension.")
+	await bot.reload_extension(extension)
 
 bot.run(config.TOKEN)
