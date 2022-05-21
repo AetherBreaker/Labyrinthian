@@ -1,9 +1,6 @@
 ﻿from typing import List
-from utilities import config
 import disnake
 from disnake.ext import commands
-
-bot = commands.Bot(command_prefix=commands.when_mentioned)
 
 # Defines a simple paginator of buttons for the embed.
 class Menu(disnake.ui.View):
@@ -95,6 +92,3 @@ async def paginator(ctx: commands.Context):
 
 	# Sends first embed with the buttons, it also passes the embeds list into the View class.
 	await ctx.send(embed=embeds[0], view=Menu(embeds))
-	
-
-bot.run(config.TOKEN)
