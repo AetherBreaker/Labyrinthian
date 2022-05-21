@@ -81,9 +81,12 @@ async def on_ready():
 for ext in extensions:
 	bot.load_extension(ext)
 
-@bot.slash_command(description="Reload bot extensions", checks=[commands.is_owner()])
+@bot.slash_command(description="Reload bot extensions")
 async def reload(inter, extension: str = commands.Param(choices=extensions)):
-	await inter.response.send_message(f"Reloading the {extension} extension.")
-	await bot.reload_extension(extension)
+	if str(inter.author.id) in bot.owner_ids:
+		await inter.response.send_message(f"Reloading the {extension} extension.")
+		bot.reload_extension(extension)
+	else:
+		await inter.response.send_message("You are not the owner of this bot")
 
 bot.run(config.TOKEN)
