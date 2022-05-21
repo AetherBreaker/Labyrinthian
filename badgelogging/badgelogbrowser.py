@@ -4,11 +4,10 @@ from typing import list
 
 class Browser(disnake.ui.View):
 	def __init__(self, inter, bot):
-		super().__init__(timeout=None)
+		super().__init__(timeout=180)
 		self.bot = bot
 		self.charscursor = inter.author.id
-		self.embeds = embeds
-		self.embed_count = 0
+		self.embed =
 
 		self.first_page.disabled = True
 		self.prev_page.disabled = True
@@ -16,6 +15,9 @@ class Browser(disnake.ui.View):
 		# Sets the footer of the embeds with their respective page numbers.
 		for i, embed in enumerate(self.embeds):
 			embed.set_footer(text=f"Page {i + 1} of {len(self.embeds)}")
+
+	@disnake.ui.select(placeholder="Character", row=4,)
+	async def char_select():
 
 	@disnake.ui.button(emoji="⏪", style=disnake.ButtonStyle.blurple)
 	async def first_page(self, button: disnake.ui.Button, interaction: disnake.MessageInteraction):
