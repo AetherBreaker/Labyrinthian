@@ -6,6 +6,7 @@ from data.URLchecker import urlCheck
 import json
 from errors.errors import noValidTemplate
 from json import JSONDecodeError
+from misc.txtformatting import mkTable
 
 class Badges(commands.Cog):
 	def __init__(self, bot):
@@ -52,7 +53,7 @@ class Badges(commands.Cog):
 			if character != None:
 				await inter.response.send_message(f"{charname}'s badge log already exists!")
 			else:
-				await self.bot.sdb[f"BLCharList_{inter.guild.id}"].insert_one({"user": str(inter.author.id), "sheet": sheetlink, "character": charname, "charlvl": startingclasslevel, "classes": {startingclass: startingclasslevel}, "currentbadges": 0, "expectedlevel": 1, "lastlog": None, "lastlogtime": datetime.datetime.now()})
+				await self.bot.sdb[f"BLCharList_{inter.guild.id}"].insert_one({"user": str(inter.author.id), "sheet": sheetlink, "character": charname, "charlvl": startingclasslevel, "classes": {startingclass: startingclasslevel}, "currentbadges": 0, "expectedlvl": 1, "lastlog": None, "lastlogtime": datetime.datetime.now()})
 				await inter.response.send_message(f"Registered {charname}'s badge log with the Adventurers Coalition.")
 		else:
 			await inter.response.send_message("Sheet type does not match accepted formats, or is not a valid URL.")
@@ -157,9 +158,13 @@ class Badges(commands.Cog):
 	#returns a list of the invoking users character badge logs
 	@badges.sub_command(description="Displays a list of all the characters that you've created badge logs for.")
 	async def charlist(self, inter):
-		charlist = self.bot.sdb[f"BLCharList_{inter.guild.id}"].distinct("character", {"user": str(inter.author.id)})
-		pass
-
+		charlist =await self.bot.sdb[f"BLCharList_{inter.guild.id}"].find({"user": str(inter.author.id)}).to_list(None)
+		#charlist = list(charlist)
+		output = disnake.Embed(
+			title=f"{inter.author.display_name}'s characters:",
+			description=mkTable.fromListofDicts(charlist, ["character", "charlvl", "expectedlvl", "currentbadges"], {"charlvl": 3, "expectedlvl": 4, "currentbadges": 3}, 43, '${character}|${charlvl}${expectedlvl}|${currentbadges}', '`', {"expectedlvl": '(${expectedlvl})'})
+		)
+		await inter.response.send_message(embed=output)
 
 	@badges.sub_command()
 	async def charinfo(self, inter, charname: str):
