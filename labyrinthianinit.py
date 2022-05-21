@@ -10,7 +10,7 @@ import aioredis
 from utilities import config
 from utilities.redisIOAvrae import RedisIO
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 intents = disnake.Intents.default()
 intents.members = True
