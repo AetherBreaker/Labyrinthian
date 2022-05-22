@@ -69,16 +69,16 @@ class Browser(disnake.ui.View):
 	#		with suppress(disnake.HTTPException):
 	#			await input_msg.delete()
 
-	#		#role_ids = {r.id for r in input_msg.role_mentions}
-	#		#for stmt in input_msg.content.split(","):
-	#		#	clean_stmt = stmt.strip()
-	#		#	try:  # get role by id
-	#		#		role_id = int(clean_stmt)
-	#		#		maybe_role = self.guild.get_role(role_id)
-	#		#	except ValueError:  # get role by name
-	#		#		maybe_role = next((r for r in self.guild.roles if r.name.lower() == clean_stmt.lower()), None)
-	#		#	if maybe_role is not None:
-	#		#		role_ids.add(maybe_role.id)
+			#role_ids = {r.id for r in input_msg.role_mentions}
+			#for stmt in input_msg.content.split(","):
+			#	clean_stmt = stmt.strip()
+			#	try:  # get role by id
+			#		role_id = int(clean_stmt)
+			#		maybe_role = self.guild.get_role(role_id)
+			#	except ValueError:  # get role by name
+			#		maybe_role = next((r for r in self.guild.roles if r.name.lower() == clean_stmt.lower()), None)
+			#	if maybe_role is not None:
+			#		role_ids.add(maybe_role.id)
 
 	#		if role_ids:
 	#			await interaction.send("The DM roles have been updated.", ephemeral=True)

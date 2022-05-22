@@ -12,23 +12,45 @@ from badgelogging.badgelogbrowser import Browser
 class Badges(commands.Cog):
 	def __init__(self, bot):
 		self.bot = bot
+		self.dmlist = []
 
 	nl = '\n'
 	validClass = commands.option_enum(['Artificer', 'Barbarian', 'Bard', 'Blood Hunter', 'Cleric', 'Druid', 'Fighter', 'Monk', 'Paladin', 'Ranger', 'Rogue', 'Sorcerer', 'Warlock', 'Wizard'])
 
-	@commands.Cog.listener()
-	async def on_ready(self):
-		for x in self.bot.guilds:
-			dmrole = self.bot.sdb[f"srvconfs"]
-			for y in x.members:
-				print(x.roles)
+	@commands.slash_command(default_member_permissions=disnake.Permissions(administrator=True))
+	async def dmroles(self, inter: disnake.ApplicationCommandInteraction):
+		pass
+
+	@dmroles.sub_command(name="add")
+	async def addrole(self, inter: disnake.ApplicationCommandInteraction, role: disnake.Role, role2: disnake.Role=None, role3: disnake.Role=None, role4: disnake.Role=None):
+		"""Choose your servers DM roles.
+		You can mention roles, or use a comma-separated list of names or IDs."""
+		roleslist=[]
+		if role2!=None:
+			roleslist.append(role2)
+		if role3!=None:
+			roleslist.append(role3)
+		if role4!=None:
+			roleslist.append(role4)
+		role_ids = {r.id for r in roleslist}
+		if role_ids:
+			await interaction.send("The DM roles have been updated.", ephemeral=True)
+			self.sbd['srvconf'].update_one({"guild": str(inter.guild.id)}, {"guild": str(inter.guild.id), "dmroles": role_ids}, True)
+		await inter.send("No valid roles found. Please try again.", ephemeral=True)
+
+	#@commands.Cog.listener()
+	#async def on_ready(self):
+	#	for x in self.bot.guilds:
+	#		dmrole = self.bot.sdb[f"srvconfs"]
+	#		for y in x.members:
+	#			print(x.roles)
 
 	#@commands.Cog.listener()
 	#async def on_member_update(self, member):
 
 
 	@commands.slash_command(default_member_permissions=8)
-	async def badgetemplate(self, inter, templatedict: str):
+	async def badgetemplate(self, inter: disnake.ApplicationCommandInteraction, templatedict: str):
 		try:
 			templatedict = json.loads(templatedict)
 		except JSONDecodeError:

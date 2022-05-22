@@ -1,22 +1,16 @@
 import disnake
 import logging
-import os
-from disnake.errors import Forbidden, HTTPException, InvalidArgument, NotFound
 from disnake.ext import commands
-from disnake.ext.commands.errors import CommandInvokeError
-import pymongo
 import motor.motor_asyncio
-import aioredis
 from utilities import config
-from utilities.redisIOAvrae import RedisIO
+from utilities.functions import confirm
+from utilities import checks
 
 logging.basicConfig(level=logging.INFO)
 
 intents = disnake.Intents.default()
 intents.members = True
 intents.message_content = True
-intents.guilds = True
-intents.messages = True
 intents.presences = True
 
 extensions = [
@@ -70,14 +64,55 @@ class Labyrinthian(commands.Bot):
 		return 
 
 bot = Labyrinthian(
-	prefix=get_prefix,
+	prefix="'",
 	testing=config.TESTING,
 	intents=intents,
+	reload=True
 )
 
 @bot.event
 async def on_ready():
 	print(f'We have logged in as {bot.user}')
+
+@bot.command()
+@commands.guild_only()
+async def prefix(ctx, prefix: str = None):
+	"""
+	Sets the bot's prefix for this server.
+	You must have Manage Server permissions or a role called "Bot Admin" to use this command. Due to a possible Discord conflict, a prefix beginning with `/` will require confirmation.
+	Forgot the prefix? Reset it with "@Labyrinthian#1476 prefix '".
+	"""
+	guild_id = str(ctx.guild.id)
+	if prefix is None:
+		current_prefix = await bot.get_guild_prefix(ctx.guild)
+		return await ctx.send(f"My current prefix is: `{current_prefix}`.")
+
+	if not checks._role_or_permissions(ctx, lambda r: r.name.lower() == "bot admin", manage_guild=True):
+		return await ctx.send("You do not have permissions to change the guild prefix.")
+
+	# Check for Discord Slash-command conflict
+	if prefix.startswith("/"):
+		if not await confirm(
+			ctx,
+			"Setting a prefix that begins with / may cause issues. "
+			"Are you sure you want to continue? (Reply with yes/no)",
+		):
+			return await ctx.send("Ok, cancelling.")
+	else:
+		if not await confirm(
+			ctx,
+			f"Are you sure you want to set my prefix to `{prefix}`? This will affect "
+			f"everyone on this server! (Reply with yes/no)",
+		):
+			return await ctx.send("Ok, cancelling.")
+
+	# insert into cache
+	bot.prefixes[guild_id] = prefix
+
+	# update db
+	await bot.sdb.prefixes.update_one({"guild_id": guild_id}, {"$set": {"prefix": prefix}}, upsert=True)
+
+	await ctx.send(f"Prefix set to `{prefix}` for this server.")
 
 for ext in extensions:
 	bot.load_extension(ext)
