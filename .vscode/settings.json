@@ -1,4 +1,8 @@
 {
     "python.terminal.activateEnvInCurrentTerminal": true,
-    "python.globalModuleInstallation": false
+    "python.globalModuleInstallation": false,
+    "mdb.connectionSaving.defaultConnectionSavingLocation": "Workspace",
+    "liveshare.accessibility.accessibilityFeaturesEnabled": true,
+    "liveshare.allowGuestDebugControl": true,
+    "liveshare.launcherClient": "visualStudioCode"
 }
