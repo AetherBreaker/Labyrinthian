@@ -1,7 +1,7 @@
 from rapidfuzz import fuzz, process
 import re
 from typing import Callable, TypeVar
-from errors.errors import ExternalImportError
+from utilities.errors import ExternalImportError
 
 DDB_URL_RE = re.compile(r"(?:https?://)?(?:www\.dndbeyond\.com|ddb\.ac)(?:/profile/.+)?/characters/(\d+)/?")
 DICECLOUD_URL_RE = re.compile(r"(?:https?://)?dicecloud\.com/character/([\d\w]+)/?")
