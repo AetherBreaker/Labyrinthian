@@ -4,9 +4,10 @@ from disnake import Embed
 import datetime
 from data.URLchecker import urlCheck
 import json
-from errors.errors import noValidTemplate
+from utilities.errors import noValidTemplate
 from json import JSONDecodeError
-from misc.txtformatting import mkTable
+from utilities.txtformatting import mkTable
+from badgelogging.badgelogbrowser import Browser
 
 class Badges(commands.Cog):
 	def __init__(self, bot):
@@ -15,28 +16,37 @@ class Badges(commands.Cog):
 	nl = '\n'
 	validClass = commands.option_enum(['Artificer', 'Barbarian', 'Bard', 'Blood Hunter', 'Cleric', 'Druid', 'Fighter', 'Monk', 'Paladin', 'Ranger', 'Rogue', 'Sorcerer', 'Warlock', 'Wizard'])
 
+	@commands.Cog.listener()
+	async def on_ready(self):
+		for x in self.bot.guilds:
+			dmrole = self.bot.sdb[f"srvconfs"]
+			for y in x.members:
+				print(x.roles)
+
+	#@commands.Cog.listener()
+	#async def on_member_update(self, member):
+
+
+	@commands.slash_command(default_member_permissions=8)
+	async def badgetemplate(self, inter, templatedict: str):
+		try:
+			templatedict = json.loads(templatedict)
+		except JSONDecodeError:
+			return await inter.response.send_message("Error: Template not a valid JSON")
+		for itr,x in enumerate(templatedict.keys()):
+			if itr > 20:
+				return await inter.response.send_message("Error: Template has too many entries")
+			elif x != str(itr):
+				return await inter.response.send_message("Error: Template keys are not a range of 1 through 20")
+		if all([isinstance(x, (int, float)) for x in templatedict.values()]):
+			templatedict.update({"setting": "bltemp"})
+			self.bot.sdb[f"srvconf_{inter.guild.id}"].replace_one({"setting": "bltemp"}, templatedict, True)
+		else:
+			return await inter.response.send_message("Error: Template value is not of type integer or float")
+
 	@commands.slash_command(description="Log your characters badges.")
 	async def badges(self, inter: disnake.ApplicationCommandInteraction):
 		pass
-
-	#@badges.sub_command(checks=commands.has_permissions(administrator=True))
-	#async def template(self, inter, templatedict: str):
-	#	try:
-	#		templatedict = json.loads(templatedict)
-	#	except JSONDecodeError:
-	#		return await inter.response.send_message("Error: Template not a valid JSON")
-	#	for itr,x in enumerate(templatedict.keys()):
-	#		if itr > 20:
-	#			return await inter.response.send_message("Error: Template has too many entries")
-	#		elif x != str(itr):
-	#			return await inter.response.send_message("Error: Template keys are not a range of 1 through 20")
-	#	if all([isinstance(x, (int, float)) for x in templatedict.values()]):
-	#		templatedict.update({"setting": "bltemp"})
-	#		self.bot.sdb[f"srvconf_{inter.guild.id}"].replace_one({"setting": "bltemp"}, templatedict, True)
-	#	else:
-	#		return await inter.response.send_message("Error: Template value is not of type integer or float")
-			
-
 
 	#creates a master badge log entry, used for tracking data about a character and generating badge log entries
 	@badges.sub_command()
@@ -166,30 +176,38 @@ class Badges(commands.Cog):
 		)
 		await inter.response.send_message(embed=output)
 
+	#creates a new log entry in a characters badge log
+	#inputs:
+	#	character name
+	#	badgee input
+	#	awarding dm
 	@badges.sub_command()
-	async def charinfo(self, inter, charname: str):
-		"""Displays your character's badgelog data.
-		Parameters
-		----------
-		charname: The name of your character."""
+	async def log(self, inter, charname: str, badgeinput: float, awardingdm: str):
 		pass
-
-
-	@charinfo.autocomplete("charname")
+	
+	@log.autocomplete("charname")
 	async def autocomp_charnames(self, inter: disnake.ApplicationCommandInteraction, user_input: str):
 		charlist = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].distinct("character", {"user": str(inter.author.id)})
 		return [name for name in charlist if user_input.casefold() in name]
 
-	##creates a new log entry in a characters badge log
-	##inputs:
-	##	character name
-	##	badgee input
-	##	awarding dm
 	#@badges.sub_command()
-	#async def log(self, inter, charname: str, badgeinput: float, awardingdm: str):
-	#	pass
-	
-	#@log.autocomplete("charname")
+	#async def charinfo(self, inter, charname: str):
+	#	"""Displays your character's badgelog data.
+	#	Parameters
+	#	----------
+	#	charname: The name of your character."""
+	#	charslist = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].find({"user": str(inter.author.id)}).to_list(None)
+	#	badgelog = await self.bot.sdb[f"BadgeLog_{inter.guild.id}"].find({"user": str(inter.author.id)}).to_list(None)
+	#	initchar = list(filter(lambda item: item['character'] == f"{charname}", charslist))
+	#	initlog = list(filter(lambda item: item['character'] == f"{charname}", badgelog))
+	#	embed = [
+	#		disnake.Embed(
+	#			title="",
+	#			description="",)]
+	#	await inter.response.send_message(embed=embed, view=Browser(inter, charslist=charslist, badgelog=badgelog, owner=inter.author, guild=inter.guild, charname=charname))
+
+
+	#@charinfo.autocomplete("charname")
 	#async def autocomp_charnames(self, inter: disnake.ApplicationCommandInteraction, user_input: str):
 	#	charlist = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].distinct("character", {"user": str(inter.author.id)})
 	#	return [name for name in charlist if user_input.casefold() in name]
