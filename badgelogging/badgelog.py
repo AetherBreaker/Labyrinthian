@@ -23,9 +23,32 @@ class Badges(commands.Cog):
 
 	@dmroles.sub_command(name="add")
 	async def addrole(self, inter: disnake.ApplicationCommandInteraction, role: disnake.Role, role2: disnake.Role=None, role3: disnake.Role=None, role4: disnake.Role=None):
-		"""Choose your servers DM roles.
-		You can mention roles, or use a comma-separated list of names or IDs."""
-		roleslist=[]
+		"""Choose roles to add to the list of DM roles."""
+		await inter.response.defer()
+		roleslist=[role]
+		if role2!=None:
+			roleslist.append(role2)
+		if role3!=None:
+			roleslist.append(role3)
+		if role4!=None:
+			roleslist.append(role4)
+		role_ids = [r.id for r in roleslist]
+		srvconf = await self.bot.sdb['srvconf'].find_one({"guild": str(inter.guild.id)})
+		if srvconf == None:
+			srvconf = {"guild": str(inter.guild.id)}
+			srvconf['dmroles'] = []
+		else:
+			for x in role_ids:
+				if x not in srvconf['dmroles']:
+					srvconf['dmroles'].append(x)
+		await self.bot.sdb['srvconf'].replace_one({"guild": str(inter.guild.id)}, srvconf, True)
+		await inter.send("The DM roles have been updated.", ephemeral=True)
+	
+	@dmroles.sub_command(name="remove")
+	async def removerole(self, inter: disnake.ApplicationCommandInteraction, role: disnake.Role, role2: disnake.Role=None, role3: disnake.Role=None, role4: disnake.Role=None):
+		"""Choose roles to add to the list of DM roles."""
+		await inter.response.defer()
+		roleslist=[role]
 		if role2!=None:
 			roleslist.append(role2)
 		if role3!=None:
@@ -33,17 +56,31 @@ class Badges(commands.Cog):
 		if role4!=None:
 			roleslist.append(role4)
 		role_ids = {r.id for r in roleslist}
-		if role_ids:
-			await interaction.send("The DM roles have been updated.", ephemeral=True)
-			self.sbd['srvconf'].update_one({"guild": str(inter.guild.id)}, {"guild": str(inter.guild.id), "dmroles": role_ids}, True)
-		await inter.send("No valid roles found. Please try again.", ephemeral=True)
+		srvconf = await self.bot.sdb['srvconf'].find_one({"guild": str(inter.guild.id)})
+		if srvconf == None:
+			srvconf = {"guild": str(inter.guild.id)}
+			srvconf['dmroles'] = []
+		else:
+			for x in role_ids:
+				if x in srvconf['dmroles']:
+					srvconf['dmroles'].remove(x)
+		await self.bot.sdb['srvconf'].replace_one({"guild": str(inter.guild.id)}, srvconf, True)
+		await inter.send("The DM roles have been updated.", ephemeral=True)
 
-	#@commands.Cog.listener()
-	#async def on_ready(self):
-	#	for x in self.bot.guilds:
-	#		dmrole = self.bot.sdb[f"srvconfs"]
-	#		for y in x.members:
-	#			print(x.roles)
+	@commands.Cog.listener()
+	async def on_ready(self):
+		for x in self.bot.guilds:
+			dmroleids = await self.bot.sdb['srvconf'].find_one({"guild": str(x.id)})
+			if dmroleids != None:
+				dmroles=[]
+				dmusers = []
+				for z in dmroleids['dmroles']:
+					dmroles.append(x.get_role(z))
+				for y in x.members:
+					if any(item in y.roles for item in dmroles):
+						dmusers.append(y.id)
+				if len(dmusers)>0:
+					await self.bot.sdb['dmusers'].insert_one({"guild": str(x.id), "DMs": dmusers})
 
 	#@commands.Cog.listener()
 	#async def on_member_update(self, member):
@@ -62,7 +99,7 @@ class Badges(commands.Cog):
 				return await inter.response.send_message("Error: Template keys are not a range of 1 through 20")
 		if all([isinstance(x, (int, float)) for x in templatedict.values()]):
 			templatedict.update({"setting": "bltemp"})
-			self.bot.sdb[f"srvconf_{inter.guild.id}"].replace_one({"setting": "bltemp"}, templatedict, True)
+			await self.bot.sdb[f"srvconf_{inter.guild.id}"].replace_one({"setting": "bltemp"}, templatedict, True)
 		else:
 			return await inter.response.send_message("Error: Template value is not of type integer or float")
 
@@ -211,6 +248,15 @@ class Badges(commands.Cog):
 	async def autocomp_charnames(self, inter: disnake.ApplicationCommandInteraction, user_input: str):
 		charlist = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].distinct("character", {"user": str(inter.author.id)})
 		return [name for name in charlist if user_input.casefold() in name]
+
+	@log.autocomplete('awardingdm')
+	async def autocomp_dmnames(self, inter: disnake.ApplicationCommandInteraction, user_input: str):
+		dbvar = await self.bot.sdb['dmusers'].find_one({"guild": str(inter.guild.id)})
+		dbvar = dbvar['DMs']
+		dmlist = []
+		for x in dbvar:
+			dmlist.append(f"@{inter.guild.get_member(x).name}{inter.guild.get_member(x).discriminator}")
+		return [user for user in dmlist if user_input in user]
 
 	#@badges.sub_command()
 	#async def charinfo(self, inter, charname: str):
