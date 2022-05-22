@@ -5,7 +5,7 @@ from utilities import checks
 import disnake
 from disnake.ext import commands
 from disnake.ext.commands import BucketType, NoPrivateMessage
-from utilities.functions import confirm
+from utilities.functions import confirm, confirmInter
 
 class Customization(commands.Cog):
 	"""Commands to help streamline using the bot."""
@@ -70,17 +70,19 @@ class Customization(commands.Cog):
 
 		# Check for Discord Slash-command conflict
 		if prefix.startswith("/"):
-			if not await confirm(
+			if not await confirmInter(
 				inter,
 				"Setting a prefix that begins with / may cause issues. "
 				"Are you sure you want to continue? (Reply with yes/no)",
+				delete_msgs=True
 			):
 				return await inter.send("Ok, cancelling.")
 		else:
-			if not await confirm(
+			if not await confirmInter(
 				inter,
 				f"Are you sure you want to set my prefix to `{prefix}`? This will affect "
 				f"everyone on this server! (Reply with yes/no)",
+				delete_msgs=True
 			):
 				return await inter.send("Ok, cancelling.")
 
@@ -90,7 +92,9 @@ class Customization(commands.Cog):
 		# update db
 		await self.bot.sdb.prefixes.update_one({"guild_id": guild_id}, {"$set": {"prefix": prefix}}, upsert=True)
 
-		await inter.send(f"Prefix set to `{prefix}` for this server.")
+		await inter.response.defer()
+
+		await inter.edit_original_message(f"Prefix set to `{prefix}` for this server.")
 
 def setup(bot):
     bot.add_cog(Customization(bot))
