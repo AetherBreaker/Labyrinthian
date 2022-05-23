@@ -254,13 +254,13 @@ class Badges(commands.Cog):
 	#	badgee input
 	#	awarding dm
 	@badges.sub_command()
-	async def log(self, inter, charname: str, badgeinput: float, awardingdm: str):
+	async def log(self, inter, charname: str, badgeinput: float, awardingdm: disnake.Member):
 		pass
 	
-	@log.autocomplete("charname")
-	async def autocomp_charnames(self, inter: disnake.ApplicationCommandInteraction, user_input: str):
-		charlist = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].distinct("character", {"user": str(inter.author.id)})
-		return [name for name in charlist if user_input.casefold() in name]
+	# @log.autocomplete("charname")
+	# async def autocomp_charnames(self, inter: disnake.ApplicationCommandInteraction, user_input: str):
+	# 	charlist = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].distinct("character", {"user": str(inter.author.id)})
+	# 	return [name for name in charlist if user_input.casefold() in name]
 
 	@log.autocomplete('awardingdm')
 	async def autocomp_dmnames(self, inter: disnake.ApplicationCommandInteraction, user_input: str):
