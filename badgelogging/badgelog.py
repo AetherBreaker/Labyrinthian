@@ -318,7 +318,7 @@ class Badges(commands.Cog):
 	@charlog.autocomplete("charname")
 	async def autocomp_charnames(self, inter: disnake.ApplicationCommandInteraction, user_input: str):
 		charlist = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].distinct("character", {"user": str(inter.author.id)})
-		return [name for name in charlist if user_input.casefold() in name
+		return [name for name in charlist if user_input.casefold() in name]
 
 def setup(bot):
 	bot.add_cog(Badges(bot))
