@@ -3,12 +3,13 @@ import disnake
 from disnake.ext import commands
 import datetime
 from data.URLchecker import urlCheck
-from json import JSONDecodeError
+from json import JSONDecodeError, loads
 from utilities.txtformatting import mkTable
 from badgelogging.badgelogbrowser import Browser
+from textwrap import shorten
 
 class Badges(commands.Cog):
-	def __init__(self, bot):
+	def __init__(self, bot: commands.Bot):
 		self.bot = bot
 		self.dmlist = []
 
@@ -89,7 +90,7 @@ class Badges(commands.Cog):
 					await self.bot.sdb['srvconf'].replace_one({"guild": str(x.id)}, srvconf, True)
 
 	@commands.Cog.listener()
-	async def on_member_update(self, before, after):
+	async def on_member_update(self, before: disnake.Member, after: disnake.Member):
 		srvconf = await self.bot.sdb['srvconf'].find_one({"guild": str(after.guild.id)})
 		if not isinstance(srvconf, type(None)):
 			if any(item.id in srvconf['dmroles'] for item in after.roles) and not any(item.id in srvconf['dmroles'] for item in before.roles):
@@ -100,7 +101,7 @@ class Badges(commands.Cog):
 	@commands.slash_command(default_member_permissions=8)
 	async def badgetemplate(self, inter: disnake.ApplicationCommandInteraction, templatedict: str):
 		try:
-			templatedict = json.loads(templatedict)
+			templatedict = loads(templatedict)
 		except JSONDecodeError:
 			return await inter.response.send_message("Error: Template not a valid JSON")
 		for itr,x in enumerate(templatedict.keys()):
@@ -139,7 +140,7 @@ class Badges(commands.Cog):
 			await inter.response.send_message("Sheet type does not match accepted formats, or is not a valid URL.")
 
 	@badges.sub_command()
-	async def rename(self, inter, charname: str, newname: str):
+	async def rename(self, inter: disnake.ApplicationCommandInteraction, charname: str, newname: str):
 		"""Change your characters name!
 		Parameters
 		----------
@@ -165,7 +166,7 @@ class Badges(commands.Cog):
 
 	#adds a multiclass entry to a characters badgelog master
 	@classes.sub_command()
-	async def add(self, inter, charname: str, multiclassname: validClass, multiclasslevel: int):
+	async def add(self, inter: disnake.ApplicationCommandInteraction, charname: str, multiclassname: validClass, multiclasslevel: int):
 		"""Adds a multiclass to your character's badge log.
 		Parameters
 		----------
@@ -176,6 +177,11 @@ class Badges(commands.Cog):
 		if character == None:
 			await inter.response.send_message(f"{charname} doesn't exist!")
 		elif len(character['classes']) < 5:
+			if (sum(character['classes'].values())+multiclasslevel) > 20:
+				multiclasslevel -= (sum(character['classes'].values())+multiclasslevel)-20
+				if (sum(character['classes'].values())+multiclasslevel) > 20:
+					await inter.response.send_message(f"That level is too high")
+					return
 			character['classes'][multiclassname] = multiclasslevel
 			character['charlvl'] = sum(character['classes'].values())
 			await self.bot.sdb[f"BLCharList_{inter.guild.id}"].replace_one({"user": str(inter.author.id), "character": charname}, character)
@@ -188,7 +194,7 @@ class Badges(commands.Cog):
 
 	#removes a multiclass entry from a characters badgelog master
 	@classes.sub_command()
-	async def remove(self, inter, charname: str, multiclassname: validClass):
+	async def remove(self, inter: disnake.ApplicationCommandInteraction, charname: str, multiclassname: validClass):
 		"""Removes a multiclass from your character's badge log.
 		Parameters
 		----------
@@ -212,7 +218,7 @@ class Badges(commands.Cog):
 
 	#updatese a multiclass entry in a characters badgelog master
 	@classes.sub_command()
-	async def update(self, inter, charname: str, multiclassname: validClass, multiclasslevel: int):
+	async def update(self, inter: disnake.ApplicationCommandInteraction, charname: str, multiclassname: validClass, multiclasslevel: int):
 		"""Used to update the level of one of your characters multiclasses in their badge log.
 		Parameters
 		----------
@@ -225,6 +231,11 @@ class Badges(commands.Cog):
 		elif multiclassname not in character['classes'].keys():
 			await inter.response.send_message(f"{charname} isn't {'an' if multiclassname == 'Artificer' else 'a'} {multiclassname}")
 		else:
+			if (sum(character['classes'].values())+multiclasslevel) > 20:
+				multiclasslevel -= (sum(character['classes'].values())+multiclasslevel)-20
+				if (sum(character['classes'].values())+multiclasslevel) > 20:
+					await inter.response.send_message(f"That level is too high")
+					return
 			character['classes'][multiclassname] = multiclasslevel
 			character['charlvl'] = sum(character['classes'].values())
 			await self.bot.sdb[f"BLCharList_{inter.guild.id}"].replace_one({"user": str(inter.author.id), "character": charname}, character)
@@ -237,14 +248,13 @@ class Badges(commands.Cog):
 
 	#returns a list of the invoking users character badge logs
 	@badges.sub_command(description="Displays a list of all the characters that you've created badge logs for.")
-	async def charlist(self, inter):
+	async def charlist(self, inter: disnake.ApplicationCommandInteraction):
 		charlist = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].find({"user": str(inter.author.id)}).to_list(None)
 		#charlist = list(charlist)
-		output = disnake.Embed(
+		await inter.response.send_message(embed=disnake.Embed(
 			title=f"{inter.author.display_name}'s characters:",
 			description=mkTable.fromListofDicts(charlist, ["character", "charlvl", "expectedlvl", "currentbadges"], {"charlvl": 3, "expectedlvl": 4, "currentbadges": 3}, 43, '${character}|${charlvl}${expectedlvl}|${currentbadges}', '`', {"expectedlvl": '(${expectedlvl})'})
-		)
-		await inter.response.send_message(embed=output)
+		))
 
 	#creates a new log entry in a characters badge log
 	#inputs:
@@ -252,28 +262,36 @@ class Badges(commands.Cog):
 	#	badgee input
 	#	awarding dm
 	@badges.sub_command()
-	async def log(self, inter, charname: str, badgeinput: float, awardingdm: disnake.Member):
-		character = await self.bot.sdb['BLCharList'].find_one({"user": str(inter.author.id), "character": charname})
+	async def log(self, inter: disnake.ApplicationCommandInteraction, charname: str, badgeinput: float, awardingdm: disnake.Member):
+		"""Adds an entry to your characters badge log
+		Parameters
+		----------
+		charname: The name of your character
+		badgeinput: The amount of badges to add (or remove)
+		awardingdm: The DM that awarded you badges, if fixing/adjusting your badges, select @Labyrinthian"""
+		character = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].find_one({"user": str(inter.author.id), "character": charname})
+		srvconf = await self.bot.sdb['srvconf'].find_one({"guild": str(inter.guild.id)})
 		if isinstance(character, type(None)):
 			await inter.response.send_message(f"{charname} doesn't exist!")
+		elif badgeinput == 0:
+			await inter.response.send_message("You can't add zero badges!")
+		elif not any([role.id in srvconf['dmroles'] for role in awardingdm.roles]):
+			await inter.response.send_message(f"<@{awardingdm.id}> isn't a DM!")
 		else:
-			if badgeinput == 0:
-				inter.response.send_message("You can't add zero badges!")
-			else:
-				time = datetime.datetime.now()
-				newlog = {"charRefId": character['_id'], "character": charname, "previous badges": character['currentbadges'], "badges added": badgeinput, "awarding DM": awardingdm.id, "timestamp": time}
-				character['lastlog'] = await self.bot.sdb['BadgeLogMaster'].insert_one(newlog)
-				character['lastlogtime'] = time
-				await self.bot.sdb['BLCharList'].replace_one({"user": str(inter.author.id), "character": charname}, character, True)
-				isneg = True if badgeinput < 0 else False
-				templatestr = "$user: $character was awarded badges $prev($input) by $awarding at $timestamp" if badgeinput else "$user: $character lost badges $prev($input) to $awarding at $timestamp"
-				mapping={"user": f"", "character": f"", "prev": f"{:>}", "input": f"{}", "awarding": f"", "timestamp": f"{time.strftime('%b %d, %y %-i:%M %p'):19}"}
-				
-				result=Template(templatestr)
-				await inter.response.send_message(disnake.Embed(
-					title=f"Badge log updated",
-					description=result
-				))
+			time = datetime.datetime.now()
+			newlog = {"charRefId": character['_id'], "character": charname, "previous badges": character['currentbadges'], "badges added": badgeinput, "awarding DM": awardingdm.id, "timestamp": time}
+			objID = await self.bot.sdb[f"BadgeLogMaster_{inter.guild.id}"].insert_one(newlog)
+			character['lastlog'] = objID.inserted_id
+			character['lastlogtime'] = time
+			character['currentbadges'] += badgeinput
+			await self.bot.sdb[f"BLCharList_{inter.guild.id}"].replace_one({"user": str(inter.author.id), "character": charname}, character, True)
+			isneg = True if badgeinput < 0 else False
+			templatestr = "$character lost badges $prev($input) to $awarding" if isneg else "$character was awarded badges $prev($input) by $awarding"
+			mapping = {"character": f"{charname}", "prev": f"{character['currentbadges']-badgeinput}", "input": f"{'-' if isneg else '+'}{badgeinput}", "awarding": f"<@{awardingdm.id}>"}
+			await inter.response.send_message(embed=disnake.Embed(
+				title=f"Badge log updated",
+				description=f"<@{inter.author.id}> at `{time.strftime('%b %d, %y %I:%M %p')}`\n{Template(templatestr).substitute(**mapping)}"
+			))
 
 	@log.autocomplete("charname")
 	async def autocomp_charnames(self, inter: disnake.ApplicationCommandInteraction, user_input: str):
