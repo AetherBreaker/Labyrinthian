@@ -55,11 +55,11 @@ class Labyrinthian(commands.Bot):
 		if guild_id in self.prefixes:
 			return self.prefixes.get(guild_id, config.DEFAULT_PREFIX)
 		# load from db and cache
-		gp_obj = await self.sdb.prefixes.find_one({"guild_id": guild_id})
-		if gp_obj is None:
+		gp_obj = await self.sdb['srvconf'].find_one({"guild_id": guild_id})
+		if gp_obj.has_key("prefix"):
 			gp = config.DEFAULT_PREFIX
 		else:
-			gp = gp_obj.get("prefix", config.DEFAULT_PREFIX)
+			gp = gp_obj['prefix']
 		self.prefixes[guild_id] = gp
 		return 
 
@@ -110,7 +110,7 @@ async def prefix(ctx, prefix: str = None):
 	bot.prefixes[guild_id] = prefix
 
 	# update db
-	await bot.sdb.prefixes.update_one({"guild_id": guild_id}, {"$set": {"prefix": prefix}}, upsert=True)
+	await bot.sdb['srvconf'].update_one({"guild": guild_id}, {"$set": {"prefix": prefix}}, upsert=True)
 
 	await ctx.send(f"Prefix set to `{prefix}` for this server.")
 
