@@ -49,7 +49,7 @@ class Customization(commands.Cog):
 	#	self.bot.prefixes[guild_id] = prefix
 
 	#	# update db
-	#	await self.bot.sdb.prefixes.update_one({"guild_id": guild_id}, {"$set": {"prefix": prefix}}, upsert=True)
+	#	await self.bot.sdb['srvconf'].update_one({"guild": guild_id}, {"$set": {"prefix": prefix}}, upsert=True)
 
 	#	await ctx.send(f"Prefix set to `{prefix}` for this server.")
 
@@ -90,7 +90,7 @@ class Customization(commands.Cog):
 		self.bot.prefixes[guild_id] = prefix
 
 		# update db
-		await self.bot.sdb.prefixes.update_one({"guild_id": guild_id}, {"$set": {"prefix": prefix}}, upsert=True)
+		await self.bot.sdb['srvconf'].update_one({"guild": guild_id}, {"$set": {"prefix": prefix}}, upsert=True)
 
 		await inter.response.defer()
 
