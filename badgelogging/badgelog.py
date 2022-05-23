@@ -1,10 +1,8 @@
+from string import Template
 import disnake
 from disnake.ext import commands
-from disnake import Embed
 import datetime
 from data.URLchecker import urlCheck
-import json
-from utilities.errors import noValidTemplate
 from json import JSONDecodeError
 from utilities.txtformatting import mkTable
 from badgelogging.badgelogbrowser import Browser
@@ -240,7 +238,7 @@ class Badges(commands.Cog):
 	#returns a list of the invoking users character badge logs
 	@badges.sub_command(description="Displays a list of all the characters that you've created badge logs for.")
 	async def charlist(self, inter):
-		charlist =await self.bot.sdb[f"BLCharList_{inter.guild.id}"].find({"user": str(inter.author.id)}).to_list(None)
+		charlist = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].find({"user": str(inter.author.id)}).to_list(None)
 		#charlist = list(charlist)
 		output = disnake.Embed(
 			title=f"{inter.author.display_name}'s characters:",
@@ -255,24 +253,44 @@ class Badges(commands.Cog):
 	#	awarding dm
 	@badges.sub_command()
 	async def log(self, inter, charname: str, badgeinput: float, awardingdm: disnake.Member):
-		pass
-	
-	# @log.autocomplete("charname")
-	# async def autocomp_charnames(self, inter: disnake.ApplicationCommandInteraction, user_input: str):
-	# 	charlist = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].distinct("character", {"user": str(inter.author.id)})
-	# 	return [name for name in charlist if user_input.casefold() in name]
+		character = await self.bot.sdb['BLCharList'].find_one({"user": str(inter.author.id), "character": charname})
+		if isinstance(character, type(None)):
+			await inter.response.send_message(f"{charname} doesn't exist!")
+		else:
+			if badgeinput == 0:
+				inter.response.send_message("You can't add zero badges!")
+			else:
+				time = datetime.datetime.now()
+				newlog = {"charRefId": character['_id'], "character": charname, "previous badges": character['currentbadges'], "badges added": badgeinput, "awarding DM": awardingdm.id, "timestamp": time}
+				character['lastlog'] = await self.bot.sdb['BadgeLogMaster'].insert_one(newlog)
+				character['lastlogtime'] = time
+				await self.bot.sdb['BLCharList'].replace_one({"user": str(inter.author.id), "character": charname}, character, True)
+				isneg = True if badgeinput < 0 else False
+				templatestr = "$user: $character was awarded badges $prev($input) by $awarding at $timestamp" if badgeinput else "$user: $character lost badges $prev($input) to $awarding at $timestamp"
+				mapping={"user": f"", "character": f"", "prev": f"{:>}", "input": f"{}", "awarding": f"", "timestamp": f"{time.strftime('%b %d, %y %-i:%M %p'):19}"}
+				
+				result=Template(templatestr)
+				await inter.response.send_message(disnake.Embed(
+					title=f"Badge log updated",
+					description=result
+				))
 
-	@log.autocomplete('awardingdm')
-	async def autocomp_dmnames(self, inter: disnake.ApplicationCommandInteraction, user_input: str):
-		dbvar = await self.bot.sdb['dmusers'].find_one({"guild": str(inter.guild.id)})
-		dbvar = dbvar['DMs']
-		dmlist = []
-		for x in dbvar:
-			dmlist.append(f"@{inter.guild.get_member(x).name}{inter.guild.get_member(x).discriminator}")
-		return [user for user in dmlist if user_input in user]
+	@log.autocomplete("charname")
+	async def autocomp_charnames(self, inter: disnake.ApplicationCommandInteraction, user_input: str):
+		charlist = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].distinct("character", {"user": str(inter.author.id)})
+		return [name for name in charlist if user_input.casefold() in name]
+
+	# @log.autocomplete('awardingdm')
+	# async def autocomp_dmnames(self, inter: disnake.ApplicationCommandInteraction, user_input: str):
+	# 	dbvar = await self.bot.sdb['dmusers'].find_one({"guild": str(inter.guild.id)})
+	# 	dbvar = dbvar['DMs']
+	# 	dmlist = []
+	# 	for x in dbvar:
+	# 		dmlist.append(f"@{inter.guild.get_member(x).name}{inter.guild.get_member(x).discriminator}")
+	# 	return [user for user in dmlist if user_input in user]
 
 	#@badges.sub_command()
-	#async def charinfo(self, inter, charname: str):
+	#async def charlog(self, inter, charname: str):
 	#	"""Displays your character's badgelog data.
 	#	Parameters
 	#	----------
@@ -288,20 +306,10 @@ class Badges(commands.Cog):
 	#	await inter.response.send_message(embed=embed, view=Browser(inter, charslist=charslist, badgelog=badgelog, owner=inter.author, guild=inter.guild, charname=charname))
 
 
-	#@charinfo.autocomplete("charname")
+	#@charlog.autocomplete("charname")
 	#async def autocomp_charnames(self, inter: disnake.ApplicationCommandInteraction, user_input: str):
 	#	charlist = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].distinct("character", {"user": str(inter.author.id)})
-	#	return [name for name in charlist if user_input.casefold() in name]
-
-	##returns a log of the selected characters most recent log entries
-	#@badges.sub_command()
-	#async def history(self, inter, charname: str):
-	#	pass
-	
-	#@history.autocomplete("charname")
-	#async def autocomp_charnames(self, inter: disnake.ApplicationCommandInteraction, user_input: str):
-	#	charlist = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].distinct("character", {"user": str(inter.author.id)})
-	#	return [name for name in charlist if user_input.casefold() in name]
+	#	return [name for name in charlist if user_input.casefold() in name
 
 def setup(bot):
 	bot.add_cog(Badges(bot))
