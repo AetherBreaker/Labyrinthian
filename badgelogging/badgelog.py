@@ -70,21 +70,34 @@ class Badges(commands.Cog):
 	@commands.Cog.listener()
 	async def on_ready(self):
 		for x in self.bot.guilds:
-			dmroleids = await self.bot.sdb['srvconf'].find_one({"guild": str(x.id)})
-			if dmroleids != None:
+			srvconf = await self.bot.sdb['srvconf'].find_one({"guild": str(x.id)})
+			if not isinstance(srvconf, type(None)):
 				dmroles=[]
 				dmusers = []
-				for z in dmroleids['dmroles']:
+				for z in srvconf['dmroles']:
 					dmroles.append(x.get_role(z))
 				for y in x.members:
 					if any(item in y.roles for item in dmroles):
 						dmusers.append(y.id)
 				if len(dmusers)>0:
-					await self.bot.sdb['dmusers'].insert_one({"guild": str(x.id), "DMs": dmusers})
+					try:
+						for y in dmusers:
+							if y not in srvconf['DMs']:
+								srvconf['DMs'].append(y)
+					except KeyError:
+						srvconf['DMs'] = []
+						for y in dmusers:
+							srvconf['DMs'].append(y)
+					await self.bot.sdb['srvconf'].replace_one({"guild": str(x.id)}, srvconf, True)
 
-	#@commands.Cog.listener()
-	#async def on_member_update(self, member):
-
+	@commands.Cog.listener()
+	async def on_member_update(self, before, after):
+		srvconf = await self.bot.sdb['srvconf'].find_one({"guild": str(after.guild.id)})
+		if not isinstance(srvconf, type(None)):
+			if any(item.id in srvconf['dmroles'] for item in after.roles) and not any(item.id in srvconf['dmroles'] for item in before.roles):
+				await self.bot.sdb['srvconf'].update_one({"guild": str(after.guild.id)}, {'$addToSet': {'DMs': after.id}}, True)
+			if any(item.id in srvconf['dmroles'] for item in before.roles) and not any(item.id in srvconf['dmroles'] for item in after.roles):
+				await self.bot.sdb['srvconf'].update_one({"guild": str(after.guild.id)}, {'$pull': {'DMs': after.id}}, True)
 
 	@commands.slash_command(default_member_permissions=8)
 	async def badgetemplate(self, inter: disnake.ApplicationCommandInteraction, templatedict: str):
