@@ -8,11 +8,11 @@ load_dotenv()
 class EphemeralCounterBot(commands.Bot):
     def __init__(self):
         super().__init__(
-			command_prefix=commands.when_mentioned,
-			test_guilds=[915674780303249449, 951225215801757716],
-			sync_commands_debug=True,
-			owner_ids=['200632489998417929', '136583737931595777']
-		)
+            command_prefix=commands.when_mentioned,
+            test_guilds=[915674780303249449, 951225215801757716],
+            sync_commands_debug=True,
+            owner_ids=['200632489998417929', '136583737931595777']
+        )
 
     async def on_ready(self):
         print(f"Logged in as {self.user} (ID: {self.user.id})")

@@ -12,8 +12,8 @@ OWNER_ID = os.getenv("DISCORD_OWNER_USER_ID", 0)
 # slash command test guilds - these only apply in development anyway, so hardcoded
 COMMAND_TEST_GUILD_IDS = (
     [
-		915674780303249449,	#Gamering
-		951225215801757716	#Star of Helvetica
+        915674780303249449,    #Gamering
+        951225215801757716    #Star of Helvetica
     ]
     if TESTING
     else None
