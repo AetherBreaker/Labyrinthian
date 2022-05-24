@@ -105,18 +105,19 @@ class Badges(commands.Cog):
     @commands.slash_command(default_member_permissions=8)
     async def badgetemplate(self, inter: disnake.ApplicationCommandInteraction, templatedict: str):
         try:
-            templatedict = loads(templatedict)
+            bdgtemplate = loads(templatedict)
         except JSONDecodeError:
             return await inter.response.send_message("Error: Template not a valid JSON")
-        for itr,x in enumerate(templatedict.keys()):
+        for itr,x in enumerate(bdgtemplate.keys()):
             if itr > 20:
                 return await inter.response.send_message("Error: Template has too many entries")
-            elif x != str(itr):
+            elif x != str(itr+1):
                 return await inter.response.send_message("Error: Template keys are not a range of 1 through 20")
-        if all([isinstance(x, (int, float)) for x in templatedict.values()]):
-            templatedict.update({"setting": "bltemp"})
+        if all([isinstance(x, (int, float)) for x in bdgtemplate.values()]):
             srvconf = await self.bot.sdb['srvconf'].find_one({"guild": str(inter.guild.id)})
-            await self.bot.sdb['srvconf'].replace_one({"guild": str(inter.guild.id)}, templatedict, True)
+            srvconf['badgetemplate'] = bdgtemplate
+            await self.bot.sdb['srvconf'].replace_one({"guild": str(inter.guild.id)}, srvconf, True)
+            await inter.response.send_message("Badge template updated.")
         else:
             return await inter.response.send_message("Error: Template value is not of type integer or float")
 
@@ -265,21 +266,26 @@ class Badges(commands.Cog):
             await inter.response.send_message(f"{charname} doesn't exist!")
         elif badgeinput == 0:
             await inter.response.send_message("You can't add zero badges!")
-        elif not any([role.id in srvconf['dmroles'] for role in awardingdm.roles]):
+        elif not any([role.id in srvconf['dmroles'] for role in awardingdm.roles]) and not awardingdm == self.bot.user:
             await inter.response.send_message(f"<@{awardingdm.id}> isn't a DM!")
         else:
             timeStamp = int(time.time())
             newlog = {"charRefId": character['_id'], "user": str(inter.author.id), "character": charname, "previous badges": character['currentbadges'], "badges added": badgeinput, "awarding DM": awardingdm.id, "timestamp": timeStamp}
             objID = await self.bot.sdb[f"BadgeLogMaster_{inter.guild.id}"].insert_one(newlog)
+            badgetemp = await self.bot.sdb['srvconf'].find_one({"guild": str(inter.guild.id)})
+            badgetemp = badgetemp['badgetemplate']
+            for x,y in badgetemp.items():
+                if character['currentbadges']+badgeinput >= y:
+                    character['expectedlvl'] = x
             character['lastlog'] = objID.inserted_id
             character['lastlogtimeStamp'] = timeStamp
             character['currentbadges'] += badgeinput
             await self.bot.sdb[f"BLCharList_{inter.guild.id}"].replace_one({"user": str(inter.author.id), "character": charname}, character, True)
             templstr = "$character lost badges $prev($input) to $awarding" if badgeinput < 0 else "$character was awarded badges $prev($input) by $awarding"
-            mapping = {"character": f"{charname}", "prev": f"{character['currentbadges']-badgeinput}", "input": f"{'-' if badgeinput < 0 else '+'}{badgeinput}", "awarding": f"<@{awardingdm.id}>"}
+            mapping = {"character": f"{charname}", "prev": f"{character['currentbadges']-badgeinput}", "input": f"{'' if badgeinput < 0 else '+'}{badgeinput}", "awarding": f"<@{awardingdm.id}>"}
             await inter.response.send_message(embed=disnake.Embed(
                 title=f"Badge log updated",
-                description=f"<@{inter.author.id}> at <t:{timeStamp}:f>\n{Template(templstr).substitute(**mapping)}"
+                description=f"{'' if character['user'] == newlog['user'] else '<@'+newlog['user']+'> at'} <t:{timeStamp}:f>\n{Template(templstr).substitute(**mapping)}"
             ))
 
     @updatelog.autocomplete("charname")
@@ -297,56 +303,91 @@ class Badges(commands.Cog):
         badgelog = await self.bot.sdb[f"BadgeLogMaster_{inter.guild.id}"].find({"charRefId": ObjectId(char['_id']), "user": str(inter.author.id)}).sort("timestamp", pymongo.DESCENDING).to_list(None)
         embeds = []
         pageindex = 0
-        while badgelog:
-            pageindex += 1
-            Embed = {
-                "title": f"{charname}'s Info'",
-                "description": f"Played by: <@{inter.author.id}>",
-                "color": disnake.Color.random().value,
-                "url": f"{char['sheet']}",
-                "footer": {
-                "text": f"Page: {pageindex}"
+        Embednolog = {
+            "title": f"{charname}'s Info'",
+            "description": f"Played by: <@{inter.author.id}>",
+            "color": disnake.Color.random().value,
+            "url": f"{char['sheet']}",
+            "footer": {
+            "text": f"Page: {pageindex}"
+            },
+            "fields": [
+                {
+                    "name": "Badge Information:",
+                    "value": f"Current Badges: {char['currentbadges']}\nExpected Level: {char['expectedlvl']}",
+                    "inline": True
                 },
-                "fields": [
-                    {
-                        "name": "Badge Information:",
-                        "value": f"Current Badges: {char['currentbadges']}\nExpected Level: {char['expectedlvl']}",
-                        "inline": True
-                    },
-                    {
-                        "name": "Class Levels:",
-                        "value": '\n'.join([f'{x}: {y}' for x,y in char['classes'].items()]),
-                        "inline": True
-                    },
-                    {
-                        "name": f"Total Levels: {char['charlvl']}",
-                        "value": "\u200B", 
-                        "inline": True
-                    },
-                    {
-                        "name": "Badge Log",
-                        "value": ""
-                    }
-                ]
-            }
-            logstr = []
+                {
+                    "name": "Class Levels:",
+                    "value": '\n'.join([f'{x}: {y}' for x,y in char['classes'].items()]),
+                    "inline": True
+                },
+                {
+                    "name": f"Total Levels: {char['charlvl']}",
+                    "value": "\u200B", 
+                    "inline": True
+                },
+                {
+                    "name": "Badge Log",
+                    "value": "This character doesn't have any entries yet..."
+                }
+            ]
+        }
+        if badgelog:
             while badgelog:
+                pageindex += 1
+                Embed = {
+                    "title": f"{charname}'s Info'",
+                    "description": f"Played by: <@{inter.author.id}>",
+                    "color": disnake.Color.random().value,
+                    "url": f"{char['sheet']}",
+                    "footer": {
+                    "text": f"Page: {pageindex}"
+                    },
+                    "fields": [
+                        {
+                            "name": "Badge Information:",
+                            "value": f"Current Badges: {char['currentbadges']}\nExpected Level: {char['expectedlvl']}",
+                            "inline": True
+                        },
+                        {
+                            "name": "Class Levels:",
+                            "value": '\n'.join([f'{x}: {y}' for x,y in char['classes'].items()]),
+                            "inline": True
+                        },
+                        {
+                            "name": f"Total Levels: {char['charlvl']}",
+                            "value": "\u200B", 
+                            "inline": True
+                        },
+                        {
+                            "name": "Badge Log",
+                            "value": ""
+                        }
+                    ]
+                }
+                logstr = []
+                while badgelog:
+                    Embed['fields'][3]['value'] = ""
+                    if badgelog[0]['badges added'] < 0:
+                        isneg = True
+                    else:
+                        isneg = False
+                    logstr.append(f"{'' if char['user'] == badgelog[0]['user'] else '<@'+badgelog[0]['user']+'> at'} <t:{badgelog[0]['timestamp']}:f>\n{badgelog[0]['character']} {'lost badges' if isneg else 'was awarded'} {badgelog[0]['previous badges']}({'' if isneg else '+'}{badgelog[0]['badges added']}) {'to' if isneg else 'by'} <@{badgelog[0]['awarding DM']}>")
+                    badgelog.pop(0)
+                    Embed['fields'][3]['value'] = '``` ```'.join(logstr)
+                    result = disnake.Embed.from_dict(Embed)
+                    if len(result) >= 6000 or len(Embed['fields'][3]['value']) >= 1024 or not len(badgelog) > 0:
+                        if len(logstr) > 1:
+                            logstr = logstr[:-1]
+                        break
                 Embed['fields'][3]['value'] = ""
-                if badgelog[0]['badges added'] < 0:
-                    isneg = True
-                else:
-                    isneg = False
-                logstr.append(f"{'' if char['user'] == badgelog[0]['user'] else '<@'+badgelog[0]['user']+'> at'} <t:{badgelog[0]['timestamp']}:f>\n{badgelog[0]['character']} {'lost badges' if isneg else 'was awarded'} {badgelog[0]['previous badges']}({'-' if isneg else '+'}{badgelog[0]['badges added']}) {'to' if isneg else 'by'} <@{badgelog[0]['awarding DM']}>")
-                badgelog.pop(0)
                 Embed['fields'][3]['value'] = '``` ```'.join(logstr)
-                result = disnake.Embed.from_dict(Embed)
-                if len(result) >= 6000 or len(Embed['fields'][3]['value']) >= 1024 or not len(badgelog) > 0:
-                    break
-            Embed['fields'][3]['value'] = ""
-            logstr = logstr[:-1]
-            Embed['fields'][3]['value'] = '``` ```'.join(logstr)
-            embeds.append(disnake.Embed.from_dict(Embed))
-        await inter.response.send_message(embed=embeds[0], view=LogBrowser(inter.author, inter.guild, embeds))
+                embeds.append(disnake.Embed.from_dict(Embed))
+        else:
+            embeds.append(disnake.Embed.from_dict(Embednolog))
+        charlist = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].find({"user": str(inter.author.id)}).to_list(None)
+        await inter.response.send_message(embed=embeds[0], view=LogBrowser(self.bot, inter.author, inter.guild, charname, charlist, embeds))
 
     @logbrowser.autocomplete("charname")
     async def autocomp_charnames(self, inter: disnake.ApplicationCommandInteraction, user_input: str):
