@@ -14,8 +14,8 @@ intents.message_content = True
 intents.presences = True
 
 extensions = [
-    "badgelogging.badgelog",
-    "utilities.customization"
+    "badgelog.main",
+    "settings.customization"
 ]
 
 async def get_prefix(bot, message):

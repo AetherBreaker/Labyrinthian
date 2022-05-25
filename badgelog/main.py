@@ -7,7 +7,7 @@ import asyncio
 from data.URLchecker import urlCheck
 from json import JSONDecodeError, loads
 from utilities.txtformatting import mkTable
-from badgelogging.badgelogbrowser import create_LogBrowser
+from badgelog.logbrowser import create_LogBrowser
 
 class Badges(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -22,7 +22,7 @@ class Badges(commands.Cog):
         pass
 
     @dmroles.sub_command(name="add")
-    async def addrole(self, inter: disnake.ApplicationCommandInteraction, role: disnake.Role, role2: disnake.Role=None, role3: disnake.Role=None, role4: disnake.Role=None):
+    async def adddmrole(self, inter: disnake.ApplicationCommandInteraction, role: disnake.Role, role2: disnake.Role=None, role3: disnake.Role=None, role4: disnake.Role=None):
         """Choose roles to add to the list of DM roles."""
         await inter.response.defer()
         roleslist=[role]
@@ -45,7 +45,7 @@ class Badges(commands.Cog):
         await inter.send("The DM roles have been updated.", ephemeral=True)
     
     @dmroles.sub_command(name="remove")
-    async def removerole(self, inter: disnake.ApplicationCommandInteraction, role: disnake.Role, role2: disnake.Role=None, role3: disnake.Role=None, role4: disnake.Role=None):
+    async def removedmrole(self, inter: disnake.ApplicationCommandInteraction, role: disnake.Role, role2: disnake.Role=None, role3: disnake.Role=None, role4: disnake.Role=None):
         """Choose roles to add to the list of DM roles."""
         await inter.response.defer()
         roleslist=[role]
@@ -66,38 +66,6 @@ class Badges(commands.Cog):
                     srvconf['dmroles'].remove(x)
         await self.bot.sdb['srvconf'].replace_one({"guild": str(inter.guild.id)}, srvconf, True)
         await inter.send("The DM roles have been updated.", ephemeral=True)
-
-    # @commands.Cog.listener()
-    # async def on_ready(self):
-    #     for x in self.bot.guilds:
-    #         srvconf = await self.bot.sdb['srvconf'].find_one({"guild": str(x.id)})
-    #         if not isinstance(srvconf, type(None)):
-    #             dmroles=[]
-    #             dmusers = []
-    #             for z in srvconf['dmroles']:
-    #                 dmroles.append(x.get_role(z))
-    #             for y in x.members:
-    #                 if any(item in y.roles for item in dmroles):
-    #                     dmusers.append(y.id)
-    #             if len(dmusers)>0:
-    #                 try:
-    #                     for y in dmusers:
-    #                         if y not in srvconf['DMs']:
-    #                             srvconf['DMs'].append(y)
-    #                 except KeyError:
-    #                     srvconf['DMs'] = []
-    #                     for y in dmusers:
-    #                         srvconf['DMs'].append(y)
-    #                 await self.bot.sdb['srvconf'].replace_one({"guild": str(x.id)}, srvconf, True)
-
-    # @commands.Cog.listener()
-    # async def on_member_update(self, before: disnake.Member, after: disnake.Member):
-    #     srvconf = await self.bot.sdb['srvconf'].find_one({"guild": str(after.guild.id)})
-    #     if not isinstance(srvconf, type(None)):
-    #         if any(item.id in srvconf['dmroles'] for item in after.roles) and not any(item.id in srvconf['dmroles'] for item in before.roles):
-    #             await self.bot.sdb['srvconf'].update_one({"guild": str(after.guild.id)}, {'$addToSet': {'DMs': after.id}}, True)
-    #         if any(item.id in srvconf['dmroles'] for item in before.roles) and not any(item.id in srvconf['dmroles'] for item in after.roles):
-    #             await self.bot.sdb['srvconf'].update_one({"guild": str(after.guild.id)}, {'$pull': {'DMs': after.id}}, True)
 
     @commands.slash_command(default_member_permissions=8)
     async def badgetemplate(self, inter: disnake.ApplicationCommandInteraction, templatedict: str):
@@ -277,16 +245,16 @@ class Badges(commands.Cog):
         charlist = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].distinct("character", {"user": str(inter.author.id)})
         return [name for name in charlist if user_input.casefold() in name]
 
-    @commands.slash_command(description="Displays a list of all the characters that you've created badge logs for.")
+    @commands.slash_command(name="character-list")
     async def characterlist(self, inter: disnake.ApplicationCommandInteraction):
+        """Displays a list of all the characters that you've created badge logs for."""
         charlist = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].find({"user": str(inter.author.id)}).to_list(None)
-        #charlist = list(charlist)
         await inter.response.send_message(embed=disnake.Embed(
             title=f"{inter.author.display_name}'s characters:",
             description=mkTable.fromListofDicts(charlist, ["character", "charlvl", "expectedlvl", "currentbadges"], {"charlvl": 3, "expectedlvl": 4, "currentbadges": 3}, 43, '${character}|${charlvl}${expectedlvl}|${currentbadges}', '`', {"expectedlvl": '(${expectedlvl})'})
         ))
 
-    @commands.slash_command()
+    @commands.slash_command(name="update-log")
     async def updatelog(self, inter: disnake.ApplicationCommandInteraction, charname: str, badgeinput: float, awardingdm: disnake.Member):
         """Adds an entry to your characters badge log
         Parameters
@@ -327,7 +295,7 @@ class Badges(commands.Cog):
         charlist = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].distinct("character", {"user": str(inter.author.id)})
         return [name for name in charlist if user_input.casefold() in name]
 
-    @commands.slash_command()
+    @commands.slash_command(name="log-browser")
     async def logbrowser(self, inter: disnake.ApplicationCommandInteraction, charname: str):
         """Displays your character's badgelog data.
         Parameters
@@ -341,6 +309,8 @@ class Badges(commands.Cog):
     async def autocomp_charnames(self, inter: disnake.ApplicationCommandInteraction, user_input: str):
         charlist = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].distinct("character", {"user": str(inter.author.id)})
         return [name for name in charlist if user_input.casefold() in name]
+
+        
 
 def setup(bot):
     bot.add_cog(Badges(bot))
