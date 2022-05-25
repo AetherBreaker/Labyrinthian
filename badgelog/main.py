@@ -160,7 +160,7 @@ class Badges(commands.Cog):
     @rename.autocomplete("charname")
     async def autocomp_charnames(self, inter: disnake.ApplicationCommandInteraction, user_input: str):
         charlist = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].distinct("character", {"user": str(inter.author.id)})
-        return [name for name in charlist if user_input.casefold() in name]
+        return [name for name in charlist if "".join(user_input.split()).casefold() in "".join(name.split()).casefold()]
 
     @commands.slash_command(description="Set your characters classes in their badge log.")
     async def classes(self, inter):
@@ -191,7 +191,7 @@ class Badges(commands.Cog):
     @add.autocomplete("charname")
     async def autocomp_charnames(self, inter: disnake.ApplicationCommandInteraction, user_input: str):
         charlist = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].distinct("character", {"user": str(inter.author.id)})
-        return [name for name in charlist if user_input.casefold() in name]
+        return [name for name in charlist if "".join(user_input.split()).casefold() in "".join(name.split()).casefold()]
 
     @classes.sub_command()
     async def remove(self, inter: disnake.ApplicationCommandInteraction, charname: str, multiclassname: validClass):
@@ -214,7 +214,7 @@ class Badges(commands.Cog):
     @remove.autocomplete("charname")
     async def autocomp_charnames(self, inter: disnake.ApplicationCommandInteraction, user_input: str):
         charlist = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].distinct("character", {"user": str(inter.author.id)})
-        return [name for name in charlist if user_input.casefold() in name]
+        return [name for name in charlist if "".join(user_input.split()).casefold() in "".join(name.split()).casefold()]
 
     @classes.sub_command()
     async def update(self, inter: disnake.ApplicationCommandInteraction, charname: str, multiclassname: validClass, multiclasslevel: int):
@@ -243,7 +243,7 @@ class Badges(commands.Cog):
     @update.autocomplete("charname")
     async def autocomp_charnames(self, inter: disnake.ApplicationCommandInteraction, user_input: str):
         charlist = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].distinct("character", {"user": str(inter.author.id)})
-        return [name for name in charlist if user_input.casefold() in name]
+        return [name for name in charlist if "".join(user_input.split()).casefold() in "".join(name.split()).casefold()]
 
     @commands.slash_command(name="character-list")
     async def characterlist(self, inter: disnake.ApplicationCommandInteraction):
@@ -293,7 +293,7 @@ class Badges(commands.Cog):
     @updatelog.autocomplete("charname")
     async def autocomp_charnames(self, inter: disnake.ApplicationCommandInteraction, user_input: str):
         charlist = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].distinct("character", {"user": str(inter.author.id)})
-        return [name for name in charlist if user_input.casefold() in name]
+        return [name for name in charlist if "".join(user_input.split()).casefold() in "".join(name.split()).casefold()]
 
     @commands.slash_command(name="log-browser")
     async def logbrowser(self, inter: disnake.ApplicationCommandInteraction, charname: str):
@@ -302,15 +302,26 @@ class Badges(commands.Cog):
         ----------
         charname: The name of your character."""
         charlist = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].find({"user": str(inter.author.id)}).to_list(None)
-        # await inter.response.defer()
+        await inter.response.send_message("Loading log browser...")
         await create_LogBrowser(inter, self.bot, inter.author, inter.guild, charname, charlist)
 
     @logbrowser.autocomplete("charname")
     async def autocomp_charnames(self, inter: disnake.ApplicationCommandInteraction, user_input: str):
         charlist = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].distinct("character", {"user": str(inter.author.id)})
-        return [name for name in charlist if user_input.casefold() in name]
+        return [name for name in charlist if "".join(user_input.split()).casefold() in "".join(name.split()).casefold()]
 
-        
+    @commands.slash_command(default_member_permissions=disnake.Permissions(administrator=True))
+    async def admin(self, inter: disnake.ApplicationCommandInteraction):
+        """Badge logging admin tools."""
+        pass
+
+    @admin.sub_command()
+    async def browser(self, inter: disnake.ApplicationCommandInteraction, name: str):
+        pass
+
+    browser.autocomplete("name")
+    async def autocomp_lookup(self, inter: disnake.ApplicationCommandInteraction, input: str):
+        list = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].find().sort().to_list(None)
 
 def setup(bot):
     bot.add_cog(Badges(bot))

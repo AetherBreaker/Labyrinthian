@@ -8,7 +8,7 @@
             "name": "Labyrinthian Bot",
             "type": "python",
             "request": "launch",
-            "program": "D:\\Labyrinthian\\labyrinthianinit.py",
+            "program": "D:\\Labyrinthian\\bot.py",
             "console": "integratedTerminal",
             "justMyCode": true
         }

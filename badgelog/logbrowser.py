@@ -44,7 +44,7 @@ class LogBrowser(disnake.ui.View):
         await self.refresh_msg(self.inter)
 
     async def refresh_msg(self, inter: disnake.ApplicationCommandInteraction):
-        await inter.response.send_message(embed=self.embeds[0], view=self)
+        await inter.edit_original_message("", embed=self.embeds[0], view=self)
 
     async def construct_embeds(self, charname: str) -> List[disnake.Embed]:
         char = await self.bot.sdb[f'BLCharList_{self.guild.id}'].find_one({"user": str(self.owner.id), "character": charname})
@@ -123,13 +123,15 @@ class LogBrowser(disnake.ui.View):
         if len(self.embeds) == 1:
             self.next_page.disabled = True
             self.last_page.disabled = True
+            self.prev_page.disabled = True
+            self.first_page.disabled = True
         else:
             self.next_page.disabled = False
             self.last_page.disabled = False
         self.firstchar = charname
         self._refresh_character_select()
         self.embed_count = 0
-        await interaction.response.edit_message(embed=self.embeds[0], view=self)
+        await interaction.edit_original_message(embed=self.embeds[0], view=self)
 
     def _refresh_character_select(self):
         self.select_character.options.clear()
@@ -183,7 +185,7 @@ class LogBrowser(disnake.ui.View):
         self.prev_page.disabled = True
         self.next_page.disabled = False
         self.last_page.disabled = False
-        await interaction.response.edit_message(embed=embed, view=self)
+        await interaction.edit_original_message(embed=embed, view=self)
 
     @disnake.ui.button(emoji="◀", style=disnake.ButtonStyle.secondary)
     async def prev_page(self, button: disnake.ui.Button, interaction: disnake.MessageInteraction):
@@ -195,11 +197,11 @@ class LogBrowser(disnake.ui.View):
         if self.embed_count == 0:
             self.first_page.disabled = True
             self.prev_page.disabled = True
-        await interaction.response.edit_message(embed=embed, view=self)
+        await interaction.edit_original_message(embed=embed, view=self)
 
     @disnake.ui.button(emoji="✖️", style=disnake.ButtonStyle.red)
     async def remove(self, button: disnake.ui.Button, interaction: disnake.MessageInteraction):
-        await interaction.response.edit_message(view=None)
+        await interaction.edit_original_message(view=None)
 
     @disnake.ui.button(emoji="▶", style=disnake.ButtonStyle.secondary)
     async def next_page(self, button: disnake.ui.Button, interaction: disnake.MessageInteraction):
@@ -211,7 +213,7 @@ class LogBrowser(disnake.ui.View):
         if self.embed_count == len(self.embeds) - 1:
             self.next_page.disabled = True
             self.last_page.disabled = True
-        await interaction.response.edit_message(embed=embed, view=self)
+        await interaction.edit_original_message(embed=embed, view=self)
 
     @disnake.ui.button(emoji="⏩", style=disnake.ButtonStyle.blurple)
     async def last_page(self, button: disnake.ui.Button, interaction: disnake.MessageInteraction):
@@ -222,7 +224,7 @@ class LogBrowser(disnake.ui.View):
         self.prev_page.disabled = False
         self.next_page.disabled = True
         self.last_page.disabled = True
-        await interaction.response.edit_message(embed=embed, view=self)
+        await interaction.edit_original_message(embed=embed, view=self)
 
 
 

@@ -19,3 +19,4 @@ class Browser(disnake.ui.View):
         userlist = await self.bot.sdb[f"BLCharList_{self.guild.id}"].distinct()
         pass
 
+@disnake.ui.select(placeholder="", )
