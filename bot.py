@@ -13,19 +13,19 @@ intents.members = True
 intents.message_content = True
 intents.presences = True
 
-extensions = [
+extensions = (
     "badgelog.main",
     "settings.customization"
-]
+)
 
-async def get_prefix(bot, message):
+async def get_prefix(bot: commands.Bot, message: disnake.Message):
     if not message.guild:
         return commands.when_mentioned_or(config.DEFAULT_PREFIX)(bot, message)
     gp = await bot.get_guild_prefix(message.guild)
     return commands.when_mentioned_or(gp)(bot, message)
 
 class Labyrinthian(commands.Bot):
-    def __init__(self, prefix, help_command=None, description=None, **options):
+    def __init__(self, prefix: str, help_command=None, description=None, **options):
         super().__init__(
             prefix,
             help_command=help_command,
@@ -41,14 +41,10 @@ class Labyrinthian(commands.Bot):
         self.mclient = motor.motor_asyncio.AsyncIOMotorClient(config.MONGO_URL)
         self.mdb = self.mclient[config.MONGODB_DB_NAME]
         self.sdb = self.mclient[config.MONGODB_SERVERDB_NAME]
-        #self.rdb = self.loop.run_until_complete(self.setup_rdb())
 
         #misc caches
         self.prefixes = dict()
         self.muted = set()
-
-    #async def setup_rdb(self):
-    #    return RedisIO(await aioredis.create_redis_pool(config.REDIS_URL, db=config.REDIS_DB_NUM))
 
     async def get_guild_prefix(self, guild: disnake.Guild) -> str:
         guild_id = str(guild.id)
@@ -61,7 +57,7 @@ class Labyrinthian(commands.Bot):
         else:
             gp = gp_obj['prefix']
         self.prefixes[guild_id] = gp
-        return 
+        return gp
 
 bot = Labyrinthian(
     prefix="'",
@@ -76,7 +72,7 @@ async def on_ready():
 
 @bot.command()
 @commands.guild_only()
-async def prefix(ctx, prefix: str = None):
+async def prefix(ctx: commands.Context, prefix: str = None):
     """
     Sets the bot's prefix for this server.
     You must have Manage Server permissions or a role called "Bot Admin" to use this command. Due to a possible Discord conflict, a prefix beginning with `/` will require confirmation.
@@ -118,7 +114,7 @@ for ext in extensions:
     bot.load_extension(ext)
 
 @bot.slash_command(description="Reload bot extensions")
-async def reload(inter, extension: str = commands.Param(choices=extensions)):
+async def reload(inter: disnake.ApplicationCommandInteraction, extension: str = commands.Param(choices=extensions)):
     if str(inter.author.id) in bot.owner_ids:
         await inter.response.send_message(f"Reloading the {extension} extension.")
         bot.reload_extension(extension)
