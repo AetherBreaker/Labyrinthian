@@ -1,10 +1,16 @@
+import asyncio
+from aiohttp import ClientOSError, ClientResponseError
 import disnake
 import logging
 from disnake.ext import commands
 import motor.motor_asyncio
 from utilities import config
+from utilities.errors import LabyrinthianException
 from utilities.functions import confirm
 from utilities import checks
+from disnake.errors import Forbidden, HTTPException, InvalidArgument, NotFound
+from disnake.ext import commands
+from disnake.ext.commands.errors import CommandInvokeError
 
 logging.basicConfig(level=logging.INFO)
 
@@ -69,6 +75,112 @@ bot = Labyrinthian(
 @bot.event
 async def on_ready():
     print(f'We have logged in as {bot.user}')
+
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandNotFound):
+        return
+
+    elif isinstance(error, LabyrinthianException):
+        return await ctx.send(str(error))
+
+    elif isinstance(error, (commands.UserInputError, commands.NoPrivateMessage, ValueError)):
+        return await ctx.send(
+            f"Error: {str(error)}\nUse `{ctx.prefix}help " + ctx.command.qualified_name + "` for help."
+        )
+
+    elif isinstance(error, commands.CheckFailure):
+        msg = str(error) or "You are not allowed to run this command."
+        return await ctx.send(f"Error: {msg}")
+
+    elif isinstance(error, commands.CommandOnCooldown):
+        return await ctx.send("This command is on cooldown for {:.1f} seconds.".format(error.retry_after))
+
+    elif isinstance(error, commands.MaxConcurrencyReached):
+        return await ctx.send(str(error))
+
+    elif isinstance(error, CommandInvokeError):
+        original = error.original
+
+        if isinstance(original, LabyrinthianException):
+            return await ctx.send(str(original)) 
+
+        elif isinstance(original, Forbidden):
+            try:
+                return await ctx.author.send(
+                    "Error: I am missing permissions to run this command. "
+                    f"Please make sure I have permission to send messages to <#{ctx.channel.id}>."
+                )
+            except HTTPException:
+                try:
+                    return await ctx.send(f"Error: I cannot send messages to this user.")
+                except HTTPException:
+                    return
+
+        elif isinstance(original, NotFound):
+            return await ctx.send("Error: I tried to edit or delete a message that no longer exists.")
+
+        elif isinstance(original, (ClientResponseError, InvalidArgument, asyncio.TimeoutError, ClientOSError)):
+            return await ctx.send("Error in Discord API. Please try again.")
+
+        elif isinstance(original, HTTPException):
+            if original.response.status == 400:
+                return await ctx.send(f"Error: Message is too long, malformed, or empty.\n{original.text}")
+            elif 499 < original.response.status < 600:
+                return await ctx.send("Error: Internal server error on Discord's end. Please try again.")
+
+@bot.event
+async def on_slash_command_error(inter, error):
+    if isinstance(error, commands.CommandNotFound):
+        return
+
+    elif isinstance(error, LabyrinthianException):
+        return await inter.send(str(error))
+
+    elif isinstance(error, (commands.UserInputError, commands.NoPrivateMessage, ValueError)):
+        return await inter.send(
+            f"Error: {str(error)}\nUse `{inter.prefix}help " + inter.command.qualified_name + "` for help."
+        )
+
+    elif isinstance(error, commands.CheckFailure):
+        msg = str(error) or "You are not allowed to run this command."
+        return await inter.send(f"Error: {msg}")
+
+    elif isinstance(error, commands.CommandOnCooldown):
+        return await inter.send("This command is on cooldown for {:.1f} seconds.".format(error.retry_after))
+
+    elif isinstance(error, commands.MaxConcurrencyReached):
+        return await inter.send(str(error))
+
+    elif isinstance(error, CommandInvokeError):
+        original = error.original
+
+        if isinstance(original, LabyrinthianException):
+            return await inter.send(str(original)) 
+
+        elif isinstance(original, Forbidden):
+            try:
+                return await inter.author.send(
+                    "Error: I am missing permissions to run this command. "
+                    f"Please make sure I have permission to send messages to <#{inter.channel.id}>."
+                )
+            except HTTPException:
+                try:
+                    return await inter.send(f"Error: I cannot send messages to this user.")
+                except HTTPException:
+                    return
+
+        elif isinstance(original, NotFound):
+            return await inter.send("Error: I tried to edit or delete a message that no longer exists.")
+
+        elif isinstance(original, (ClientResponseError, InvalidArgument, asyncio.TimeoutError, ClientOSError)):
+            return await inter.send("Error in Discord API. Please try again.")
+
+        elif isinstance(original, HTTPException):
+            if original.response.status == 400:
+                return await inter.send(f"Error: Message is too long, malformed, or empty.\n{original.text}")
+            elif 499 < original.response.status < 600:
+                return await inter.send("Error: Internal server error on Discord's end. Please try again.")
 
 @bot.command()
 @commands.guild_only()

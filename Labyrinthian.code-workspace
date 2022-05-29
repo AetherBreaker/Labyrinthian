@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+    ],
+    "settings": {
+        "mdb.connectionSaving.defaultConnectionSavingLocation": "Workspace",
+        "liveshare.accessibility.accessibilityFeaturesEnabled": true,
+        "liveshare.allowGuestDebugControl": true,
+        "liveshare.launcherClient": "visualStudioCode"
+    }
+}

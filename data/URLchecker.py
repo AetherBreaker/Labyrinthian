@@ -60,7 +60,7 @@ def search(
 URL_KEY_V1_RE = re.compile(r"key=([^&#]+)")
 URL_KEY_V2_RE = re.compile(r"/spreadsheets/d/([a-zA-Z0-9-_]+)")
 
-def extract_gsheet_id_from_url(url):
+def extract_gsheet_id_from_url(url: str):
     m2 = URL_KEY_V2_RE.search(url)
     if m2:
         return url
@@ -69,7 +69,7 @@ def extract_gsheet_id_from_url(url):
         return url
     raise ExternalImportError("This is not a valid Google Sheets link.")
 
-def urlCheck(url):
+def urlCheck(url: str) -> bool:
     # Sheets in order: DDB, Dicecloud, Gsheet
     if DDB_URL_RE.match(url):
         return True
