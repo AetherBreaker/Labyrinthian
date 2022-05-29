@@ -364,3 +364,8 @@ FodyWeavers.xsd
 
 # Environment Variables
 *.env
+
+# Workspace Documents
+*.code-workspace
+launch.json
+settings.json

@@ -11,12 +11,14 @@ from badgelog.browser import create_CharSelect
 class Badges(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        self.valid = ['Artificer', 'Barbarian', 'Bard', 'Blood Hunter', 'Cleric', 'Druid', 'Fighter', 'Monk', 'Paladin', 'Ranger', 'Rogue', 'Sorcerer', 'Warlock', 'Wizard']
 
     nl = '\n'
     validClass = commands.option_enum(['Artificer', 'Barbarian', 'Bard', 'Blood Hunter', 'Cleric', 'Druid', 'Fighter', 'Monk', 'Paladin', 'Ranger', 'Rogue', 'Sorcerer', 'Warlock', 'Wizard'])
 
     @commands.slash_command()
-    async def create(self, inter: disnake.ApplicationCommandInteraction, sheetlink: str, charname: str, startingclass: validClass, startingclasslevel: int):
+    @commands.cooldown(4, 1200.0, type=commands.BucketType.user)
+    async def create(self, inter: disnake.ApplicationCommandInteraction, sheetlink: str, charname: str, startingclass: validClass, startingclasslevel: int = commands.Param(gt=0, le=20)):
         """Creates a badge log for your character
         Parameters
         ----------
@@ -72,6 +74,7 @@ class Badges(commands.Cog):
             await inter.response.send_message("Sheet type does not match accepted formats, or is not a valid URL.")
 
     @commands.slash_command()
+    @commands.cooldown(5, 30.0, type=commands.BucketType.user)
     async def rename(self, inter: disnake.ApplicationCommandInteraction, charname: str, newname: str):
         """Change your characters name!
         Parameters
@@ -92,11 +95,12 @@ class Badges(commands.Cog):
         return [name for name in charlist if "".join(user_input.split()).casefold() in "".join(name.split()).casefold()]
 
     @commands.slash_command(description="Set your characters classes in their badge log.")
-    async def classes(self, inter):
+    async def classes(self, inter: disnake.ApplicationCommandInteraction):
         pass
 
     @classes.sub_command()
-    async def add(self, inter: disnake.ApplicationCommandInteraction, charname: str, multiclassname: validClass, multiclasslevel: int):
+    @commands.cooldown(3, 30.0, type=commands.BucketType.user)
+    async def add(self, inter: disnake.ApplicationCommandInteraction, charname: str, multiclassname: str, multiclasslevel: int = commands.Param(gt=0, le=20)):
         """Adds a multiclass to your character's badge log.
         Parameters
         ----------
@@ -122,7 +126,15 @@ class Badges(commands.Cog):
         charlist = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].distinct("character", {"user": str(inter.author.id)})
         return [name for name in charlist if "".join(user_input.split()).casefold() in "".join(name.split()).casefold()]
 
+    @add.autocomplete("multiclassname")
+    async def autocomp_charnames(self, inter: disnake.ApplicationCommandInteraction, user_input: str):
+        charname = inter.filled_options['charname']
+        char = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].find_one({"user": str(inter.author.id), "character": charname})
+        validclasses = [x for x in self.valid if x not in char['classes']]
+        return [name for name in validclasses if "".join(user_input.split()).casefold() in "".join(name.split()).casefold()]
+
     @classes.sub_command()
+    @commands.cooldown(3, 30.0, type=commands.BucketType.user)
     async def remove(self, inter: disnake.ApplicationCommandInteraction, charname: str, multiclassname: validClass):
         """Removes a multiclass from your character's badge log.
         Parameters
@@ -146,6 +158,7 @@ class Badges(commands.Cog):
         return [name for name in charlist if "".join(user_input.split()).casefold() in "".join(name.split()).casefold()]
 
     @classes.sub_command()
+    @commands.cooldown(3, 30.0, type=commands.BucketType.user)
     async def update(self, inter: disnake.ApplicationCommandInteraction, charname: str, multiclassname: validClass, multiclasslevel: int):
         """Used to update the level of one of your characters multiclasses in their badge log.
         Parameters
@@ -184,6 +197,7 @@ class Badges(commands.Cog):
     #     ))
 
     @commands.slash_command(name="update-log")
+    @commands.cooldown(3, 30.0, type=commands.BucketType.user)
     async def updatelog(self, inter: disnake.ApplicationCommandInteraction, charname: str, badgeinput: float, awardingdm: disnake.Member):
         """Adds an entry to your characters badge log
         Parameters
@@ -225,6 +239,7 @@ class Badges(commands.Cog):
         return [name for name in charlist if "".join(user_input.split()).casefold() in "".join(name.split()).casefold()]
 
     @commands.slash_command(name="log-browser")
+    @commands.cooldown(3, 30.0, type=commands.BucketType.user)
     async def logbrowser(self, inter: disnake.ApplicationCommandInteraction):
         """Displays your character's badgelog data.
         Parameters
@@ -238,6 +253,7 @@ class Badges(commands.Cog):
         pass
 
     @staff.sub_command()
+    @commands.cooldown(3, 30.0, type=commands.BucketType.user)
     async def browser(self, inter: disnake.ApplicationCommandInteraction, user: disnake.Member):
         """Display the badge log data of a user's characters.
         Parameters
@@ -250,6 +266,7 @@ class Badges(commands.Cog):
             await create_CharSelect(inter, self.bot, inter.author, inter.guild, user, True)
 
     @staff.sub_command()
+    @commands.cooldown(3, 30.0, type=commands.BucketType.user)
     async def sheet(self, inter: disnake.ApplicationCommandInteraction, user: disnake.Member, charname: str, sheetlink: str):
         """Update a users character sheet in their badge log.
         Parameters
@@ -281,6 +298,7 @@ class Badges(commands.Cog):
         pass
 
     @dmroles.sub_command(name="add")
+    @commands.cooldown(3, 30.0, type=commands.BucketType.user)
     async def adddmrole(self, inter: disnake.ApplicationCommandInteraction, role: disnake.Role, role2: disnake.Role=None, role3: disnake.Role=None, role4: disnake.Role=None):
         """Choose roles to add to the list of DM roles."""
         await inter.response.defer()
@@ -304,6 +322,7 @@ class Badges(commands.Cog):
         await inter.send("The DM roles have been updated.", ephemeral=True)
     
     @dmroles.sub_command(name="remove")
+    @commands.cooldown(3, 30.0, type=commands.BucketType.user)
     async def removedmrole(self, inter: disnake.ApplicationCommandInteraction, role: disnake.Role, role2: disnake.Role=None, role3: disnake.Role=None, role4: disnake.Role=None):
         """Choose roles to add to the list of DM roles."""
         await inter.response.defer()
@@ -327,6 +346,7 @@ class Badges(commands.Cog):
         await inter.send("The DM roles have been updated.", ephemeral=True)
 
     @admin.sub_command()
+    @commands.cooldown(3, 30.0, type=commands.BucketType.user)
     async def badgetemplate(self, inter: disnake.ApplicationCommandInteraction, templatedict: str):
         try:
             bdgtemplate = loads(templatedict)

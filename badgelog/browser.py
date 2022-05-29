@@ -358,17 +358,17 @@ class LogBrowser(disnake.ui.View):
 
     @disnake.ui.button(emoji="✖️", style=disnake.ButtonStyle.red)
     async def remove(self, button: disnake.ui.Button, inter: disnake.MessageInteraction):
-        await inter.response.edit_message("Browser cleared", embed=None, view=None)
+        await inter.response.edit_message("\u200B", embed=None, view=None)
         try:
             if inter.response.is_done():
-                delmsg: disnake.Message = await inter.edit_original_message("Browser cleared", embed=None, view=None)
+                delmsg: disnake.Message = await inter.edit_original_message("\u200B", embed=None, view=None)
             else:
-                delmsg: disnake.Message = await inter.response.edit_message("Browser cleared", embed=None, view=None)
+                delmsg: disnake.Message = await inter.response.edit_message("\u200B", embed=None, view=None)
         except disnake.NotFound:
             if self.inter.response.is_done():
-                delmsg: disnake.Message = await self.inter.edit_original_message("Browser cleared", embed=None, view=None)
+                delmsg: disnake.Message = await self.inter.edit_original_message("\u200B", embed=None, view=None)
             else:
-                delmsg: disnake.Message = await self.inter.response.edit_message("Browser cleared", embed=None, view=None)
+                delmsg: disnake.Message = await self.inter.response.edit_message("\u200B", embed=None, view=None)
         await delmsg.delete()
 
     @disnake.ui.button(emoji="▶", style=disnake.ButtonStyle.secondary)
