@@ -369,3 +369,6 @@ FodyWeavers.xsd
 *.code-workspace
 launch.json
 settings.json
+
+# Virtual Environment
+env/
