@@ -21,7 +21,7 @@ class Badges(commands.Cog):
 
     @commands.slash_command()
     @commands.cooldown(4, 1200.0, type=commands.BucketType.user)
-    async def create(self, inter: disnake.ApplicationCommandInteraction, sheetlink: str, charname: str, startingclass: validClass, startingclasslevel: int = commands.Param(gt=0, le=20)):
+    async def create(self, inter: disnake.ApplicationCommandInteraction, sheetlink: str, charname: str, startingclass: str, startingclasslevel: int = commands.Param(gt=0, le=20)):
         """Creates a badge log for your character
         Parameters
         ----------
@@ -30,7 +30,13 @@ class Badges(commands.Cog):
         startingclass: Your character's starter class.
         startingclasslevel: The level of your character's starter class."""
         srvconf = await self.bot.sdb[f'srvconf'].find_one({"guild": str(inter.guild.id)})
-        validc = self.valid if srvconf is None else srvconf['classlist']
+        if 'classlist' in srvconf:
+            if srvconf['classlist']:
+                validc = srvconf['classlist']
+            else:
+                validc = self.valid
+        else:
+            validc = self.valid
         if startingclass not in validc:
             await inter.response.send_message(f"{startingclass} is not a valid class, try using the autocompletion to select a class.")
         else:
@@ -84,7 +90,13 @@ class Badges(commands.Cog):
     @create.autocomplete("startingclass")
     async def autocomp_class(self, inter: disnake.ApplicationCommandInteraction, user_input: str):
         srvconf = await self.bot.sdb[f'srvconf'].find_one({"guild": str(inter.guild.id)})
-        validc = self.valid if srvconf is None else srvconf['classlist']
+        if 'classlist' in srvconf:
+            if srvconf['classlist']:
+                validc = srvconf['classlist']
+            else:
+                validc = self.valid
+        else:
+            validc = self.valid
         return [name for name in validc if "".join(user_input.split()).casefold() in "".join(name.split()).casefold()]
 
     @commands.slash_command()
@@ -150,7 +162,13 @@ class Badges(commands.Cog):
         charname = inter.filled_options['charname']
         char = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].find_one({"user": str(inter.author.id), "character": charname})
         srvconf = await self.bot.sdb[f'srvconf'].find_one({"guild": str(inter.guild.id)})
-        validc = self.valid if srvconf is None else srvconf['classlist']
+        if 'classlist' in srvconf:
+            if srvconf['classlist']:
+                validc = srvconf['classlist']
+            else:
+                validc = self.valid
+        else:
+            validc = self.valid
         validclasses = [x for x in validc if x not in char['classes']]
         return [name for name in validclasses if "".join(user_input.split()).casefold() in "".join(name.split()).casefold()]
 
