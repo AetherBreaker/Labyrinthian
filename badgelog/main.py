@@ -8,6 +8,7 @@ from disnake.ext import commands
 
 from administrative.serverconfigs import Configs
 from utilities.txtformatting import mkTable
+
 from badgelog.browser import create_CharSelect
 
 
