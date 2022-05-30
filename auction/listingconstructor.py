@@ -1,17 +1,82 @@
+from contextlib import suppress
+from typing import Optional
 import disnake
 from disnake.ext import commands
 from yarl import URL
+
+TOO_MANY_CHARACTERS_SENTINEL = "__special:too_many_characters"
 
 class ConstSender(disnake.ui.View):
     def __init__(self, bot: commands.bot):
         super().__init__(timeout=None)
         self.bot = bot
 
+    @disnake.ui.button(emoji="💳", style=disnake.ButtonStyle.primary)
+    async def send_constructor(self, inter: disnake.MessageInteraction):
+        Constr = ListingConst(self.bot, inter.author)
+        await Constr._init(inter)
 
 class ListingConst(disnake.ui.View):
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: commands.Bot, owner: disnake.Member):
         super().__init__(timeout=600)
         self.bot = bot
+        self.firstchar = None
+
+    async def _init(self, inter: disnake.MessageInteraction):
+        self.charlist = await self.bot.sdb[f'BLCharList_{inter.guild.id}'].distinct("character", {"user": str(self.owner.id)})
+        self._refresh_character_select()
+
+    @disnake.ui.select(placeholder="Select Character", min_values=1, max_values=1)
+    async def select_char(self, select: disnake.ui.Select, inter: disnake.MessageInteraction):
+        await inter.response.defer()
+        if len(select.values) == 1 and select.values[0] == TOO_MANY_CHARACTERS_SENTINEL:
+            charname = await self._text_select_char(inter)
+        else:
+            charname = select.values[0]
+
+    def _refresh_character_select(self):
+        self.select_char.options.clear()
+        if len(self.charlist) > 25:
+            self.select_char.add_option(
+                label="Whoa, you have a lot of characters! Click here to select one.", value=TOO_MANY_CHARACTERS_SENTINEL
+            )
+            return
+        for char in reversed(self.charlist):  # display highest-first
+            selected = True if char == self.firstchar else False
+            self.select_char.add_option(label=char, value=char)
+
+    async def _text_select_char(self, inter: disnake.MessageInteraction) -> Optional[str]:
+        self.select_char.disabled = True
+        selectmsg: disnake.Message = await inter.followup.send(
+            "Choose one of the following characters by sending a message to this channel.\n"+'\n'.join([x['character'] for x in self.charlist])
+        )
+
+        try:
+            input_msg: disnake.Message = await self.bot.wait_for(
+                "message",
+                timeout=60,
+                check=lambda msg: msg.author == inter.author and msg.channel.id == inter.channel_id,
+            )
+            with suppress(disnake.HTTPException):
+                await input_msg.delete()
+                await selectmsg.delete()
+
+            charname=[]
+            for x in self.charlist:
+                if "".join(input_msg.content.split()).casefold() in "".join(x['character'].split()).casefold():
+                    charname = x['character']
+
+            if charname:
+                await self.inter.followup.send(f"{charname} selected.", delete_after=4)
+                return charname
+            await self.inter.followup.send("No valid character found. Use the select menu to try again.", delete_after=6)
+            return None
+        except TimeoutError:
+            await self.inter.followup.send("No valid character found. Use the select menu to try again.", delete_after=6)
+            return
+        finally:
+            self.select_char.disabled = False
+
 
 
 
