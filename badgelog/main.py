@@ -1,19 +1,21 @@
-from string import Template
-import disnake
-from disnake.ext import commands
 import time
-
-from data.URLchecker import urlCheck
 from json import JSONDecodeError, loads
+from string import Template
+
+import disnake
+from data.URLchecker import urlCheck
+from disnake.ext import commands
+
+from administrative.serverconfigs import Configs
 from utilities.txtformatting import mkTable
 from badgelog.browser import create_CharSelect
+
 
 class Badges(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.valid = ['Artificer', 'Barbarian', 'Bard', 'Blood Hunter', 'Cleric', 'Druid', 'Fighter', 'Monk', 'Paladin', 'Ranger', 'Rogue', 'Sorcerer', 'Warlock', 'Wizard']
 
-    nl = '\n'
     validClass = commands.option_enum(['Artificer', 'Barbarian', 'Bard', 'Blood Hunter', 'Cleric', 'Druid', 'Fighter', 'Monk', 'Paladin', 'Ranger', 'Rogue', 'Sorcerer', 'Warlock', 'Wizard'])
 
     @commands.slash_command()
@@ -26,52 +28,63 @@ class Badges(commands.Cog):
         charname: The name of your character.
         startingclass: Your character's starter class.
         startingclasslevel: The level of your character's starter class."""
-        if urlCheck(sheetlink):
-            character = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].find_one({"user": str(inter.author.id), "character": charname})
-            if character != None:
-                await inter.response.send_message(f"{charname}'s badge log already exists!")
-            else:
-                char = {
-                    "user": str(inter.author.id),
-                    "sheet": sheetlink,
-                    "character": charname,
-                    "charlvl": startingclasslevel,
-                    "classes": {
-                            startingclass: startingclasslevel,
-                    },
-                    "currentbadges": 0,
-                    "expectedlvl": 1,
-                    "lastlog": None,
-                    "lastlogtime": time.time()
-                }
-                await self.bot.sdb[f"BLCharList_{inter.guild.id}"].insert_one(char)
-                await inter.response.send_message(f"Registered {charname}'s badge log with the Adventurers Coalition.")
-                Embed = {
-                    "title": f"{charname}'s Adventurers ID'",
-                    "description": f"Played by: <@{inter.author.id}>",
-                    "color": disnake.Color.random().value,
-                    "url": f"{char['sheet']}",
-                    "fields": [
-                        {
-                            "name": "Badge Information:",
-                            "value": f"Current Badges: {char['currentbadges']}\nExpected Level: {char['expectedlvl']}",
-                            "inline": True
-                        },
-                        {
-                            "name": "Class Levels:",
-                            "value": '\n'.join([f'{x}: {y}' for x,y in char['classes'].items()]),
-                            "inline": True
-                        },
-                        {
-                            "name": f"Total Levels: {char['charlvl']}",
-                            "value": "\u200B", 
-                            "inline": True
-                        }
-                    ]
-                }
-                await inter.channel.send("Heres your adventurer's ID...", embed=disnake.Embed.from_dict(Embed))
+        srvconf = await self.bot.sdb[f'srvconf'].find_one({"guild": str(inter.guild.id)})
+        validc = self.valid if srvconf is None else srvconf['classlist']
+        if startingclass not in validc:
+            await inter.response.send_message(f"{startingclass} is not a valid class, try using the autocompletion to select a class.")
         else:
-            await inter.response.send_message("Sheet type does not match accepted formats, or is not a valid URL.")
+            if urlCheck(sheetlink):
+                character = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].find_one({"user": str(inter.author.id), "character": charname})
+                if character != None:
+                    await inter.response.send_message(f"{charname}'s badge log already exists!")
+                else:
+                    char = {
+                        "user": str(inter.author.id),
+                        "sheet": sheetlink,
+                        "character": charname,
+                        "charlvl": startingclasslevel,
+                        "classes": {
+                                startingclass: startingclasslevel,
+                        },
+                        "currentbadges": 0,
+                        "expectedlvl": 1,
+                        "lastlog": None,
+                        "lastlogtime": time.time()
+                    }
+                    await self.bot.sdb[f"BLCharList_{inter.guild.id}"].insert_one(char)
+                    await inter.response.send_message(f"Registered {charname}'s badge log with the Adventurers Coalition.")
+                    Embed = {
+                        "title": f"{charname}'s Adventurers ID'",
+                        "description": f"Played by: <@{inter.author.id}>",
+                        "color": disnake.Color.random().value,
+                        "url": f"{char['sheet']}",
+                        "fields": [
+                            {
+                                "name": "Badge Information:",
+                                "value": f"Current Badges: {char['currentbadges']}\nExpected Level: {char['expectedlvl']}",
+                                "inline": True
+                            },
+                            {
+                                "name": "Class Levels:",
+                                "value": '\n'.join([f'{x}: {y}' for x,y in char['classes'].items()]),
+                                "inline": True
+                            },
+                            {
+                                "name": f"Total Levels: {char['charlvl']}",
+                                "value": "\u200B", 
+                                "inline": True
+                            }
+                        ]
+                    }
+                    await inter.channel.send("Heres your adventurer's ID...", embed=disnake.Embed.from_dict(Embed))
+            else:
+                await inter.response.send_message("Sheet type does not match accepted formats, or is not a valid URL.")
+
+    @create.autocomplete("startingclass")
+    async def autocomp_class(self, inter: disnake.ApplicationCommandInteraction, user_input: str):
+        srvconf = await self.bot.sdb[f'srvconf'].find_one({"guild": str(inter.guild.id)})
+        validc = self.valid if srvconf is None else srvconf['classlist']
+        return [name for name in validc if "".join(user_input.split()).casefold() in "".join(name.split()).casefold()]
 
     @commands.slash_command()
     @commands.cooldown(5, 30.0, type=commands.BucketType.user)
@@ -107,19 +120,24 @@ class Badges(commands.Cog):
         charname: The name of your character.
         multiclassname: The class your multiclassing into.
         multiclasslevel: The level of your new multiclass."""
-        character = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].find_one({"user": str(inter.author.id), "character": charname})
-        if character == None:
-            await inter.response.send_message(f"{charname} doesn't exist!")
-        elif len(character['classes']) < 5:
-            if (sum(character['classes'].values())+multiclasslevel) > 20:
-                multiclasslevel -= (sum(character['classes'].values())+multiclasslevel)-20
+        srvconf = await self.bot.sdb[f'srvconf'].find_one({"guild": str(inter.guild.id)})
+        validc = self.valid if srvconf is None else srvconf['classlist']
+        if multiclassname not in validc:
+            await inter.response.send_message(f"{multiclassname} is not a valid class, try using the autocompletion to select a class.")
+        else:
+            character = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].find_one({"user": str(inter.author.id), "character": charname})
+            if character == None:
+                await inter.response.send_message(f"{charname} doesn't exist!")
+            elif len(character['classes']) < 5:
                 if (sum(character['classes'].values())+multiclasslevel) > 20:
-                    await inter.response.send_message(f"That level is too high")
-                    return
-            character['classes'][multiclassname] = multiclasslevel
-            character['charlvl'] = sum(character['classes'].values())
-            await self.bot.sdb[f"BLCharList_{inter.guild.id}"].replace_one({"user": str(inter.author.id), "character": charname}, character)
-            await inter.response.send_message(f"{charname} multiclassed into {multiclassname}!")
+                    multiclasslevel -= (sum(character['classes'].values())+multiclasslevel)-20
+                    if (sum(character['classes'].values())+multiclasslevel) > 20:
+                        await inter.response.send_message(f"That level is too high")
+                        return
+                character['classes'][multiclassname] = multiclasslevel
+                character['charlvl'] = sum(character['classes'].values())
+                await self.bot.sdb[f"BLCharList_{inter.guild.id}"].replace_one({"user": str(inter.author.id), "character": charname}, character)
+                await inter.response.send_message(f"{charname} multiclassed into {multiclassname}!")
 
     @add.autocomplete("charname")
     async def autocomp_charnames(self, inter: disnake.ApplicationCommandInteraction, user_input: str):
@@ -127,15 +145,17 @@ class Badges(commands.Cog):
         return [name for name in charlist if "".join(user_input.split()).casefold() in "".join(name.split()).casefold()]
 
     @add.autocomplete("multiclassname")
-    async def autocomp_charnames(self, inter: disnake.ApplicationCommandInteraction, user_input: str):
+    async def autocomp_class(self, inter: disnake.ApplicationCommandInteraction, user_input: str):
         charname = inter.filled_options['charname']
         char = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].find_one({"user": str(inter.author.id), "character": charname})
-        validclasses = [x for x in self.valid if x not in char['classes']]
+        srvconf = await self.bot.sdb[f'srvconf'].find_one({"guild": str(inter.guild.id)})
+        validc = self.valid if srvconf is None else srvconf['classlist']
+        validclasses = [x for x in validc if x not in char['classes']]
         return [name for name in validclasses if "".join(user_input.split()).casefold() in "".join(name.split()).casefold()]
 
     @classes.sub_command()
     @commands.cooldown(3, 30.0, type=commands.BucketType.user)
-    async def remove(self, inter: disnake.ApplicationCommandInteraction, charname: str, multiclassname: validClass):
+    async def remove(self, inter: disnake.ApplicationCommandInteraction, charname: str, multiclassname: str):
         """Removes a multiclass from your character's badge log.
         Parameters
         ----------
@@ -157,9 +177,16 @@ class Badges(commands.Cog):
         charlist = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].distinct("character", {"user": str(inter.author.id)})
         return [name for name in charlist if "".join(user_input.split()).casefold() in "".join(name.split()).casefold()]
 
+    @remove.autocomplete("multiclassname")
+    async def autocomp_class(self, inter: disnake.ApplicationCommandInteraction, user_input: str):
+        charname = inter.filled_options['charname']
+        char = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].find_one({"user": str(inter.author.id), "character": charname})
+        validclasses = char['classes'].keys()
+        return [name for name in validclasses if "".join(user_input.split()).casefold() in "".join(name.split()).casefold()]
+
     @classes.sub_command()
     @commands.cooldown(3, 30.0, type=commands.BucketType.user)
-    async def update(self, inter: disnake.ApplicationCommandInteraction, charname: str, multiclassname: validClass, multiclasslevel: int):
+    async def update(self, inter: disnake.ApplicationCommandInteraction, charname: str, multiclassname: str, multiclasslevel: int = commands.Param(gt=0, le=20)):
         """Used to update the level of one of your characters multiclasses in their badge log.
         Parameters
         ----------
@@ -186,6 +213,13 @@ class Badges(commands.Cog):
     async def autocomp_charnames(self, inter: disnake.ApplicationCommandInteraction, user_input: str):
         charlist = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].distinct("character", {"user": str(inter.author.id)})
         return [name for name in charlist if "".join(user_input.split()).casefold() in "".join(name.split()).casefold()]
+
+    @update.autocomplete("multiclassname")
+    async def autocomp_class(self, inter: disnake.ApplicationCommandInteraction, user_input: str):
+        charname = inter.filled_options['charname']
+        char = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].find_one({"user": str(inter.author.id), "character": charname})
+        validclasses = char['classes'].keys()
+        return [name for name in validclasses if "".join(user_input.split()).casefold() in "".join(name.split()).casefold()]
 
     # @commands.slash_command(name="character-list")
     # async def characterlist(self, inter: disnake.ApplicationCommandInteraction):
@@ -247,12 +281,7 @@ class Badges(commands.Cog):
         charname: The name of your character."""
         await create_CharSelect(inter, self.bot, inter.author, inter.guild)
 
-    @commands.slash_command(default_member_permissions=disnake.Permissions(administrator=True))
-    async def staff(self, inter: disnake.ApplicationCommandInteraction):
-        """Badge logging admin tools."""
-        pass
-
-    @staff.sub_command()
+    @Configs.staff.sub_command()
     @commands.cooldown(3, 30.0, type=commands.BucketType.user)
     async def browser(self, inter: disnake.ApplicationCommandInteraction, user: disnake.Member):
         """Display the badge log data of a user's characters.
@@ -265,7 +294,7 @@ class Badges(commands.Cog):
         else:
             await create_CharSelect(inter, self.bot, inter.author, inter.guild, user, True)
 
-    @staff.sub_command()
+    @Configs.staff.sub_command()
     @commands.cooldown(3, 30.0, type=commands.BucketType.user)
     async def sheet(self, inter: disnake.ApplicationCommandInteraction, user: disnake.Member, charname: str, sheetlink: str):
         """Update a users character sheet in their badge log.
@@ -289,11 +318,7 @@ class Badges(commands.Cog):
                 else:
                     await inter.response.send_message("This URL is not an accepted character sheet type.\nPlease ensure that the link is from DnDBeyond, Dicecloud, or a valid GSheets character sheet.", ephemeral=True)
 
-    @commands.slash_command(default_member_permissions=disnake.Permissions(administrator=True))
-    async def admin(self, inter: disnake.ApplicationCommandInteraction):
-        pass
-
-    @admin.sub_command_group()
+    @Configs.admin.sub_command_group()
     async def dmroles(self, inter: disnake.ApplicationCommandInteraction):
         pass
 
@@ -345,7 +370,57 @@ class Badges(commands.Cog):
         await self.bot.sdb['srvconf'].replace_one({"guild": str(inter.guild.id)}, srvconf, True)
         await inter.send("The DM roles have been updated.", ephemeral=True)
 
-    @admin.sub_command()
+    @Configs.admin.sub_command_group(name="classes")
+    async def serverclasses(self, inter: disnake.ApplicationCommandInteraction):
+        pass
+
+    @serverclasses.sub_command(name="add")
+    @commands.cooldown(3, 30.0, type=commands.BucketType.user)
+    async def addclass(self, inter: disnake.ApplicationCommandInteraction, classname: str=commands.Param(name="class"), classname2: str=commands.Param(name="class", default=None), classname3: str=commands.Param(name="class", default=None), classname4: str=commands.Param(name="class", default=None)):
+        """Add classes to the server class list."""
+        await inter.response.defer()
+        classlist=[classname]
+        if classname2!=None:
+            classlist.append(classname2)
+        if classname3!=None:
+            classlist.append(classname3)
+        if classname4!=None:
+            classlist.append(classname4)
+        srvconf = await self.bot.sdb['srvconf'].find_one({"guild": str(inter.guild.id)})
+        if srvconf == None:
+            srvconf = {"guild": str(inter.guild.id)}
+            srvconf['classlist'] = []
+        else:
+            for x in classlist:
+                if x not in srvconf['classlist']:
+                    srvconf['classlist'].append(x)
+        await self.bot.sdb['srvconf'].replace_one({"guild": str(inter.guild.id)}, srvconf, True)
+        await inter.send("The class list has been updated.", ephemeral=True)
+    
+    @serverclasses.sub_command(name="remove")
+    @commands.cooldown(3, 30.0, type=commands.BucketType.user)
+    async def removeclass(self, inter: disnake.ApplicationCommandInteraction, classname: str=commands.Param(name="class"), classname2: str=commands.Param(name="class", default=None), classname3: str=commands.Param(name="class", default=None), classname4: str=commands.Param(name="class", default=None)):
+        """remove classes to the server class list."""
+        await inter.response.defer()
+        classlist=[classname]
+        if classname2!=None:
+            classlist.append(classname2)
+        if classname3!=None:
+            classlist.append(classname3)
+        if classname4!=None:
+            classlist.append(classname4)
+        srvconf = await self.bot.sdb['srvconf'].find_one({"guild": str(inter.guild.id)})
+        if srvconf == None:
+            srvconf = {"guild": str(inter.guild.id)}
+            srvconf['classlist'] = []
+        else:
+            for x in classlist:
+                if x in srvconf['classlist']:
+                    srvconf['classlist'].remove(x)
+        await self.bot.sdb['srvconf'].replace_one({"guild": str(inter.guild.id)}, srvconf, True)
+        await inter.send("The class list has been updated.", ephemeral=True)
+
+    @Configs.admin.sub_command()
     @commands.cooldown(3, 30.0, type=commands.BucketType.user)
     async def badgetemplate(self, inter: disnake.ApplicationCommandInteraction, templatedict: str):
         try:
