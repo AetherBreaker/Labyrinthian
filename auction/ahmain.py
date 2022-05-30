@@ -1,6 +1,7 @@
 import disnake
 from disnake.ext import commands
 from administrative.serverconfigs import Configs
+from auction.listingconstructor import ConstSender
 
 class AuctionHouse(commands.cog):
     def __init__(self, bot: commands.Bot) -> None:
@@ -36,7 +37,9 @@ class AuctionHouse(commands.cog):
     async def create(self, inter: disnake.ApplicationCommandInteraction):
         pass
 
-
+    @commands.slash_command()
+    async def testconsend(self, inter: disnake.ApplicationCommandInteraction):
+        pass
 
 
 
