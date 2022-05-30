@@ -1,10 +1,11 @@
-﻿import disnake
-from disnake.ext import commands
-from asyncio import TimeoutError
+﻿from asyncio import TimeoutError
 from contextlib import suppress
 from copy import deepcopy
 from typing import Dict, List, Optional
+
+import disnake
 from bson import ObjectId
+from disnake.ext import commands
 from pymongo import DESCENDING
 
 TOO_MANY_CHARACTERS_SENTINEL = "__special:too_many_characters"

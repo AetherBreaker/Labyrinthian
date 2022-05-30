@@ -1,16 +1,17 @@
 import asyncio
-from aiohttp import ClientOSError, ClientResponseError
-import disnake
 import logging
-from disnake.ext import commands
+
+import disnake
 import motor.motor_asyncio
-from utilities import config
-from utilities.errors import LabyrinthianException
-from utilities.functions import confirm
-from utilities import checks
+from aiohttp import ClientOSError, ClientResponseError
+from cachetools import LFUCache
 from disnake.errors import Forbidden, HTTPException, InvalidArgument, NotFound
 from disnake.ext import commands
 from disnake.ext.commands.errors import CommandInvokeError
+
+from utilities import checks, config
+from utilities.errors import LabyrinthianException
+from utilities.functions import confirm
 
 logging.basicConfig(level=logging.INFO)
 
@@ -45,7 +46,6 @@ class Labyrinthian(commands.Bot):
         
         #databases
         self.mclient = motor.motor_asyncio.AsyncIOMotorClient(config.MONGO_URL)
-        self.mdb = self.mclient[config.MONGODB_DB_NAME]
         self.sdb = self.mclient[config.MONGODB_SERVERDB_NAME]
 
         #misc caches

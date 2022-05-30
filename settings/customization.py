@@ -1,11 +1,13 @@
 import asyncio
 import io
 import re
-from utilities import checks
+
 import disnake
 from disnake.ext import commands
 from disnake.ext.commands import BucketType, NoPrivateMessage
+from utilities import checks
 from utilities.functions import confirm, confirmInter
+
 
 class Customization(commands.Cog):
     """Commands to help streamline using the bot."""
