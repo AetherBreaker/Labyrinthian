@@ -70,7 +70,7 @@ class CharSelect(disnake.ui.View):
         await inter.response.send_message("You are not the owner of this menu.", ephemeral=True)
         return False
 
-    @disnake.ui.select(placeholder="Select Character", min_values=0, max_values=1)
+    @disnake.ui.select(placeholder="Select Character", min_values=1, max_values=1)
     async def select_char(self, select: disnake.ui.Select, inter: disnake.ApplicationCommandInteraction):
         await inter.response.defer()
         if len(select.values) == 1 and select.values[0] == TOO_MANY_CHARACTERS_SENTINEL:
