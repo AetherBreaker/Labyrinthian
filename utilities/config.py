@@ -5,7 +5,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ==== bot config constants / env vars ====
-TOKEN = os.getenv("DISCORD_BOT_TOKEN")
+TOKEN = os.getenv("LABYRINTHIAN_TOKEN")
+DEVTOKEN = os.getenv("LABYRINTHIAN_DOT_DEV_TOKEN")
 TESTING = os.getenv("TESTING") or "test" in sys.argv
 #ENVIRONMENT = os.getenv("ENVIRONMENT", "production" if not TESTING else "development")
 OWNER_ID = os.getenv("DISCORD_OWNER_USER_ID", 0)
