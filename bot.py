@@ -14,7 +14,9 @@ from utilities import checks, config
 from utilities.errors import LabyrinthianException
 from utilities.functions import confirm
 
-tok = config.DEVTOKEN if config.TESTING else config.TOKEN
+tok = config.TOKEN
+if config.TESTING:
+    tok = config.DEVTOKEN
 
 logging.basicConfig(level=logging.INFO)
 

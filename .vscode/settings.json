@@ -4,7 +4,7 @@
     "editor.renderWhitespace": "all",
     "editor.fontLigatures": true,
     "python.envFile": "${workspaceFolder}/utilities/.env",
-    "python.testing.pytestEnabled": true,
+    "python.testing.pytestEnabled": false,
     "git.autofetch": true,
     "diffEditor.codeLens": true,
     "diffEditor.wordWrap": "off",
