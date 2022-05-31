@@ -22,22 +22,19 @@ if config.TESTING:
 
 logging.basicConfig(level=logging.INFO)
 
-intents = disnake.Intents.default()
-intents.members = True
-intents.message_content = True
-intents.presences = True
+intents = disnake.Intents.all()
 
 extensions = (
     "badgelog.main",
-    "settings.customization",
-    "administrative.serverconfigs"
+    "administrative.serverconfigs",
 )
 
 async def get_prefix(bot: commands.Bot, message: disnake.Message):
+    """Redefines Disnake get_prefix function to redirect get_guild_prefix when running in servers."""
     if not message.guild:
         return commands.when_mentioned_or(config.DEFAULT_PREFIX)(bot, message)
-    gp = await bot.get_guild_prefix(message.guild)
-    return commands.when_mentioned_or(gp)(bot, message)
+    guildprefix = await bot.get_guild_prefix(message.guild)
+    return commands.when_mentioned_or(guildprefix)(bot, message)
 
 class Labyrinthian(commands.Bot):
     def __init__(self, prefix: str, help_command=None, description=None, **options):
@@ -74,30 +71,30 @@ class Labyrinthian(commands.Bot):
         self.prefixes[guild_id] = gp
         return gp
 
-bot = Labyrinthian(
+Lab = Labyrinthian(
     prefix="'",
     testing=config.TESTING,
     intents=intents,
     reload=True
 )
 
-@bot.event
+@Lab.event
 async def on_ready():
-    if not bot.persistent_views_added:
-        constviews = await bot.sdb['srvconf'].find({}).to_list(None)
+    if not Lab.persistent_views_added:
+        constviews = await Lab.sdb['srvconf'].find({}).to_list(None)
         for x in constviews:
             if 'constid' in x:
                 try:
                     channel, message = x['constid']
-                    channel: Union[disnake.abc.GuildChannel, disnake.abc.Messageable] = await bot.fetch_channel(int(channel))
+                    channel: Union[disnake.abc.GuildChannel, disnake.abc.Messageable] = await Lab.fetch_channel(int(channel))
                     message = await channel.fetch_message(int(message))
-                    bot.add_view(ConstSender(), message_id=message.id)
-                except (InvalidData, HTTPException, NotFound, Forbidden) as e:
+                    Lab.add_view(ConstSender(), message_id=message.id)
+                except (InvalidData, HTTPException, NotFound, Forbidden):
                     x.pop('constid')
-                    await bot.sdb['srvconf'].replace_one({"guild": x['guild']}, x, True)
-        bot.persistent_views_added = True
+                    await Lab.sdb['srvconf'].replace_one({"guild": x['guild']}, x, True)
+        Lab.persistent_views_added = True
 
-@bot.event
+@Lab.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandNotFound):
         return
@@ -134,7 +131,7 @@ async def on_command_error(ctx, error):
                 )
             except HTTPException:
                 try:
-                    return await ctx.send(f"Error: I cannot send messages to this user.")
+                    return await ctx.send("Error: I cannot send messages to this user.")
                 except HTTPException:
                     return
 
@@ -150,7 +147,7 @@ async def on_command_error(ctx, error):
             elif 499 < original.response.status < 600:
                 return await ctx.send("Error: Internal server error on Discord's end. Please try again.")
 
-@bot.event
+@Lab.event
 async def on_slash_command_error(inter, error):
     if isinstance(error, commands.CommandNotFound):
         return
@@ -187,7 +184,7 @@ async def on_slash_command_error(inter, error):
                 )
             except HTTPException:
                 try:
-                    return await inter.send(f"Error: I cannot send messages to this user.")
+                    return await inter.send("Error: I cannot send messages to this user.")
                 except HTTPException:
                     return
 
@@ -203,47 +200,7 @@ async def on_slash_command_error(inter, error):
             elif 499 < original.response.status < 600:
                 return await inter.send("Error: Internal server error on Discord's end. Please try again.")
 
-@bot.command()
-@commands.guild_only()
-async def prefix(ctx: commands.Context, prefix: str = None):
-    """
-    Sets the bot's prefix for this server.
-    You must have Manage Server permissions or a role called "Bot Admin" to use this command. Due to a possible Discord conflict, a prefix beginning with `/` will require confirmation.
-    Forgot the prefix? Reset it with "@Labyrinthian#1476 prefix '".
-    """
-    guild_id = str(ctx.guild.id)
-    if prefix is None:
-        current_prefix = await bot.get_guild_prefix(ctx.guild)
-        return await ctx.send(f"My current prefix is: `{current_prefix}`.")
-
-    if not checks._role_or_permissions(ctx, lambda r: r.name.lower() == "bot admin", manage_guild=True):
-        return await ctx.send("You do not have permissions to change the guild prefix.")
-
-    # Check for Discord Slash-command conflict
-    if prefix.startswith("/"):
-        if not await confirm(
-            ctx,
-            "Setting a prefix that begins with / may cause issues. "
-            "Are you sure you want to continue? (Reply with yes/no)",
-        ):
-            return await ctx.send("Ok, cancelling.")
-    else:
-        if not await confirm(
-            ctx,
-            f"Are you sure you want to set my prefix to `{prefix}`? This will affect "
-            f"everyone on this server! (Reply with yes/no)",
-        ):
-            return await ctx.send("Ok, cancelling.")
-
-    # insert into cache
-    bot.prefixes[guild_id] = prefix
-
-    # update db
-    await bot.sdb['srvconf'].update_one({"guild": guild_id}, {"$set": {"prefix": prefix}}, upsert=True)
-
-    await ctx.send(f"Prefix set to `{prefix}` for this server.")
-
 for ext in extensions:
-    bot.load_extension(ext)
+    Lab.load_extension(ext)
 
-bot.run(tok)
+Lab.run(tok)
