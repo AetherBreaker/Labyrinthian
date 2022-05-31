@@ -1,13 +1,13 @@
 import disnake
 from disnake.ext import commands
 from administrative.serverconfigs import Configs
-from auction.listingconstructor import ConstSender
+from auction.listingconstructor import ConstSender, send_const
 
-class AuctionHouse(commands.cog):
-    def __init__(self, bot: commands.Bot) -> None:
+class AuctionHouse(commands.Cog):
+    def __init__(self, bot: commands.Bot):
         self.bot = bot
     
-    @Configs.admin.group()
+    @Configs.admin.sub_command_group()
     async def ah(self, inter: disnake.ApplicationCommandInteraction):
         pass
 
@@ -19,7 +19,7 @@ class AuctionHouse(commands.cog):
     async def setupchan(self, inter: disnake.ApplicationCommandInteraction, channel: disnake.abc.GuildChannel):
         pass
 
-    @Configs.staff.group(name="listing")
+    @Configs.staff.sub_command_group(name="listing")
     async def stafflisting(self, inter: disnake.ApplicationCommandInteraction):
         pass
 
@@ -39,7 +39,8 @@ class AuctionHouse(commands.cog):
 
     @commands.slash_command()
     async def testconsend(self, inter: disnake.ApplicationCommandInteraction):
-        pass
+        inter.response.defer()
+        await send_const(inter)
 
 
 
