@@ -3,13 +3,11 @@ from json import JSONDecodeError, loads
 from string import Template
 
 import disnake
-from data.URLchecker import urlCheck
 from disnake.ext import commands
+from utilities.checks import urlCheck
 from utilities.txtformatting import mkTable
 
 from badgelog.browser import create_CharSelect
-
-
 class Badges(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
