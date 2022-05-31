@@ -52,7 +52,10 @@ class CharSelect(disnake.ui.View):
         )
         self.charlist = await self.bot.sdb[f'BLCharList_{self.guild.id}'].find({"user": str(self.owner.id if self.user is None else self.user.id)}).sort("character", DESCENDING).to_list(None)
         self._refresh_character_select()
-        await self.inter.response.send_message(embed=self.embed, view=self, ephemeral=self.ephem)
+        if self.charlist:
+            await self.inter.response.send_message(embed=self.embed, view=self, ephemeral=self.ephem)
+        else:
+            await self.inter.response.send_message("You don't have any characters yet!")
 
     def _refresh_character_select(self):
         self.select_char.options.clear()
