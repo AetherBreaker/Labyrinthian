@@ -14,11 +14,9 @@ from utilities import checks, config
 from utilities.errors import LabyrinthianException
 from utilities.functions import confirm
 
-tok = config.TOKEN
 if config.TESTING:
     import sys
     sys.dont_write_bytecode = True
-    tok = config.DEVTOKEN
 
 logging.basicConfig(level=logging.INFO)
 
@@ -203,4 +201,4 @@ async def on_slash_command_error(inter, error):
 for ext in extensions:
     Lab.load_extension(ext)
 
-Lab.run(tok)
+Lab.run(config.TOKEN)
