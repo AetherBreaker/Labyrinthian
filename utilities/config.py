@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ==== bot config constants / env vars ====
+TESTING = os.getenv("TESTING")
 TOKEN = os.getenv("LABYRINTHIAN_TOKEN")
 DEVTOKEN = os.getenv("LABYRINTHIAN_DOT_DEV_TOKEN")
 TESTING = os.getenv("TESTING") or "test" in sys.argv
