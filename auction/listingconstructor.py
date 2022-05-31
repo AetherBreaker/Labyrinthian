@@ -27,14 +27,62 @@ class ConstSender(disnake.ui.View):
     @disnake.ui.button(emoji="💳", style=disnake.ButtonStyle.primary, custom_id='constsender:primary')
     async def send_constructor(self, button: disnake.ui.Button, inter: disnake.MessageInteraction):
         await inter.send("persist test successful.")
-        # Constr = ListingConst(inter.bot, inter.author)
-        # await Constr._init(inter)
+#         Constr = ListingConst(inter.bot, inter.author)
+#         await Constr._init(inter)
 
 # class ListingConst(disnake.ui.View):
 #     def __init__(self, bot: commands.Bot, owner: disnake.Member):
 #         super().__init__(timeout=600)
 #         self.bot = bot
 #         self.firstchar = None
+#         self.owner = owner
+#         self.embeddicts = [
+#             {
+#                 "type": "rich",
+#                 "title": 'item name',
+#                 "description": "item description",
+#                 "color": disnake.Colour.random().value,
+#                 "fields": [
+#                     {
+#                         "name": 'Rarity: Uncommon',
+#                         "value": "\u200B",
+#                         "inline": True
+#                     },
+#                     {
+#                         "name": 'Attunement: Yes',
+#                         "value": '*Additional attunement info*',
+#                         "inline": True
+#                     },
+#                     {
+#                         "name": '\u220B',
+#                         "value": "\u200B",
+#                         "inline": True
+#                     },
+#                     {
+#                         "name": 'Highest Bid',
+#                         "value": '',
+#                         "inline": True
+#                     },
+#                     {
+#                         "name": 'Buy Now Price',
+#                         "value": '',
+#                         "inline": True
+#                     },
+#                     {
+#                         "name": 'Ends in:',
+#                         "value": ''
+#                     }
+#                 ],
+#                 "author": {
+#                     "name": 'Character Name',
+#                     "url": ''
+#                 }
+#             },
+#             {
+#                 "type": "rich",
+                
+#             }
+#         ]
 
 #     async def _init(self, inter: disnake.MessageInteraction):
 #         self.charlist = await self.bot.sdb[f'BLCharList_{inter.guild.id}'].distinct("character", {"user": str(self.owner.id)})
@@ -42,7 +90,8 @@ class ConstSender(disnake.ui.View):
 #         emb = disnake.Embed()
 #         await inter.response.send_message(embed=emb, view=self, ephemeral=True)
 
-#     async def refresh_view(self, inter: disnake.Interaction, **kwargs):
+#     async def refresh_content(self, inter: disnake.Interaction, **kwargs):
+
 #         if inter.response.is_done():
 #             await inter.edit_original_message(view=self, **kwargs)
 #         else:
@@ -55,6 +104,8 @@ class ConstSender(disnake.ui.View):
 #             charname = await self._text_select_char(inter)
 #         else:
 #             charname = select.values[0]
+#         self._refresh_character_select()
+#         await self.refresh_content(inter)
 
 #     def _refresh_character_select(self):
 #         self.select_char.options.clear()
@@ -110,14 +161,12 @@ class ConstSender(disnake.ui.View):
 
 
 
-# listingmsg = {
-#     "content": '@aetherbreaker',
-#     "embeds":{
-#         "type": "rich",
-#         "title": 'Winged Boots',
-#         "description": "While you wear these boots, you have a flying speed equal to your walking speed. You can use the boots to fly for up to 4 hours, all at once or in several shorter flights, each one using a minimum of 1 minute from the duration. If you are flying when the duration expires, you descend at a rate of 30 feet per round until you land.\n\nThe boots regain 2 hours of flying capability for every 12 hours they aren't in use.",
-#         "color": "0x00FFFF",
-#         "fields": [
+# listemb = {
+#     "type": "rich",
+#     "title": 'Winged Boots',
+#     "description": "While you wear these boots, you have a flying speed equal to your walking speed. You can use the boots to fly for up to 4 hours, all at once or in several shorter flights, each one using a minimum of 1 minute from the duration. If you are flying when the duration expires, you descend at a rate of 30 feet per round until you land.\n\nThe boots regain 2 hours of flying capability for every 12 hours they aren't in use.",
+#     "color": "0x00FFFF",
+#     "fields": [
 #         {
 #             "name": 'Rarity: Uncommon',
 #             "value": "\u200B",
@@ -143,14 +192,13 @@ class ConstSender(disnake.ui.View):
 #             "value": '2000 gp',
 #             "inline": True
 #         }
-#         ],
-#         "thumbnail": {
-#         "url": URL(URL="https://www.dndbeyond.com/avatars/thumbnails/7/490/1000/1000/636284785276517401.jpeg"),
+#     ],
+#     "thumbnail": {
+#         "url": '',
 #         "height": 0,
 #         "width": 0
-#         },
-#         "author": {
+#     },
+#     "author": {
 #         "name": 'Character Name'
-#         }
 #     }
 # }
