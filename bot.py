@@ -14,7 +14,7 @@ from utilities import checks, config
 from utilities.errors import LabyrinthianException
 from utilities.functions import confirm
 
-if config.TESTING:
+if config.TESTING_VAR == 1:
     import sys
     sys.dont_write_bytecode = True
 

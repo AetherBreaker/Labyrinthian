@@ -6,10 +6,10 @@ load_dotenv()
 
 # ==== bot config constants / env vars ====
 TESTING_VAR = os.getenv("TESTING_VAR")
-TOKEN = os.getenv("LABYRINTHIAN_DOT_DEV_TOKEN") if TESTING_VAR == 1 else os.getenv("LABYRINTHIAN_TOKEN")
+TOKEN = os.getenv("LABYRINTHIAN_DOT_DEV_TOKEN") if TESTING_VAR == "True" else os.getenv("LABYRINTHIAN_TOKEN")
 TESTING = os.getenv("TESTING") or "test" in sys.argv
 #ENVIRONMENT = os.getenv("ENVIRONMENT", "production" if not TESTING else "development")
-OWNER_ID = os.getenv("DISCORD_OWNER_USER_ID", 0)
+OWNER_ID = os.getenv("DISCORD_OWNER_USER_ID", 0).split()
 # slash command test guilds - these only apply in development anyway, so hardcoded
 COMMAND_TEST_GUILD_IDS = (
     [
