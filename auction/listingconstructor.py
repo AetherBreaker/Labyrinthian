@@ -21,12 +21,12 @@ class ConstSender(disnake.ui.View):
         )
         await inter.response.send_message(embed=emb, view=self)
         response = await inter.original_message()
-        await inter.bot.sdb['srvconf'].update_one({"guild": str(inter.guild.id)}, {"$set": {"constid": {str(response.channel.id): str(response.id)}}}, True)
+        await inter.bot.sdb['srvconf'].update_one({"guild": str(inter.guild.id)}, {"$set": {"constid": [str(response.channel.id), str(response.id)]}}, True)
 
 
     @disnake.ui.button(emoji="💳", style=disnake.ButtonStyle.primary, custom_id='constsender:primary')
     async def send_constructor(self, button: disnake.ui.Button, inter: disnake.MessageInteraction):
-        pass
+        await inter.send("persist test successful.")
         # Constr = ListingConst(inter.bot, inter.author)
         # await Constr._init(inter)
 

@@ -70,20 +70,6 @@ class Labyrinthian(commands.Bot):
             gp = gp_obj['prefix']
         self.prefixes[guild_id] = gp
         return gp
-    
-    async def on_ready(self):
-        if not self.persistent_views_added:
-            constviews = await self.sdb['srvconf'].distinct("constid")
-            if constviews is not None:
-                for x in constviews:
-                    try:
-                        channel, message = x.items()
-                        channel: Union[disnake.abc.GuildChannel, disnake.abc.Messageable] = self.fetch_channel(int(channel))
-                        message = channel.fetch_message(int(message))
-                        self.add_view(ConstSender(), message_id=message.id)
-                    except (InvalidData, HTTPException, NotFound, Forbidden):
-                        continue
-            self.persistent_views_added = True
 
 bot = Labyrinthian(
     prefix="'",
@@ -94,7 +80,19 @@ bot = Labyrinthian(
 
 @bot.event
 async def on_ready():
-    print(f'We have logged in as {bot.user}')
+    if not bot.persistent_views_added:
+        constviews = await bot.sdb['srvconf'].find({}).to_list(None)
+        for x in constviews:
+            if 'constid' in x:
+                try:
+                    channel, message = x['constid']
+                    channel: Union[disnake.abc.GuildChannel, disnake.abc.Messageable] = await bot.fetch_channel(int(channel))
+                    message = await channel.fetch_message(int(message))
+                    bot.add_view(ConstSender(), message_id=message.id)
+                except (InvalidData, HTTPException, NotFound, Forbidden):
+                    x.pop('constid')
+                    await bot.sdb['srvconf'].replace_one({"guild": x['guild']})
+        bot.persistent_views_added = True
 
 @bot.event
 async def on_command_error(ctx, error):
@@ -244,13 +242,5 @@ async def prefix(ctx: commands.Context, prefix: str = None):
 
 for ext in extensions:
     bot.load_extension(ext)
-
-@bot.slash_command(description="Reload bot extensions")
-async def reload(inter: disnake.ApplicationCommandInteraction, extension: str = commands.Param(choices=extensions)):
-    if str(inter.author.id) in bot.owner_ids:
-        await inter.response.send_message(f"Reloading the {extension} extension.")
-        bot.reload_extension(extension)
-    else:
-        await inter.response.send_message("You are not the owner of this bot")
 
 bot.run(tok)
