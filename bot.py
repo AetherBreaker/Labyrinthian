@@ -26,8 +26,7 @@ intents.presences = True
 extensions = (
     "badgelog.main",
     "settings.customization",
-    "administrative.serverconfigs",
-    "auction.ahmain"
+    "administrative.serverconfigs"
 )
 
 async def get_prefix(bot: commands.Bot, message: disnake.Message):
@@ -78,21 +77,21 @@ bot = Labyrinthian(
     reload=True
 )
 
-@bot.event
-async def on_ready():
-    if not bot.persistent_views_added:
-        constviews = await bot.sdb['srvconf'].find({}).to_list(None)
-        for x in constviews:
-            if 'constid' in x:
-                try:
-                    channel, message = x['constid']
-                    channel: Union[disnake.abc.GuildChannel, disnake.abc.Messageable] = await bot.fetch_channel(int(channel))
-                    message = await channel.fetch_message(int(message))
-                    bot.add_view(ConstSender(), message_id=message.id)
-                except (InvalidData, HTTPException, NotFound, Forbidden):
-                    x.pop('constid')
-                    await bot.sdb['srvconf'].replace_one({"guild": x['guild']})
-        bot.persistent_views_added = True
+# @bot.event
+# async def on_ready():
+#     if not bot.persistent_views_added:
+#         constviews = await bot.sdb['srvconf'].find({}).to_list(None)
+#         for x in constviews:
+#             if 'constid' in x:
+#                 try:
+#                     channel, message = x['constid']
+#                     channel: Union[disnake.abc.GuildChannel, disnake.abc.Messageable] = await bot.fetch_channel(int(channel))
+#                     message = await channel.fetch_message(int(message))
+#                     bot.add_view(ConstSender(), message_id=message.id)
+#                 except (InvalidData, HTTPException, NotFound, Forbidden) as e:
+#                     x.pop('constid')
+#                     await bot.sdb['srvconf'].replace_one({"guild": x['guild']})
+#         bot.persistent_views_added = True
 
 @bot.event
 async def on_command_error(ctx, error):
