@@ -73,7 +73,7 @@ Lab = Labyrinthian(
     prefix="'",
     testing=config.TESTING,
     intents=intents,
-    reload=True
+    reload=True if config.TESTING_VAR == "True" else False
 )
 
 @Lab.event
