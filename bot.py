@@ -1,17 +1,20 @@
 import asyncio
 import logging
+from typing import Union
 
 import disnake
 import motor.motor_asyncio
 from aiohttp import ClientOSError, ClientResponseError
-from cachetools import LFUCache
-from disnake.errors import Forbidden, HTTPException, InvalidArgument, NotFound
+from disnake.errors import Forbidden, HTTPException, InvalidArgument, NotFound, InvalidData
 from disnake.ext import commands
 from disnake.ext.commands.errors import CommandInvokeError
+from auction.listingconstructor import ConstSender
 
 from utilities import checks, config
 from utilities.errors import LabyrinthianException
 from utilities.functions import confirm
+
+tok = config.DEVTOKEN if config.TESTING else config.TOKEN
 
 logging.basicConfig(level=logging.INFO)
 
@@ -23,7 +26,8 @@ intents.presences = True
 extensions = (
     "badgelog.main",
     "settings.customization",
-    "administrative.serverconfigs"
+    "administrative.serverconfigs",
+    "auction.ahmain"
 )
 
 async def get_prefix(bot: commands.Bot, message: disnake.Message):
@@ -44,7 +48,7 @@ class Labyrinthian(commands.Bot):
             **options
         )
         self.state = "init"
-        self.persistent_views_added = True
+        self.persistent_views_added = False
         
         #databases
         self.mclient = motor.motor_asyncio.AsyncIOMotorClient(config.MONGO_URL)
@@ -67,11 +71,19 @@ class Labyrinthian(commands.Bot):
         self.prefixes[guild_id] = gp
         return gp
     
-    # async def on_ready(self):
-    #     if not self.persistent_views_added:
-    #         viewlist = await self.sdb['Views'].find({})
-    #         self.add_view()
-    #         self.persistent_views_added = True
+    async def on_ready(self):
+        if not self.persistent_views_added:
+            constviews = await self.sdb['srvconf'].distinct("constid")
+            if constviews is not None:
+                for x in constviews:
+                    try:
+                        channel, message = x.items()
+                        channel: Union[disnake.abc.GuildChannel, disnake.abc.Messageable] = self.fetch_channel(int(channel))
+                        message = channel.fetch_message(int(message))
+                        self.add_view(ConstSender(), message_id=message.id)
+                    except (InvalidData, HTTPException, NotFound, Forbidden):
+                        continue
+            self.persistent_views_added = True
 
 bot = Labyrinthian(
     prefix="'",
@@ -241,4 +253,4 @@ async def reload(inter: disnake.ApplicationCommandInteraction, extension: str = 
     else:
         await inter.response.send_message("You are not the owner of this bot")
 
-bot.run(config.TOKEN)
+bot.run(tok)
