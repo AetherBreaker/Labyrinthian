@@ -25,6 +25,7 @@ intents = disnake.Intents.all()
 extensions = (
     "badgelog.main",
     "administrative.serverconfigs",
+    "auction.ahmain",
 )
 
 async def get_prefix(bot: commands.Bot, message: disnake.Message):
