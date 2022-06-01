@@ -1,4 +1,4 @@
-import time
+from time import time
 from json import JSONDecodeError, loads
 from string import Template
 
@@ -263,7 +263,7 @@ class Badges(commands.Cog):
         elif not any([role.id in srvconf['dmroles'] for role in awardingdm.roles]) and not awardingdm == self.bot.user:
             await inter.response.send_message(f"<@{awardingdm.id}> isn't a DM!")
         else:
-            timeStamp = int(time.time())
+            timeStamp = int(time())
             newlog = {"charRefId": character['_id'], "user": str(inter.author.id), "character": charname, "previous badges": character['currentbadges'], "badges added": badgeinput, "awarding DM": awardingdm.id, "timestamp": timeStamp}
             objID = await self.bot.sdb[f"BadgeLogMaster_{inter.guild.id}"].insert_one(newlog)
             badgetemp = await self.bot.sdb['srvconf'].find_one({"guild": str(inter.guild.id)})
