@@ -88,9 +88,17 @@ async def on_ready():
                     channel: Union[disnake.abc.GuildChannel, disnake.abc.Messageable] = await Lab.fetch_channel(int(channel))
                     message = await channel.fetch_message(int(message))
                     Lab.add_view(ConstSender(), message_id=message.id)
-                except (InvalidData, HTTPException, NotFound, Forbidden):
-                    x.pop('constid')
-                    await Lab.sdb['srvconf'].replace_one({"guild": x['guild']}, x, True)
+                except (InvalidData, HTTPException, NotFound, Forbidden) as e:
+                    print(f"{e} trying again")
+                    try:
+                        channel, message = x['constid']
+                        channel: Union[disnake.abc.GuildChannel, disnake.abc.Messageable] = await Lab.fetch_channel(int(channel))
+                        message = await channel.fetch_message(int(message))
+                        Lab.add_view(ConstSender(), message_id=message.id)
+                    except (InvalidData, HTTPException, NotFound, Forbidden) as e:
+                        print(f"{e} deleting view IDs")
+                        x.pop('constid')
+                        await Lab.sdb['srvconf'].replace_one({"guild": x['guild']}, x, True)
         Lab.persistent_views_added = True
 
 @Lab.event
