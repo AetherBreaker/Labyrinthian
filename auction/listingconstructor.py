@@ -168,7 +168,7 @@ class CharSelect(disnake.ui.Select[ListingConst]):
         self._refresh_character_select()
         if not self.view.dur_select_added:
             self.view.dur_select_added = True
-            self.view.add_item(DurSelect(self.bot, self.view.durlist))
+            self.view.add_item(DurSelect(self.view.durlist))
             self.view.embeddicts[1]['description'] = f"""Now select how long you would like your listing to remain posted in the auction house for.
             The longer the duration, the greater the auction fee."""
         await self.view.refresh_content(inter)
@@ -222,8 +222,7 @@ class CharSelect(disnake.ui.Select[ListingConst]):
             self.disabled = False
 
 class DurSelect(disnake.ui.Select[ListingConst]):
-    def __init__(self, bot: commands.Bot, durlist: List[int]) -> None:
-        self.bot = bot
+    def __init__(self, durlist: List[int]) -> None:
         self.durlist = durlist
         self.firstdur = None
         super().__init__(
@@ -262,13 +261,12 @@ class DurSelect(disnake.ui.Select[ListingConst]):
         if self.view.rarity_select_added == False:
             self.view.rarity_select_added = True
             self.view.embeddicts[1]['description'] = f"""Now please proceed to select the rarity of your item and whether or not it requires attunement."""
-            self.view.add_item(RaritySelect(self.bot))
-            self.view.add_item(AttunementButton(self.bot))
+            self.view.add_item(RaritySelect())
+            self.view.add_item(AttunementButton())
         await self.view.refresh_content(inter)
 
 class RaritySelect(disnake.ui.Select[ListingConst]):
-    def __init__(self, bot: commands.Bot) -> None:
-        self.bot = bot
+    def __init__(self) -> None:
         self.raritylist = {
             "Common": 20,
             "Uncommon": 40,
@@ -301,12 +299,12 @@ class RaritySelect(disnake.ui.Select[ListingConst]):
         self.view.rarity_complete = True
         if self.view.attunement_complete == True:
             self.view.modal_button_added = True
+            self.view.add_item(SendModalButton(inter.bot))
         self._refresh_rarity_select()
         await self.view.refresh_content(inter)
 
 class AttunementButton(disnake.ui.Button[ListingConst]):
-    def __init__(self, bot: commands.Bot):
-        self.bot = bot
+    def __init__(self):
         self.selected = False
         super().__init__(
             style=disnake.ButtonStyle.secondary,
@@ -332,57 +330,51 @@ class AttunementButton(disnake.ui.Button[ListingConst]):
         self.view.attunement_complete = True
         if self.view.rarity_complete == True:
             self.view.modal_button_added = True
+            self.view.add_item(SendModalButton(inter.bot))
         await self.view.refresh_content(inter)
 
-
-
-
-# class ListingModal(disnake.ui.Modal):
-#     def __init__(self, bot: commands.Bot, title: str, components: Components, custom_id: str = ..., timeout: float = 600) -> None:
-#         self.bot = bot
-#         super().__init__(title=title, components, custom_id, timeout)
-
-
-
-
-# listemb = {
-#     "type": "rich",
-#     "title": 'Winged Boots',
-#     "description": "While you wear these boots, you have a flying speed equal to your walking speed. You can use the boots to fly for up to 4 hours, all at once or in several shorter flights, each one using a minimum of 1 minute from the duration. If you are flying when the duration expires, you descend at a rate of 30 feet per round until you land.\n\nThe boots regain 2 hours of flying capability for every 12 hours they aren't in use.",
-#     "color": "0x00FFFF",
-#     "fields": [
-#         {
-#             "name": 'Rarity: Uncommon',
-#             "value": "\u200B",
-#             "inline": True
-#         },
-#         {
-#             "name": 'Attunement: Yes',
-#             "value": '*Additional attunement info*',
-#             "inline": True
-#         },
-#         {
-#             "name": '\u220B',
-#             "value": "\u200B",
-#             "inline": True
-#         },
-#         {
-#             "name": 'Highest Bid',
-#             "value": '1000 gp',
-#             "inline": True
-#         },
-#         {
-#             "name": 'Buy Now Price',
-#             "value": '2000 gp',
-#             "inline": True
-#         }
-#     ],
-#     "thumbnail": {
-#         "url": '',
-#         "height": 0,
-#         "width": 0
-#     },
-#     "author": {
-#         "name": 'Character Name'
-#     }
-# }
+class SendModalButton(disnake.ui.Button[ListingConst]):
+    def __init__(self, bot: commands.Bot):
+        self.bot = bot
+        super().__init__(
+            style=disnake.ButtonStyle.green,
+            label="Continue",
+            emoji="➡️"
+            )
+    
+    async def callback(self, inter: disnake.MessageInteraction):
+        components=[
+            disnake.ui.TextInput(
+                label="Item Name",
+                placeholder="Winged Boots",
+                custom_id="itemName",
+                style=disnake.TextInputStyle.single_line,
+                max_length=50,
+                min_length=2
+            ),
+            disnake.ui.TextInput(
+                label="Description",
+                placeholder=f"""Item Description""",
+                custom_id="itemDesc",
+                style=disnake.TextInputStyle.multi_line,
+                min_length=2
+            ),
+            # disnake.ui.TextInput(
+            #     label="Starting Bid",
+            #     placeholder="Numbers only, no decimals"
+            # )
+        ]
+        if self.view.attunement:
+            components.append(disnake.ui.TextInput(
+                label="Additional Attunement Info",
+                placeholder="https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                value="\u200B",
+                required=False,
+                custom_id="attunementInfo",
+                style=disnake.TextInputStyle.single_line
+            ))
+        await inter.response.send_modal(
+            title="Listing Text Form",
+            custom_id="this_is_an_interesting_custom_id_hmmm_yes",
+            components=components
+        )
