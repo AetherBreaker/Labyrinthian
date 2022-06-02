@@ -17,7 +17,6 @@ class AuctionHouse(commands.Cog):
 
     @commands.slash_command()
     async def testconsend(self, inter: disnake.ApplicationCommandInteraction):
-        inter.response.defer()
         await send_const(inter)
 
 

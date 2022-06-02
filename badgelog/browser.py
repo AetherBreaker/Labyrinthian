@@ -10,22 +10,21 @@ from pymongo import DESCENDING
 
 TOO_MANY_CHARACTERS_SENTINEL = "__special:too_many_characters"
 
-async def create_CharSelect(*args, **kwargs):
+async def create_CharSelect(inter: disnake.ApplicationCommandInteraction, *args, **kwargs):
     Sel = CharSelect(*args, **kwargs)
-    await Sel._init()
+    await Sel._init(inter)
 
 
 class CharSelect(disnake.ui.View):
-    def __init__(self, inter: disnake.ApplicationCommandInteraction, bot: commands.Bot, owner: disnake.User, guild: disnake.Guild, user: disnake.Member=None, ephem: bool=False):
+    def __init__(self, bot: commands.Bot, owner: disnake.User, guild: disnake.Guild, user: disnake.Member=None, ephem: bool=False):
         super().__init__(timeout=180)
-        self.inter = inter
         self.bot = bot
         self.owner = owner
         self.guild = guild
         self.user = user
         self.ephem = ephem
 
-    async def _init(self):
+    async def _init(self, inter: disnake.ApplicationCommandInteraction):
         self.embed = disnake.Embed.from_dict(
             {
                 "title": "Badge browser",
@@ -53,9 +52,15 @@ class CharSelect(disnake.ui.View):
         self.charlist = await self.bot.sdb[f'BLCharList_{self.guild.id}'].find({"user": str(self.owner.id if self.user is None else self.user.id)}).sort("character", DESCENDING).to_list(None)
         self._refresh_character_select()
         if self.charlist:
-            await self.inter.response.send_message(embed=self.embed, view=self, ephemeral=self.ephem)
+            await inter.response.send_message(embed=self.embed, view=self, ephemeral=self.ephem)
         else:
-            await self.inter.response.send_message("You don't have any characters yet!")
+            await inter.response.send_message("You don't have any characters yet!")
+
+    async def refresh_content(self, inter: disnake.Interaction):
+        if inter.response.is_done():
+            await inter.edit_original_message(embed=self.embed, view=self)
+        else:
+            await inter.response.edit_message(embed=self.embed, view=self)
 
     def _refresh_character_select(self):
         self.select_char.options.clear()
@@ -74,30 +79,21 @@ class CharSelect(disnake.ui.View):
         return False
 
     @disnake.ui.select(placeholder="Select Character", min_values=1, max_values=1)
-    async def select_char(self, select: disnake.ui.Select, inter: disnake.ApplicationCommandInteraction):
+    async def select_char(self, select: disnake.ui.Select, inter: disnake.MessageInteraction):
         await inter.response.defer()
         if len(select.values) == 1 and select.values[0] == TOO_MANY_CHARACTERS_SENTINEL:
             charname = await self._text_select_char(inter)
         else:
             charname = select.values[0]
         if charname is None:
-            try:
-                if inter.response.is_done():
-                    await inter.edit_original_message(embed=self.embed, view=self)
-                else:
-                    await inter.response.edit_message(embed=self.embed, view=self)
-            except disnake.NotFound:
-                if self.inter.response.is_done():
-                    await self.inter.edit_original_message(embed=self.embed, view=self)
-                else:
-                    await self.inter.response.edit_message(embed=self.embed, view=self)
+            await self.refresh_content(inter)
             return
-        Log = LogBrowser(self.inter, self.bot, self.owner, self.guild, charname, self.charlist, self.user)
-        await Log._init()
+        Log = LogBrowser(self.bot, self.owner, self.guild, charname, self.charlist, self.user)
+        await Log._init(inter)
 
-    async def _text_select_char(self, inter: disnake.ApplicationCommandInteraction) -> Optional[str]:
+    async def _text_select_char(self, inter: disnake.MessageInteraction) -> Optional[str]:
         self.select_char.disabled = True
-        selectmsg: disnake.Message = await self.inter.followup.send(
+        selectmsg: disnake.Message = await inter.followup.send(
             "Choose one of the following characters by sending a message to this channel.\n"+'\n'.join([x['character'] for x in self.charlist])
         )
 
@@ -117,21 +113,19 @@ class CharSelect(disnake.ui.View):
                     charname = x['character']
 
             if charname:
-                await self.inter.followup.send(f"{charname} selected.", delete_after=4)
+                await inter.followup.send(f"{charname} selected.", delete_after=4)
                 return charname
-            await self.inter.followup.send("No valid character found. Use the select menu to try again.", delete_after=6)
+            await inter.followup.send("No valid character found. Use the select menu to try again.", delete_after=6)
             return None
         except TimeoutError:
-            await self.inter.followup.send("No valid character found. Use the select menu to try again.", delete_after=6)
+            await inter.followup.send("No valid character found. Use the select menu to try again.", delete_after=6)
             return
         finally:
             self.select_char.disabled = False
 
 class LogBrowser(disnake.ui.View):
-    def __init__(self, inter: disnake.ApplicationCommandInteraction, bot: commands.Bot, owner: disnake.Member, guild: disnake.Guild, charname: str, charlist: List[Dict], user: disnake.Member):
+    def __init__(self, bot: commands.Bot, owner: disnake.Member, guild: disnake.Guild, charname: str, charlist: List[Dict], user: disnake.Member):
         super().__init__(timeout=180)
-
-        self.inter = inter
         self.bot = bot
         self.owner = owner
         self.guild = guild
@@ -143,7 +137,7 @@ class LogBrowser(disnake.ui.View):
         self.prev_page.disabled = True
 
 
-    async def _init(self):
+    async def _init(self, inter: disnake.MessageInteraction):
         self.embeds = await self.construct_embeds(self.firstchar)
         if len(self.embeds) == 1:
             self.next_page.disabled = True
@@ -153,13 +147,13 @@ class LogBrowser(disnake.ui.View):
             self.last_page.disabled = False
         self.embed_count = 0
         self._refresh_character_select()
-        await self.refresh_msg()
+        await self.refresh_content(inter)
 
-    async def refresh_msg(self):
-        if self.inter.response.is_done():
-            await self.inter.edit_original_message(embed=self.embeds[0], view=self)
+    async def refresh_content(self, inter: disnake.Interaction):
+        if inter.response.is_done():
+            await inter.edit_original_message(embed=self.embeds[self.embed_count], view=self)
         else:
-            await self.inter.response.edit_message(embed=self.embeds[0], view=self)
+            await inter.response.edit_message(embed=self.embeds[self.embed_count], view=self)
 
     async def construct_embeds(self, charname: str) -> List[disnake.Embed]:
         char = await self.bot.sdb[f'BLCharList_{self.guild.id}'].find_one({"user": str(self.user.id), "character": charname})
@@ -233,23 +227,15 @@ class LogBrowser(disnake.ui.View):
         return False
 
     @disnake.ui.select(placeholder="Select Character", row=4, min_values=1, max_values=1)
-    async def select_char(self, select: disnake.ui.Select, inter: disnake.ApplicationCommandInteraction):
+    async def select_char(self, select: disnake.ui.Select, inter: disnake.MessageInteraction):
         await inter.response.defer()
         if len(select.values) == 1 and select.values[0] == TOO_MANY_CHARACTERS_SENTINEL:
             charname = await self._text_select_char(inter)
         else:
             charname = select.values[0]
         if charname is None:
-            try:
-                if inter.response.is_done():
-                    await inter.edit_original_message(embed=self.embeds[0], view=self)
-                else:
-                    await inter.response.edit_message(embed=self.embeds[0], view=self)
-            except disnake.NotFound:
-                if self.inter.response.is_done():
-                    await self.inter.edit_original_message(embed=self.embeds[0], view=self)
-                else:
-                    await self.inter.response.edit_message(embed=self.embeds[0], view=self)
+            self.embed_count = 0
+            await self.refresh_content(inter)
             return
         self.embeds = await self.construct_embeds(charname)
         if len(self.embeds) == 1:
@@ -263,16 +249,7 @@ class LogBrowser(disnake.ui.View):
         self.firstchar = charname
         self._refresh_character_select()
         self.embed_count = 0
-        try:
-            if inter.response.is_done():
-                await inter.edit_original_message(embed=self.embeds[0], view=self)
-            else:
-                await inter.response.edit_message(embed=self.embeds[0], view=self)
-        except disnake.NotFound:
-            if self.inter.response.is_done():
-                await self.inter.edit_original_message(embed=self.embeds[0], view=self)
-            else:
-                await self.inter.response.edit_message(embed=self.embeds[0], view=self)
+        await self.refresh_content(inter)
 
 
     def _refresh_character_select(self):
@@ -286,9 +263,9 @@ class LogBrowser(disnake.ui.View):
             selected = self.firstchar is not None and self.firstchar in char['character']
             self.select_char.add_option(label=char['character'], value=char['character'], default=selected)
 
-    async def _text_select_char(self, inter: disnake.ApplicationCommandInteraction) -> Optional[str]:
+    async def _text_select_char(self, inter: disnake.MessageInteraction) -> Optional[str]:
         self.select_char.disabled = True
-        selectmsg: disnake.Message = await self.inter.followup.send(
+        selectmsg: disnake.Message = await inter.followup.send(
             "Choose one of the following characters by sending a message to this channel.\n"+'\n'.join([x['character'] for x in self.charlist])
         )
 
@@ -308,12 +285,12 @@ class LogBrowser(disnake.ui.View):
                     charname = x['character']
 
             if charname:
-                await self.inter.followup.send(f"{charname} selected.", delete_after=4)
+                await inter.followup.send(f"{charname} selected.", delete_after=4)
                 return charname
-            await self.inter.followup.send("No valid character found. Use the select menu to try again.", delete_after=6)
+            await inter.followup.send("No valid character found. Use the select menu to try again.", delete_after=6)
             return None
         except TimeoutError:
-            await self.inter.followup.send("No valid character found. Use the select menu to try again.", delete_after=6)
+            await inter.followup.send("No valid character found. Use the select menu to try again.", delete_after=6)
             return
         finally:
             self.select_char.disabled = False
@@ -321,97 +298,50 @@ class LogBrowser(disnake.ui.View):
     @disnake.ui.button(emoji="⏪", style=disnake.ButtonStyle.blurple)
     async def first_page(self, button: disnake.ui.Button, inter: disnake.MessageInteraction):
         self.embed_count = 0
-        embed = self.embeds[self.embed_count]
-        embed.set_footer(text=f"Page 1 of {len(self.embeds)}")
+        self.embeds[self.embed_count].set_footer(text=f"Page 1 of {len(self.embeds)}")
 
         self.first_page.disabled = True
         self.prev_page.disabled = True
         self.next_page.disabled = False
         self.last_page.disabled = False
-        try:
-            if inter.response.is_done():
-                await inter.edit_original_message(embed=embed, view=self)
-            else:
-                await inter.response.edit_message(embed=embed, view=self)
-        except disnake.NotFound:
-            if self.inter.response.is_done():
-                await self.inter.edit_original_message(embed=embed, view=self)
-            else:
-                await self.inter.response.edit_message(embed=embed, view=self)
+        await self.refresh_content(inter)
 
     @disnake.ui.button(emoji="◀", style=disnake.ButtonStyle.secondary)
     async def prev_page(self, button: disnake.ui.Button, inter: disnake.MessageInteraction):
         self.embed_count -= 1
-        embed = self.embeds[self.embed_count]
 
         self.next_page.disabled = False
         self.last_page.disabled = False
         if self.embed_count == 0:
             self.first_page.disabled = True
             self.prev_page.disabled = True
-        try:
-            if inter.response.is_done():
-                await inter.edit_original_message(embed=embed, view=self)
-            else:
-                await inter.response.edit_message(embed=embed, view=self)
-        except disnake.NotFound:
-            if self.inter.response.is_done():
-                await self.inter.edit_original_message(embed=embed, view=self)
-            else:
-                await self.inter.response.edit_message(embed=embed, view=self)
+        await self.refresh_content(inter)
 
     @disnake.ui.button(emoji="✖️", style=disnake.ButtonStyle.red)
     async def remove(self, button: disnake.ui.Button, inter: disnake.MessageInteraction):
-        await inter.response.edit_message("\u200B", embed=None, view=None)
-        try:
-            if inter.response.is_done():
-                delmsg: disnake.Message = await inter.edit_original_message("\u200B", embed=None, view=None)
-            else:
-                delmsg: disnake.Message = await inter.response.edit_message("\u200B", embed=None, view=None)
-        except disnake.NotFound:
-            if self.inter.response.is_done():
-                delmsg: disnake.Message = await self.inter.edit_original_message("\u200B", embed=None, view=None)
-            else:
-                delmsg: disnake.Message = await self.inter.response.edit_message("\u200B", embed=None, view=None)
-        await delmsg.delete()
+        if inter.response.is_done():
+            await inter.edit_original_message("\u200B", embed=None, view=None)
+        else:
+            await inter.response.edit_message("\u200B", embed=None, view=None)
+        await inter.delete_original_message()
 
     @disnake.ui.button(emoji="▶", style=disnake.ButtonStyle.secondary)
     async def next_page(self, button: disnake.ui.Button, inter: disnake.MessageInteraction):
         self.embed_count += 1
-        embed = self.embeds[self.embed_count]
 
         self.first_page.disabled = False
         self.prev_page.disabled = False
         if self.embed_count == len(self.embeds) - 1:
             self.next_page.disabled = True
             self.last_page.disabled = True
-        try:
-            if inter.response.is_done():
-                await inter.edit_original_message(embed=embed, view=self)
-            else:
-                await inter.response.edit_message(embed=embed, view=self)
-        except disnake.NotFound:
-            if self.inter.response.is_done():
-                await self.inter.edit_original_message(embed=embed, view=self)
-            else:
-                await self.inter.response.edit_message(embed=embed, view=self)
+        await self.refresh_content(inter)
 
     @disnake.ui.button(emoji="⏩", style=disnake.ButtonStyle.blurple)
     async def last_page(self, button: disnake.ui.Button, inter: disnake.MessageInteraction):
         self.embed_count = len(self.embeds) - 1
-        embed = self.embeds[self.embed_count]
 
         self.first_page.disabled = False
         self.prev_page.disabled = False
         self.next_page.disabled = True
         self.last_page.disabled = True
-        try:
-            if inter.response.is_done():
-                await inter.edit_original_message(embed=embed, view=self)
-            else:
-                await inter.response.edit_message(embed=embed, view=self)
-        except disnake.NotFound:
-            if self.inter.response.is_done():
-                await self.inter.edit_original_message(embed=embed, view=self)
-            else:
-                await self.inter.response.edit_message(embed=embed, view=self)
+        await self.refresh_content(inter)
