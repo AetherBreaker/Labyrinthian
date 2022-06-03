@@ -8,6 +8,27 @@ from utilities.checks import urlCheck
 from utilities.txtformatting import mkTable
 
 from badgelog.browser import create_CharSelect
+
+#WHERE KIRBY'S NEW FUNCTIONS ARE:
+"""Returns a list of valid classes from classlist in the server config if exists, otherwise the Badges default valid classes.
+        Parameters
+        ----------
+        self: The Badges class. It may be better to move this within the class.
+        guildID: Put inter.guild.id here."""
+async def validateClass(self, guildID):
+    srvconf = await self.bot.sdb[f'srvconf'].find_one({"guild": str(guildID)})
+    if 'classlist' in srvconf:
+        if srvconf['classlist']:
+            validc = srvconf['classlist']
+        else:
+            validc = self.valid
+    else:
+        validc = self.valid
+    return validc
+
+
+
+
 class Badges(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -25,14 +46,16 @@ class Badges(commands.Cog):
         charname: The name of your character.
         startingclass: Your character's starter class.
         startingclasslevel: The level of your character's starter class."""
-        srvconf = await self.bot.sdb[f'srvconf'].find_one({"guild": str(inter.guild.id)})
-        if 'classlist' in srvconf:
-            if srvconf['classlist']:
-                validc = srvconf['classlist']
-            else:
-                validc = self.valid
-        else:
-            validc = self.valid
+        validc = await validateClass(self, inter.guild.id)
+        #srvconf = await self.bot.sdb[f'srvconf'].find_one({"guild": str(inter.guild.id)})
+        #if 'classlist' in srvconf:
+        #    if srvconf['classlist']:
+        #        validc = srvconf['classlist']
+        #    else:
+        #        validc = self.valid
+        #else:
+        #    validc = self.valid
+        
         if startingclass not in validc:
             await inter.response.send_message(f"{startingclass} is not a valid class, try using the autocompletion to select a class.")
         else:
@@ -47,12 +70,12 @@ class Badges(commands.Cog):
                         "character": charname,
                         "charlvl": startingclasslevel,
                         "classes": {
-                                startingclass: startingclasslevel,
+                            startingclass: startingclasslevel,
                         },
                         "currentbadges": 0,
                         "expectedlvl": 1,
                         "lastlog": None,
-                        "lastlogtime": time.time()
+                        "lastlogtime": time()
                     }
                     await self.bot.sdb[f"BLCharList_{inter.guild.id}"].insert_one(char)
                     await inter.response.send_message(f"Registered {charname}'s badge log with the Adventurers Coalition.")
@@ -85,14 +108,15 @@ class Badges(commands.Cog):
 
     @create.autocomplete("startingclass")
     async def autocomp_class(self, inter: disnake.ApplicationCommandInteraction, user_input: str):
-        srvconf = await self.bot.sdb[f'srvconf'].find_one({"guild": str(inter.guild.id)})
-        if 'classlist' in srvconf:
-            if srvconf['classlist']:
-                validc = srvconf['classlist']
-            else:
-                validc = self.valid
-        else:
-            validc = self.valid
+        validc = await validateClass(self, inter.guild.id)
+        #srvconf = await self.bot.sdb[f'srvconf'].find_one({"guild": str(inter.guild.id)})
+        #if 'classlist' in srvconf:
+        #    if srvconf['classlist']:
+        #        validc = srvconf['classlist']
+        #    else:
+        #        validc = self.valid
+        #else:
+        #    validc = self.valid
         return [name for name in validc if "".join(user_input.split()).casefold() in "".join(name.split()).casefold()]
 
     @commands.slash_command()
@@ -157,14 +181,15 @@ class Badges(commands.Cog):
     async def autocomp_class(self, inter: disnake.ApplicationCommandInteraction, user_input: str):
         charname = inter.filled_options['charname']
         char = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].find_one({"user": str(inter.author.id), "character": charname})
-        srvconf = await self.bot.sdb[f'srvconf'].find_one({"guild": str(inter.guild.id)})
-        if 'classlist' in srvconf:
-            if srvconf['classlist']:
-                validc = srvconf['classlist']
-            else:
-                validc = self.valid
-        else:
-            validc = self.valid
+        validc = await validateClass(self, inter.guild.id)
+        #srvconf = await self.bot.sdb[f'srvconf'].find_one({"guild": str(inter.guild.id)})
+        #if 'classlist' in srvconf:
+        #    if srvconf['classlist']:
+        #        validc = srvconf['classlist']
+        #    else:
+        #        validc = self.valid
+        #else:
+        #    validc = self.valid
         validclasses = [x for x in validc if x not in char['classes']] if char is not None else validc
         return [name for name in validclasses if "".join(user_input.split()).casefold() in "".join(name.split()).casefold()]
 
@@ -295,6 +320,8 @@ class Badges(commands.Cog):
         ----------
         charname: The name of your character."""
         await create_CharSelect(inter, self.bot, inter.author, inter.guild)
+
+
 
 def setup(bot):
     bot.add_cog(Badges(bot))
