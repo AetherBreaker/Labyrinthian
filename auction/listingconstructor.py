@@ -1,10 +1,19 @@
 import asyncio
 from contextlib import suppress
+from copy import deepcopy
+import numbers
+from os import remove
+from pickletools import long1
 from time import time
+import traceback
+from turtle import st
 from typing import List, Optional
+from urllib.parse import MAX_CACHE_SIZE
 import disnake
 from disnake.ext import commands
 from yarl import URL
+
+from utilities.checks import urlCheck
 
 TOO_MANY_CHARACTERS_SENTINEL = "__special:too_many_characters"
 
@@ -44,19 +53,22 @@ class ListingConst(disnake.ui.View):
         self.rarity_select_added = False
         self.rarity = ""
         self.rarcost = 0
-        self.rarity_complete = False
         self.attunement = None
-        self.attunement_complete = False
         self.modal_button_added = False
-        self.embeddicts = [
-            {
+        self.itemname = None
+        self.itemdesc = None
+        self.attunementinfo = None
+        self.bidstart = None
+        self.buynow = None
+        self.embeddicts = {
+            "Listing": {
                 "type": "rich",
                 "title": 'item name',
                 "description": "item description",
                 "color": disnake.Colour.random().value,
                 "fields": [
                     {
-                        "name": 'Rarity: ',
+                        "name": 'Rarity:',
                         "value": "\u200B",
                         "inline": True
                     },
@@ -71,17 +83,17 @@ class ListingConst(disnake.ui.View):
                         "inline": True
                     },
                     {
-                        "name": 'Highest Bid',
+                        "name": 'Starting Bid:',
                         "value": '\u200B',
                         "inline": True
                     },
                     {
-                        "name": 'Buy Now Price',
+                        "name": 'Buy Now Price:',
                         "value": '\u200B',
                         "inline": True
                     },
                     {
-                        "name": 'Ends in:',
+                        "name": 'Ends:',
                         "value": '\u200B',
                         "inline": True
                     }
@@ -91,7 +103,7 @@ class ListingConst(disnake.ui.View):
                     "url": 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
                 }
             },
-            {
+            "Instructions": {
                 "type": "rich",
                 "title": 'Listing Creator',
                 "description": "To create your listing, first you must select a character using the dropdown shown below.",
@@ -104,30 +116,79 @@ class ListingConst(disnake.ui.View):
                     }
                 ]
             }
-        ]
+        }
 
     async def _init(self, inter: disnake.MessageInteraction):
         self.charlist = await self.bot.sdb[f'BLCharList_{inter.guild.id}'].find({"user": str(self.owner.id)}).to_list(None)
         durlist = await self.bot.sdb['srvconf'].find_one({"guild": str(inter.guild.id)})
         self.durlist = durlist['listingdurs'] if 'listingdurs' in durlist else {"86400": 75,"259200": 150,"604800": 275,"1209600": 450,"2630000": 750}
-        self.embeds = [disnake.Embed.from_dict(x) for x in self.embeddicts]
+        self.embeds = [disnake.Embed.from_dict(x) for x in self.embeddicts.values()]
         self.add_item(CharSelect(self.bot, self.charlist))
         await inter.response.send_message(embeds=self.embeds, view=self, ephemeral=True)
 
-    async def refresh_content(self, inter: disnake.Interaction, **kwargs):
-        self.embeddicts[0]['author']['name'] = self.charname
-        self.embeddicts[0]['author']['url'] = self.sheet
+    async def refresh_content(self, inter: disnake.Interaction, removeerror: bool=True, **kwargs):
+        if removeerror and 'Error' in self.embeddicts:
+            self.embeddicts.pop('Error')
+        self.embeddicts['Listing']['author']['name'] = self.charname
+        self.embeddicts['Listing']['author']['url'] = self.sheet
         if self.dur != 0:
-            self.embeddicts[0]['fields'][5]['name'] = f"Ends <t:{int(time())+int(self.dur)}:R>"
-        self.embeddicts[1]['fields'][0]['value'] = f"{self.durcost+self.rarcost} gp"
-        self.embeddicts[0]['fields'][0]['name'] = f"Rarity: {self.rarity}"
+            self.embeddicts['Listing']['fields'][5]['value'] = f"<t:{int(time())+int(self.dur)}:R>"
+        self.embeddicts['Instructions']['fields'][0]['value'] = f"{self.durcost+self.rarcost} gp"
+        self.embeddicts['Listing']['fields'][0]['value'] = f'\u200B{self.rarity}'
         if self.attunement != None:
-            self.embeddicts[0]['fields'][1]['name'] = f"Attunement: {'Yes' if self.attunement else False}"
-        self.embeds = [disnake.Embed.from_dict(x) for x in self.embeddicts]
+            self.embeddicts['Listing']['fields'][1]['name'] = f"Attunement: {'Yes' if self.attunement else False}"
+        self.embeds = [disnake.Embed.from_dict(x) for x in self.embeddicts.values()]
         if inter.response.is_done():
             await inter.edit_original_message(embeds=self.embeds, view=self, **kwargs)
         else:
             await inter.response.edit_message(embeds=self.embeds, view=self, **kwargs)
+
+    async def content_error_check(self, inter: disnake.Interaction):
+        # bid not a number
+        try:
+            self.bidstart = int(self.bidstart)
+        except ValueError:
+            self.embeddicts['Error'] = {
+                "title": "Exception:",
+                "description": f"It seems your starting bid couldn't be converted to a whole number, heres the error traceback:\n```ansi\n\u001b[1;40;32m{traceback.format_exc()}```",
+                "color": disnake.Colour.red().value
+            }
+            await self.refresh_content(inter, False)
+            return True
+
+        # buynow not a number
+        try:
+            self.buynow = int(self.buynow)
+        except ValueError:
+            self.embeddicts['Error'] = {
+                "title": "Exception:",
+                "description": f"It seems your buy now price couldn't be converted to a whole number, heres the error traceback:\n```ansi\n\u001b[1;40;32m{traceback.format_exc()}```",
+                "color": disnake.Colour.red().value
+            }
+            await self.refresh_content(inter, False)
+            return True
+
+
+        tembed = deepcopy(self.embeddicts['Listing'])
+        tembed['title'] = self.itemname
+        tembed['description'] = self.itemdesc
+        tembed['fields'][1]['value'] = self.attunementinfo
+        tembed['fields'][3]['value'] = self.bidstart
+        tembed['fields'][4]['value'] = self.buynow
+        print(tembed)
+        tembed = disnake.Embed.from_dict(tembed)
+        print(tembed)
+        if len(tembed) > 6000:
+            self.embeddicts['Error'] = {
+                "title": "Error",
+                "description": f"```ansi\n1;40;32mIt seems the total length of the embed exceeded 6000 characters, please try to reduce the length of your listing to below 6000 characters and try again.```",
+                "color": disnake.Colour.red().value
+            }
+            await self.refresh_content(inter, False)
+            return True
+        return False
+
+
 
 class CharSelect(disnake.ui.Select[ListingConst]):
     def __init__(self, bot: commands.Bot, charlist: List[str]) -> None:
@@ -169,7 +230,7 @@ class CharSelect(disnake.ui.Select[ListingConst]):
         if not self.view.dur_select_added:
             self.view.dur_select_added = True
             self.view.add_item(DurSelect(self.view.durlist))
-            self.view.embeddicts[1]['description'] = f"""Now select how long you would like your listing to remain posted in the auction house for.
+            self.view.embeddicts['Instructions']['description'] = f"""Now select how long you would like your listing to remain posted in the auction house for.
             The longer the duration, the greater the auction fee."""
         await self.view.refresh_content(inter)
 
@@ -181,7 +242,7 @@ class CharSelect(disnake.ui.Select[ListingConst]):
             "description": "Choose one of the following characters by sending a message to this channel.\n"+'\n'.join([x['character'] for x in self.charlist]),
             "color": disnake.Colour.random().value
         }
-        self.view.embeddicts.append(emb)
+        self.view.embeddicts['SelectChar'] = (emb)
         await self.view.refresh_content(inter)
 
         try:
@@ -192,7 +253,7 @@ class CharSelect(disnake.ui.Select[ListingConst]):
             )
             with suppress(disnake.HTTPException):
                 await input_msg.delete()
-                self.view.embeddicts.remove(emb)
+                self.view.embeddicts.pop('SelectChar')
                 await self.view.refresh_content(inter)
 
             charname=[]
@@ -203,19 +264,18 @@ class CharSelect(disnake.ui.Select[ListingConst]):
             if charname:
                 return charname
             emb['description'] = "No valid character found. Use the select menu to try again."
-            self.view.embeddicts.append(emb)
+            self.view.embeddicts['SelectChar'] = (emb)
             await self.view.refresh_content(inter)
             await asyncio.sleep(6.0)
-            self.view.embeddicts.remove(emb)
+            self.view.embeddicts.pop('SelectChar')
             await self.view.refresh_content(inter)
             return None
         except TimeoutError:
-            self.view.embeddicts.remove(emb)
             emb['description'] = "No valid character found. Use the select menu to try again."
-            self.view.embeddicts.append(emb)
+            self.view.embeddicts['SelectChar'] = (emb)
             await self.view.refresh_content(inter)
             await asyncio.sleep(6.0)
-            self.view.embeddicts.remove(emb)
+            self.view.embeddicts.pop('SelectChar')
             await self.view.refresh_content(inter)
             return
         finally:
@@ -260,7 +320,7 @@ class DurSelect(disnake.ui.Select[ListingConst]):
         self._refresh_dur_select()
         if self.view.rarity_select_added == False:
             self.view.rarity_select_added = True
-            self.view.embeddicts[1]['description'] = f"""Now please proceed to select the rarity of your item and whether or not it requires attunement."""
+            self.view.embeddicts['Instructions']['description'] = f"""Now please proceed to select the rarity of your item and whether or not it requires attunement."""
             self.view.add_item(RaritySelect())
             self.view.add_item(AttunementButton())
         await self.view.refresh_content(inter)
@@ -296,8 +356,7 @@ class RaritySelect(disnake.ui.Select[ListingConst]):
         self.firstrare = self.values[0]
         self.view.rarity = self.values[0]
         self.view.rarcost = self.raritylist[self.values[0]]
-        self.view.rarity_complete = True
-        if self.view.attunement_complete == True:
+        if self.view.modal_button_added == False:
             self.view.modal_button_added = True
             self.view.add_item(SendModalButton(inter.bot))
         self._refresh_rarity_select()
@@ -327,10 +386,6 @@ class AttunementButton(disnake.ui.Button[ListingConst]):
             self.style=disnake.ButtonStyle.secondary
             self.label="Attunement: No"
             self.emoji="🔳"
-        self.view.attunement_complete = True
-        if self.view.rarity_complete == True:
-            self.view.modal_button_added = True
-            self.view.add_item(SendModalButton(inter.bot))
         await self.view.refresh_content(inter)
 
 class SendModalButton(disnake.ui.Button[ListingConst]):
@@ -349,7 +404,7 @@ class SendModalButton(disnake.ui.Button[ListingConst]):
                 placeholder="Winged Boots",
                 custom_id="itemName",
                 style=disnake.TextInputStyle.single_line,
-                max_length=50,
+                max_length=256,
                 min_length=2
             ),
             disnake.ui.TextInput(
@@ -357,24 +412,61 @@ class SendModalButton(disnake.ui.Button[ListingConst]):
                 placeholder=f"""Item Description""",
                 custom_id="itemDesc",
                 style=disnake.TextInputStyle.multi_line,
-                min_length=2
+                min_length=2,
+                max_length=4000
             ),
-            # disnake.ui.TextInput(
-            #     label="Starting Bid",
-            #     placeholder="Numbers only, no decimals"
-            # )
+            disnake.ui.TextInput(
+                label="Starting Bid",
+                placeholder="GP only, no decimals",
+                custom_id="bidStart",
+                style=disnake.TextInputStyle.single_line,
+                max_length=10
+            ),
+            disnake.ui.TextInput(
+                label="Buy Now Price *Optional*",
+                placeholder="Optional price to purchase item immediately",
+                custom_id="buyNow",
+                style=disnake.TextInputStyle.single_line,
+                max_length=10
+            )
         ]
         if self.view.attunement:
-            components.append(disnake.ui.TextInput(
+            components.insert(2, disnake.ui.TextInput(
                 label="Additional Attunement Info",
                 placeholder="https://www.youtube.com/watch?v=dQw4w9WgXcQ",
                 value="\u200B",
                 required=False,
                 custom_id="attunementInfo",
-                style=disnake.TextInputStyle.single_line
+                style=disnake.TextInputStyle.single_line,
+                max_length=1024
             ))
         await inter.response.send_modal(
             title="Listing Text Form",
             custom_id="this_is_an_interesting_custom_id_hmmm_yes",
             components=components
         )
+
+        try:
+            modal_inter: disnake.ModalInteraction = await self.bot.wait_for(
+                "modal_submit",
+                check=lambda i: i.custom_id == "this_is_an_interesting_custom_id_hmmm_yes" and i.author.id == inter.author.id,
+                timeout=300,
+            )
+        except asyncio.TimeoutError:
+            self.view.embeddicts['Error'] = {
+                "title": "Exception",
+                "description": f"It seems your form timed out, if you see this message, it is most likely because you took too long to fill out the form.\n\nPlease try again.\nError Traceback:\n```ansi\n\u001b[1;40;32m{traceback.format_exc()}```"
+            }
+            await self.view.refresh_content(inter, False)
+            return
+        
+        self.view.itemname = modal_inter.text_values['itemName']
+        self.view.itemdesc = modal_inter.text_values['itemDesc']
+        if 'attunementInfo' in modal_inter.text_values and len(modal_inter.text_values['attunementInfo']) > 0:
+            self.view.attunementinfo = modal_inter.text_values['attunementInfo']
+        self.view.bidstart = modal_inter.text_values['bidStart']
+        if 'buyNow' in modal_inter.text_values and len(modal_inter.text_values['buyNow']) > 0:
+            self.view.buynow = modal_inter.text_values['buyNow']
+        
+        if await self.view.content_error_check(modal_inter):
+            return
