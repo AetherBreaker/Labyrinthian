@@ -4,11 +4,13 @@ from copy import deepcopy
 import numbers
 from os import remove
 from pickletools import long1
+import re
 from time import time
 import traceback
 from turtle import st
 from typing import List, Optional
 from urllib.parse import MAX_CACHE_SIZE
+from attr import field
 import disnake
 from disnake.ext import commands
 from yarl import URL
@@ -16,6 +18,8 @@ from yarl import URL
 from utilities.checks import urlCheck
 
 TOO_MANY_CHARACTERS_SENTINEL = "__special:too_many_characters"
+instructionsfrmt = "ansi\n\u001b[1;40;32m"
+errorfrmt = "ansi\n\u001b[1;40;31m"
 
 async def send_const(inter: disnake.ApplicationCommandInteraction, *args, **kwargs):
     Send = ConstSender(*args, **kwargs)
@@ -45,59 +49,51 @@ class ListingConst(disnake.ui.View):
         super().__init__(timeout=600)
         self.bot = bot
         self.owner = owner
-        self.charname = '\u200B'
-        self.sheet = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
         self.dur_select_added = False
-        self.dur = 0
-        self.durcost = 0
         self.rarity_select_added = False
-        self.rarity = ""
-        self.rarcost = 0
-        self.attunement = None
         self.modal_button_added = False
-        self.itemname = None
-        self.itemdesc = None
-        self.attunementinfo = None
-        self.bidstart = None
-        self.buynow = None
+        self.send_listing_button_added = False
         self.embeddicts = {
             "Listing": {
                 "type": "rich",
                 "title": 'item name',
                 "description": "item description",
                 "color": disnake.Colour.random().value,
-                "fields": [
-                    {
+                "fields": {
+                    "rarity": {
                         "name": 'Rarity:',
                         "value": "\u200B",
                         "inline": True
                     },
-                    {
-                        "name": 'Attunement: ',
-                        "value": '*Additional attunement info*',
+                    "attunement": {
+                        "name": 'Attunement: No',
+                        "value": '\u200B',
                         "inline": True
                     },
-                    {
+                    "divider": {
                         "name": '\u200B',
                         "value": "\u200B",
                         "inline": True
                     },
-                    {
+                    "bids": {
                         "name": 'Starting Bid:',
                         "value": '\u200B',
                         "inline": True
                     },
-                    {
-                        "name": 'Buy Now Price:',
-                        "value": '\u200B',
+                    "buynow": {
+                        "name": '',
+                        "value": '',
                         "inline": True
                     },
-                    {
+                    "duration": {
                         "name": 'Ends:',
                         "value": '\u200B',
                         "inline": True
                     }
-                ],
+                },
+                "footer": {
+                    "text": f"{self.owner.name}#{self.owner.discriminator}"
+                },
                 "author": {
                     "name": 'Character Name',
                     "url": 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
@@ -106,89 +102,78 @@ class ListingConst(disnake.ui.View):
             "Instructions": {
                 "type": "rich",
                 "title": 'Listing Creator',
-                "description": "To create your listing, first you must select a character using the dropdown shown below.",
+                "description": f"""```{instructionsfrmt}To create your listing, first you must select a character using the dropdown shown below.```""",
                 "color": disnake.Colour.random().value,
-                "fields": [
-                    {
+                "fields": {
+                    "fees": {
                         "name": 'Auction Fees:',
-                        "value": f"{self.durcost+self.rarcost} gp",
+                        "value": f"0 gp",
                         "inline": False
                     }
-                ]
+                }
             }
         }
+        self.charname = self.embeddicts['Listing']['author']['name']
+        self.sheet = self.embeddicts['Listing']['author']['url']
+        self.displaydur = self.embeddicts['Listing']['fields']['duration']
+        self.durcost = 0
+        self.rarity = self.embeddicts['Listing']['fields']['rarity']
+        self.rarcost = 0
+        self.attunement = self.embeddicts['Listing']['fields']['attunement']
+        self.itemname = self.embeddicts['Listing']['title']
+        self.itemdesc = self.embeddicts['Listing']['description']
+        self.bids = self.embeddicts['Listing']['fields']['bids']
+        self.buynow = self.embeddicts['Listing']['fields']['buynow']
+        self.instructions = self.embeddicts['Instructions']
+        self.fees = self.embeddicts['Instructions']['fields']['fees']
+        self.datadict = {
+            "duration": 0,
+            "topbid": 0,
+            "topbiduser": None,
+            "buyprice": None
+        }
+        self.dur = self.datadict['duration']
+        self.biddata = self.datadict['topbid']
+        self.buydata = self.datadict['buyprice']
 
     async def _init(self, inter: disnake.MessageInteraction):
         self.charlist = await self.bot.sdb[f'BLCharList_{inter.guild.id}'].find({"user": str(self.owner.id)}).to_list(None)
         durlist = await self.bot.sdb['srvconf'].find_one({"guild": str(inter.guild.id)})
         self.durlist = durlist['listingdurs'] if 'listingdurs' in durlist else {"86400": 75,"259200": 150,"604800": 275,"1209600": 450,"2630000": 750}
-        self.embeds = [disnake.Embed.from_dict(x) for x in self.embeddicts.values()]
+        embcon = deepcopy(self.embeddicts)
+        for x in embcon.values():
+            if 'fields' in x:
+                listconv = []
+                for y in x['fields'].values():
+                    if y['name'] != '':
+                        listconv.append(y)
+                x.update({'fields': listconv})
+        self.embeds = [disnake.Embed.from_dict(x) for x in embcon.values()]
         self.add_item(CharSelect(self.bot, self.charlist))
-        await inter.response.send_message(embeds=self.embeds, view=self, ephemeral=True)
+        if len(self.charlist) <= 0:
+            await inter.response.send_message("You don't have any characters to post a listing with!\nPlease create a character with /create before using this.", ephemeral=True)
+        else:
+            await inter.response.send_message(embeds=self.embeds, view=self, ephemeral=True)
 
     async def refresh_content(self, inter: disnake.Interaction, removeerror: bool=True, **kwargs):
-        if removeerror and 'Error' in self.embeddicts:
-            self.embeddicts.pop('Error')
-        self.embeddicts['Listing']['author']['name'] = self.charname
-        self.embeddicts['Listing']['author']['url'] = self.sheet
-        if self.dur != 0:
-            self.embeddicts['Listing']['fields'][5]['value'] = f"<t:{int(time())+int(self.dur)}:R>"
-        self.embeddicts['Instructions']['fields'][0]['value'] = f"{self.durcost+self.rarcost} gp"
-        self.embeddicts['Listing']['fields'][0]['value'] = f'\u200B{self.rarity}'
-        if self.attunement != None:
-            self.embeddicts['Listing']['fields'][1]['name'] = f"Attunement: {'Yes' if self.attunement else False}"
-        self.embeds = [disnake.Embed.from_dict(x) for x in self.embeddicts.values()]
+        print(self.embeddicts)
+        if removeerror:
+            for x in self.embeddicts:
+                if 'Error' in x:
+                    self.embeddicts.pop(x)
+        embcon = deepcopy(self.embeddicts)
+        for x in embcon.values():
+            if 'fields' in x:
+                listconv = []
+                for y in x['fields'].values():
+                    if y['name'] != '':
+                        listconv.append(y)
+                x.update({'fields': listconv})
+        self.embeds = [disnake.Embed.from_dict(x) for x in embcon.values()]
         if inter.response.is_done():
             await inter.edit_original_message(embeds=self.embeds, view=self, **kwargs)
         else:
             await inter.response.edit_message(embeds=self.embeds, view=self, **kwargs)
-
-    async def content_error_check(self, inter: disnake.Interaction):
-        # bid not a number
-        try:
-            self.bidstart = int(self.bidstart)
-        except ValueError:
-            self.embeddicts['Error'] = {
-                "title": "Exception:",
-                "description": f"It seems your starting bid couldn't be converted to a whole number, heres the error traceback:\n```ansi\n\u001b[1;40;32m{traceback.format_exc()}```",
-                "color": disnake.Colour.red().value
-            }
-            await self.refresh_content(inter, False)
-            return True
-
-        # buynow not a number
-        try:
-            self.buynow = int(self.buynow)
-        except ValueError:
-            self.embeddicts['Error'] = {
-                "title": "Exception:",
-                "description": f"It seems your buy now price couldn't be converted to a whole number, heres the error traceback:\n```ansi\n\u001b[1;40;32m{traceback.format_exc()}```",
-                "color": disnake.Colour.red().value
-            }
-            await self.refresh_content(inter, False)
-            return True
-
-
-        tembed = deepcopy(self.embeddicts['Listing'])
-        tembed['title'] = self.itemname
-        tembed['description'] = self.itemdesc
-        tembed['fields'][1]['value'] = self.attunementinfo
-        tembed['fields'][3]['value'] = self.bidstart
-        tembed['fields'][4]['value'] = self.buynow
-        print(tembed)
-        tembed = disnake.Embed.from_dict(tembed)
-        print(tembed)
-        if len(tembed) > 6000:
-            self.embeddicts['Error'] = {
-                "title": "Error",
-                "description": f"```ansi\n1;40;32mIt seems the total length of the embed exceeded 6000 characters, please try to reduce the length of your listing to below 6000 characters and try again.```",
-                "color": disnake.Colour.red().value
-            }
-            await self.refresh_content(inter, False)
-            return True
-        return False
-
-
 
 class CharSelect(disnake.ui.Select[ListingConst]):
     def __init__(self, bot: commands.Bot, charlist: List[str]) -> None:
@@ -230,8 +215,10 @@ class CharSelect(disnake.ui.Select[ListingConst]):
         if not self.view.dur_select_added:
             self.view.dur_select_added = True
             self.view.add_item(DurSelect(self.view.durlist))
-            self.view.embeddicts['Instructions']['description'] = f"""Now select how long you would like your listing to remain posted in the auction house for.
-            The longer the duration, the greater the auction fee."""
+            self.view.instructions['description'] = (
+                f"""```{instructionsfrmt}Now select how long you would like your listing to remain posted in the auction house for."""
+                f"""\n\nThe longer the duration, the greater the auction fee.```"""
+            )
         await self.view.refresh_content(inter)
 
     async def _text_select_char(self, inter: disnake.MessageInteraction) -> Optional[str]:
@@ -309,18 +296,20 @@ class DurSelect(disnake.ui.Select[ListingConst]):
                     optstr.append(f'{y} {x}{"s" if y > 1 else ""}')
             optstr = ', '.join(optstr)
             selected = True if dur == self.firstdur else False
-            self.add_option(label=f"{optstr} - costs: {cost} gp", value=dur, default=selected)
+            self.add_option(label=f"{optstr} - {cost} gp fee", value=dur, default=selected)
 
     async def callback(self, inter: disnake.MessageInteraction):
         await inter.response.defer()
         dur = self.values[0]
         self.firstdur = dur
+        self.view.fees['value'] = f"{self.view.rarcost+self.durlist[dur]} gp"
         self.view.durcost = self.durlist[dur]
+        self.view.displaydur['value'] = f"<t:{int(time())+int(dur)}:R>"
         self.view.dur = dur
         self._refresh_dur_select()
         if self.view.rarity_select_added == False:
             self.view.rarity_select_added = True
-            self.view.embeddicts['Instructions']['description'] = f"""Now please proceed to select the rarity of your item and whether or not it requires attunement."""
+            self.view.instructions['description'] = f"""```{instructionsfrmt}Now please proceed to select the rarity of your item and whether or not it requires attunement.```"""
             self.view.add_item(RaritySelect())
             self.view.add_item(AttunementButton())
         await self.view.refresh_content(inter)
@@ -349,16 +338,22 @@ class RaritySelect(disnake.ui.Select[ListingConst]):
         self.options.clear()
         for x in self.raritylist:
             selected = True if x == self.firstrare else False
-            self.add_option(label=x, default=selected)
+            self.add_option(label=f"{x} - {self.raritylist[x]} gp fee", value=x, default=selected)
 
     async def callback(self, inter: disnake.MessageInteraction):
         await inter.response.defer()
         self.firstrare = self.values[0]
-        self.view.rarity = self.values[0]
+        self.view.rarity['value'] = self.values[0]
         self.view.rarcost = self.raritylist[self.values[0]]
+        self.view.fees['value'] = f"{self.raritylist[self.values[0]]+self.view.durcost} gp"
         if self.view.modal_button_added == False:
             self.view.modal_button_added = True
             self.view.add_item(SendModalButton(inter.bot))
+            self.view.instructions['description'] = (
+                f"""```{instructionsfrmt}Next, after confirming whether your item requires attunement, please press the continue button down below."""
+                f"""\n\nA window will open where you can fill out the rest of the information about your item."""
+                f"""\n\nPlease be warned that the window will time out after 5 minutes, if you exceed this time, you will have to close the window and try again.```"""
+            )
         self._refresh_rarity_select()
         await self.view.refresh_content(inter)
 
@@ -376,13 +371,13 @@ class AttunementButton(disnake.ui.Button[ListingConst]):
         await inter.response.defer()
         if self.selected == False:
             self.selected = True
-            self.view.attunement = True
+            self.view.attunement['name'] = "Attunement: Yes"
             self.style=disnake.ButtonStyle.success
             self.label="Attunement: Yes"
             self.emoji="✅"
         elif self.selected == True:
             self.selected = False
-            self.view.attunement = False
+            self.view.attunement['name'] = "Attunement: No"
             self.style=disnake.ButtonStyle.secondary
             self.label="Attunement: No"
             self.emoji="🔳"
@@ -404,15 +399,13 @@ class SendModalButton(disnake.ui.Button[ListingConst]):
                 placeholder="Winged Boots",
                 custom_id="itemName",
                 style=disnake.TextInputStyle.single_line,
-                max_length=256,
-                min_length=2
+                max_length=256
             ),
             disnake.ui.TextInput(
                 label="Description",
                 placeholder=f"""Item Description""",
                 custom_id="itemDesc",
                 style=disnake.TextInputStyle.multi_line,
-                min_length=2,
                 max_length=4000
             ),
             disnake.ui.TextInput(
@@ -427,7 +420,8 @@ class SendModalButton(disnake.ui.Button[ListingConst]):
                 placeholder="Optional price to purchase item immediately",
                 custom_id="buyNow",
                 style=disnake.TextInputStyle.single_line,
-                max_length=10
+                max_length=10,
+                required=False
             )
         ]
         if self.view.attunement:
@@ -461,12 +455,39 @@ class SendModalButton(disnake.ui.Button[ListingConst]):
             return
         
         self.view.itemname = modal_inter.text_values['itemName']
+
         self.view.itemdesc = modal_inter.text_values['itemDesc']
+
         if 'attunementInfo' in modal_inter.text_values and len(modal_inter.text_values['attunementInfo']) > 0:
-            self.view.attunementinfo = modal_inter.text_values['attunementInfo']
-        self.view.bidstart = modal_inter.text_values['bidStart']
-        if 'buyNow' in modal_inter.text_values and len(modal_inter.text_values['buyNow']) > 0:
-            self.view.buynow = modal_inter.text_values['buyNow']
+            self.view.attunement['value'] = modal_inter.text_values['attunementInfo']
         
-        if await self.view.content_error_check(modal_inter):
-            return
+        try:
+            self.view.biddata = int(modal_inter.text_values['bidStart'])
+            self.view.bids['value'] = f"{modal_inter.text_values['bidStart']} gp"
+        except (ValueError, TypeError):
+            errindex = 0
+            for x in self.view.embeddicts:
+                if 'Error' in x:
+                    errindex += 1
+            self.view.embeddicts[f'Error{errindex}'] = {
+                "title": "Exception:",
+                "description": f"It seems your starting bid couldn't be converted to a whole number, heres the error traceback:\n```{errorfrmt}{traceback.format_exc()}```",
+                "color": disnake.Colour.red().value
+            }
+        if 'buyNow' in modal_inter.text_values and len(modal_inter.text_values['buyNow']) > 0:
+            try:
+                self.view.buydata = int(modal_inter.text_values['buyNow'])
+                self.view.buynow['name'] = "Buy Now Price:"
+                self.view.buynow['value'] = f"{modal_inter.text_values['buyNow']} gp"
+            except (ValueError, TypeError):
+                errindex = 0
+                for x in self.view.embeddicts:
+                    if 'Error' in x:
+                        errindex += 1
+                self.view.embeddicts[f'Error{errindex}'] = {
+                    "title": "Exception:",
+                    "description": f"It seems your buy now price couldn't be converted to a whole number, heres the error traceback:\n```{errorfrmt}{traceback.format_exc()}```",
+                    "color": disnake.Colour.red().value
+                }
+        
+        await self.view.refresh_content(modal_inter)
