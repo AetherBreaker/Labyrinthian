@@ -163,7 +163,7 @@ class ListingConst(disnake.ui.View):
         }
         inst.add_item(CharSelect(inst.bot, charlist))
         inst.embeds = [inst.auction_embed, inst.instructions_embed]
-        if len(inst.charlist) <= 0:
+        if len(charlist) <= 0:
             await inter.response.send_message("You don't have any characters to post a listing with!\nPlease create a character with /create before using this.", ephemeral=True)
         else:
             await inter.response.send_message(embeds=inst.embeds, view=inst, ephemeral=True)
