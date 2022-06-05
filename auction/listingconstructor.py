@@ -219,7 +219,7 @@ class CharSelect(disnake.ui.Select[ListingConst]):
         self._refresh_character_select()
         if not self.view.dur_select_added:
             self.view.dur_select_added = True
-            self.view.add_item(DurSelect(self.view.durlist))
+            self.view.add_item(DurSelect(self.view.durations))
             self.view.instructions = (
                 f"""```{instructionsfrmt}Now select how long you would like your listing to remain posted in the auction house for."""
                 f"""\n\nThe longer the duration, the greater the auction fee.```"""
