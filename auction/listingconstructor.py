@@ -1,5 +1,6 @@
 import asyncio
 from contextlib import suppress
+from copy import deepcopy
 from dataclasses import dataclass
 from datetime import timedelta
 from time import time
@@ -63,12 +64,12 @@ class Item:
 
 @dataclass
 class Duration:
-    time: int = None
+    time: int = 0
     fee: int = 0
 
     @property
     def enddate(self) -> str:
-        time = '\u200B' if self.time == None else disnake.utils.format_dt(disnake.utils.utcnow() + timedelta(days=self.time),"R",)
+        time = disnake.utils.format_dt(disnake.utils.utcnow() + timedelta(days=self.time),"R",)
         return time
 
 @dataclass
@@ -109,7 +110,7 @@ class ListingConst(disnake.ui.View):
             .add_field(name=f"Attunement: {'Yes' if self.item.attunement_required else 'No'}", value=self.item.attunement_info, inline=True)
             .add_field(name="\u200b", value="\u200b", inline=True)
             .add_field(name=f"Top Bidder: {self.character.name}", value=f"Highest Bid: {self.prices.bid}", inline=True)
-            .add_field(name="Ends:", value=self.duration.enddate, inline=True)
+            .add_field(name="Ends:", value='asdf', inline=True)
             .set_footer(text=f"{self.owner.name}#{self.owner.discriminator}")
         )
         if self.prices.buy != None:
