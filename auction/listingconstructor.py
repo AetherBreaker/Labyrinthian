@@ -109,7 +109,7 @@ class ListingConst(disnake.ui.View):
             .add_field(name=f"Attunement: {'Yes' if self.item.attunement_required else 'No'}", value=self.item.attunement_info, inline=True)
             .add_field(name="\u200b", value="\u200b", inline=True)
             .add_field(name=f"Top Bidder: {self.character.name}", value=f"Highest Bid: {self.prices.bid}", inline=True)
-            .add_field(name="Ends:", value=str(self.duration), inline=True)
+            .add_field(name="Ends:", value='\u200B' if self.duration.time is None else self.duration.enddate, inline=True)
             .set_footer(text=f"{self.owner.name}#{self.owner.discriminator}")
         )
         if self.prices.buy != None:
@@ -277,7 +277,7 @@ class DurSelect(disnake.ui.Select[ListingConst]):
     def _refresh_dur_select(self):
         self.options.clear()
         durcls: Duration
-        for durcls in self.view.durations:
+        for durcls in self.durlist.values():
             selected = True if durcls == self.firstdur else False
             self.add_option(label=f"{timedeltaplus(seconds=durcls.time).fdict} - {durcls.fee} gp fee", value=durcls, default=selected)
 
