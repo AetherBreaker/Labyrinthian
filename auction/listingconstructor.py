@@ -2,11 +2,9 @@ import asyncio
 from contextlib import suppress
 from dataclasses import dataclass
 from datetime import timedelta
-from time import time
 import traceback
-from typing import TYPE_CHECKING, List, NoReturn, Optional, Type, TypeVar, Dict
+from typing import TYPE_CHECKING, List, NoReturn, Optional, TypeVar, Dict
 import disnake
-from disnake.ext import commands
 
 from utilities.functions import timedeltaplus
 
@@ -73,7 +71,7 @@ class Duration:
 
 @dataclass
 class Character:
-    name: str = "Rick Astley"
+    name: str = "Sir Richard of Astley"
     sheet: str = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 
 class ListingConst(disnake.ui.View):
@@ -441,4 +439,19 @@ class SendModalButton(disnake.ui.Button[ListingConst]):
                 self.view.errmsg = f"It seems your buy now price couldn't be converted to a whole number, heres the error traceback:\n```{errorfrmt}{traceback.format_exc()}```",
                 self.view.errembs.append(self.view.error_embed)
 
+        if self.view.send_listing_button_added == False:
+            self.view.send_listing_button_added = True
+            self.view.add_item(SendListingButton())
+
         await self.view.refresh_content(modal_inter)
+
+class SendListingButton(disnake.ui.Button[ListingConst]):
+    def __init__(self):
+        super().__init__(
+            style=disnake.ButtonStyle.green,
+            label="Post Listing",
+            emoji="🔰"
+        )
+    
+    async def callback(self, inter: disnake.MessageInteraction):
+        pass
