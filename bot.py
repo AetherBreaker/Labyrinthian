@@ -51,11 +51,10 @@ class Labyrinthian(commands.Bot):
         
         #databases
         self.mclient = motor.motor_asyncio.AsyncIOMotorClient(config.MONGO_URL)
-        self.sdb = self.mclient[config.MONGODB_SERVERDB_NAME]
+        self.sdb: motor.motor_asyncio.AsyncIOMotorClient = self.mclient[config.MONGODB_SERVERDB_NAME]
 
         #misc caches
         self.prefixes = dict()
-        self.muted = set()
 
     async def get_guild_prefix(self, guild: disnake.Guild) -> str:
         guild_id = str(guild.id)
