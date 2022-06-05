@@ -90,8 +90,8 @@ class ListingConst(disnake.ui.View):
             rarity=Rarity()
         )
         self.instructions = f"""```{instructionsfrmt}To create your listing, first you must select a character using the dropdown shown below.```"""
-        self.errmsg = ''
-        self.select_embed = ''
+        self.errmsg = '\u200B'
+        self.selectmsg = '\u200B'
         self.embeds = List[disnake.Embed]
         self.errembs = List[disnake.Embed]
         self.dur_select_added = False
@@ -137,7 +137,7 @@ class ListingConst(disnake.ui.View):
     def select_embed(self):
         return disnake.Embed(
             title="Character Select",
-            description=self.select_embed,
+            description=self.selectmsg,
             color=disnake.Colour.random().value
         )
 
@@ -171,7 +171,7 @@ class ListingConst(disnake.ui.View):
     async def refresh_content(self, inter: disnake.Interaction, error: bool=False, select: bool=False, **kwargs):
         self.embeds = [self.auction_embed, self.instructions_embed]
         if select:
-            self.embeds.insert(3, self.select_embed)
+            self.embeds.insert(3, self.selectmsg)
         if error:
             for x in self.errembs:
                 self.embeds.append(x)
@@ -228,7 +228,7 @@ class CharSelect(disnake.ui.Select[ListingConst]):
 
     async def _text_select_char(self, inter: disnake.MessageInteraction) -> Optional[str]:
         self.disabled = True
-        self.view.select_embed="Choose one of the following characters by sending a message to this channel.\n"+'\n'.join([x['character'] for x in self.charlist]),
+        self.view.selectmsg="Choose one of the following characters by sending a message to this channel.\n"+'\n'.join([x['character'] for x in self.charlist]),
         await self.view.refresh_content(inter, select=True)
 
         try:
@@ -248,13 +248,13 @@ class CharSelect(disnake.ui.Select[ListingConst]):
 
             if charname:
                 return charname
-            self.view.select_embed = "No valid character found. Use the select menu to try again."
+            self.view.selectmsg = "No valid character found. Use the select menu to try again."
             await self.view.refresh_content(inter, select=True)
             await asyncio.sleep(6.0)
             await self.view.refresh_content(inter)
             return None
         except TimeoutError:
-            self.view.select_embed = "No valid character found. Use the select menu to try again."
+            self.view.selectmsg = "No valid character found. Use the select menu to try again."
             await self.view.refresh_content(inter, select=True)
             await asyncio.sleep(6.0)
             await self.view.refresh_content(inter)
