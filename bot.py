@@ -36,7 +36,7 @@ async def get_prefix(bot: commands.Bot, message: disnake.Message):
     return commands.when_mentioned_or(guildprefix)(bot, message)
 
 class Labyrinthian(commands.Bot):
-    def __init__(self, prefix: str, help_command=None, description=None, **options):
+    def __init__(self, prefix: str, help_command=None, description=None, **options) -> None:
         super().__init__(
             prefix,
             help_command=help_command,
