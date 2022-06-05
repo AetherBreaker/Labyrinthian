@@ -1,6 +1,5 @@
 import asyncio
 from contextlib import suppress
-from copy import deepcopy
 from dataclasses import dataclass
 from datetime import timedelta
 from time import time
@@ -69,7 +68,7 @@ class Duration:
 
     @property
     def enddate(self) -> str:
-        time = disnake.utils.format_dt(disnake.utils.utcnow() + timedelta(days=self.time),"R",)
+        time = '\u200B' if self.time == None else disnake.utils.format_dt(disnake.utils.utcnow() + timedelta(days=self.time),"R",)
         return time
 
 @dataclass
@@ -110,7 +109,7 @@ class ListingConst(disnake.ui.View):
             .add_field(name=f"Attunement: {'Yes' if self.item.attunement_required else 'No'}", value=self.item.attunement_info, inline=True)
             .add_field(name="\u200b", value="\u200b", inline=True)
             .add_field(name=f"Top Bidder: {self.character.name}", value=f"Highest Bid: {self.prices.bid}", inline=True)
-            .add_field(name="Ends:", value='asdf', inline=True)
+            .add_field(name="Ends:", value=self.duration.enddate, inline=True)
             .set_footer(text=f"{self.owner.name}#{self.owner.discriminator}")
         )
         if self.prices.buy != None:
@@ -278,13 +277,13 @@ class DurSelect(disnake.ui.Select[ListingConst]):
     def _refresh_dur_select(self):
         self.options.clear()
         durcls: Duration
-        for durcls in self.durlist.values():
+        for display_dur, durcls in self.durlist.items():
             selected = True if durcls == self.firstdur else False
-            self.add_option(label=f"{timedeltaplus(seconds=durcls.time).fdict} - {durcls.fee} gp fee", value=durcls, default=selected)
+            self.add_option(label=f"{timedeltaplus(seconds=durcls.time).fdict} - {durcls.fee} gp fee", value=display_dur, default=selected)
 
     async def callback(self, inter: disnake.MessageInteraction):
         await inter.response.defer()
-        dur = self.values[0]
+        dur = self.durlist[self.values[0]]
         self.firstdur = dur
         self.view.duration = dur
         self._refresh_dur_select()
