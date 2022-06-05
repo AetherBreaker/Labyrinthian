@@ -1,19 +1,13 @@
 import asyncio
 from contextlib import suppress
 from copy import deepcopy
-import numbers
-from os import remove
-from pickletools import long1
-import re
+from dataclasses import dataclass
+from datetime import timedelta
 from time import time
 import traceback
-from turtle import st
 from typing import List, Optional
-from urllib.parse import MAX_CACHE_SIZE
-from attr import field
 import disnake
 from disnake.ext import commands
-from yarl import URL
 
 from utilities.checks import urlCheck
 
@@ -44,11 +38,49 @@ class ConstSender(disnake.ui.View):
         Constr = ListingConst(inter.bot, inter.author)
         await Constr._init(inter)
 
+@dataclass
+class Rarity:
+    display_name: str
+    cost: int
+
+@dataclass
+class Item:
+    name: str
+    description: str
+    attunement_required: bool
+    attunement_info: str
+    rarity: str
+
+    @property
+    def attunement_repr(self) -> str:
+        return self.attunement_info if self.attunement_required else "\u200B"
+
+@dataclass
+class Duration:
+    display: str
+    time: int
+    cost: int
+
+    def __str__(self) -> str:
+        return disnake.utils.format_dt(
+            disnake.utils.utcnow() + timedelta(days=self.time),
+            "R",
+        )
+
+@dataclass
+class Character:
+    name: str
+    sheet: str
+
 class ListingConst(disnake.ui.View):
     def __init__(self, bot: commands.Bot, owner: disnake.Member):
         super().__init__(timeout=600)
         self.bot = bot
         self.owner = owner
+        self.character = Character(
+            'Character Name',
+            'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        )
         self.dur_select_added = False
         self.rarity_select_added = False
         self.modal_button_added = False
@@ -136,10 +168,37 @@ class ListingConst(disnake.ui.View):
         self.biddata = self.datadict['topbid']
         self.buydata = self.datadict['buyprice']
 
+    @property
+    def total_cost(self) -> str:
+        return f"{self.duration.cost + self.item.rarity.cost} gp"
+
+    @property
+    def auction_embed(self):
+        return (
+            disnake.Embed(title=self.item.name, description=self.item.description)
+            .set_author(name=self.character.name)
+            .add_field(name="Rarity:", value=self.item.rarity.display_name)
+            .add_field(name="Attunement:", value=self.item.attunement_repr)
+            .add_field(name="\u200b", value="\u200b")
+            .add_field(name="Highest Bid:", value="-")
+            .add_field(name="Buy Now Price:", value="-")
+            .add_field(name="Ends:", value=str(self.duration))
+        )
+
+    @classmethod
     async def _init(self, inter: disnake.MessageInteraction):
-        self.charlist = await self.bot.sdb[f'BLCharList_{inter.guild.id}'].find({"user": str(self.owner.id)}).to_list(None)
-        durlist = await self.bot.sdb['srvconf'].find_one({"guild": str(inter.guild.id)})
-        self.durlist = durlist['listingdurs'] if 'listingdurs' in durlist else {"86400": 75,"259200": 150,"604800": 275,"1209600": 450,"2630000": 750}
+        charlist = await self.bot.sdb[f'BLCharList_{inter.guild.id}'].find({"user": str(self.owner.id)}).to_list(None)
+        srvconf= await self.bot.sdb['srvconf'].find_one({"guild": str(inter.guild.id)})
+        durlist = srvconf.get('listingdurs', {"1 Day": ("86400", 75),"3 Days": ("259200", 150),"1 Week": ("604800", 275),"2 Weeks": ("1209600", 450),"1 Month": ("2630000", 750)})
+        rarlist = srvconf.get('rarities', {"Common": 20, "Uncommon": 40, "Rare": 60, "Very Rare": 80, "Legendary": 200, "Artifact": 400, "Unknown": 0})
+        self.durations = {
+            display_dur: Duration(int(duration), cost)
+            for display_dur, (duration, cost) in durlist.items()
+        }
+        self.rarities = {
+            rarity: Rarity(rarity, fee)
+            for rarity, fee, in rarlist.items()
+        }
         embcon = deepcopy(self.embeddicts)
         for x in embcon.values():
             if 'fields' in x:
