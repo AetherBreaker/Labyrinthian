@@ -10,6 +10,40 @@ from rapidfuzz import fuzz, process
 
 from utilities.errors import ExternalImportError
 
+class timedeltaplus():
+    def __init__(self,seconds:int=0,minutes:int=0,hours:int=0,days:int=0,weeks:int=0,months:int=0,years:int=0) -> None:
+        secs=seconds
+        secs+=minutes*60
+        secs+=hours*3600
+        secs+=days*86400
+        secs+=weeks*604800
+        secs+=months*2630000
+        secs+=years*31556952
+        self.years, remainder = divmod(secs, 31556952)
+        self.months, remainder = divmod(remainder, 2630000)
+        self.weeks, remainder = divmod(remainder, 604800)
+        self.days, remainder = divmod(remainder, 86400)
+        self.hours, remainder = divmod(remainder, 3600)
+        self.minutes, self.seconds = divmod(remainder, 60)
+        self.iter = (self.years,self.months,self.weeks,self.days,self.hours,self.minutes,self.seconds)
+        self.timetab = ('Year', 'Month', 'Week', 'Day', 'Hour', 'Minute', 'Second')
+
+    @property
+    def fdict(self) -> dict:
+        return {f"{x}{'s' if y > 1 or y < -1 else ''}": y for x,y in zip(self.timetab, self.iter) if x != 0}
+
+    @property
+    def dict(self) -> dict:
+        return {x: y for x,y in zip(self.timetab, self.iter)}
+
+    @property
+    def ftup(self) -> tuple:
+        return tuple(x for x in self.iter)
+
+    def __str__(self) -> str:
+        return ', '.join([f"{y} {x}{'s' if y > 1 or y < -1 else ''}" for x,y in zip(self.timetab, self.iter) if y != 0])
+
+
 def get_positivity(string):
     if isinstance(string, bool):  # oi!
         return string
