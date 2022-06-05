@@ -68,7 +68,7 @@ class Duration:
 
     @property
     def enddate(self) -> str:
-        time = '\u200B' if self.time == None else disnake.utils.format_dt(disnake.utils.utcnow() + timedelta(days=self.time),"R",)
+        time = '\u200B' if self.time == 0 else disnake.utils.format_dt(disnake.utils.utcnow() + timedelta(seconds=self.time),"R",)
         return time
 
 @dataclass
@@ -108,12 +108,12 @@ class ListingConst(disnake.ui.View):
             .add_field(name="Rarity:", value=self.item.rarity.rarity, inline=True)
             .add_field(name=f"Attunement: {'Yes' if self.item.attunement_required else 'No'}", value=self.item.attunement_info, inline=True)
             .add_field(name="\u200b", value="\u200b", inline=True)
-            .add_field(name=f"Top Bidder: {self.character.name}", value=f"Highest Bid: {self.prices.bid}", inline=True)
+            .add_field(name=f"Top Bidder: {self.character.name}", value=f"Highest Bid: {self.prices.bid} gp", inline=True)
             .add_field(name="Ends:", value=self.duration.enddate, inline=True)
             .set_footer(text=f"{self.owner.name}#{self.owner.discriminator}")
         )
         if self.prices.buy != None:
-            emb.insert_field_at(4, name="Buy Now Price:", value=self.prices.buy, inline=True)
+            emb.insert_field_at(4, name="Buy Now Price:", value=f"{self.prices.buy} gp", inline=True)
         return emb
 
     @property
@@ -279,7 +279,7 @@ class DurSelect(disnake.ui.Select[ListingConst]):
         durcls: Duration
         for display_dur, durcls in self.durlist.items():
             selected = True if durcls == self.firstdur else False
-            self.add_option(label=f"{timedeltaplus(seconds=durcls.time).fdict} - {durcls.fee} gp fee", value=display_dur, default=selected)
+            self.add_option(label=f"{str(timedeltaplus(seconds=durcls.time))} - {durcls.fee} gp fee", value=display_dur, default=selected)
 
     async def callback(self, inter: disnake.MessageInteraction):
         await inter.response.defer()
@@ -290,13 +290,14 @@ class DurSelect(disnake.ui.Select[ListingConst]):
         if self.view.rarity_select_added == False:
             self.view.rarity_select_added = True
             self.view.instructions = f"""```{instructionsfrmt}Now please proceed to select the rarity of your item and whether or not it requires attunement.```"""
-            self.view.add_item(RaritySelect())
+            self.view.add_item(RaritySelect(self.view.rarities))
             self.view.add_item(AttunementButton())
         await self.view.refresh_content(inter)
 
 class RaritySelect(disnake.ui.Select[ListingConst]):
-    def __init__(self) -> None:
+    def __init__(self, rarities: Dict[str, int]) -> None:
         self.firstrare = None
+        self.rarities = rarities
         super().__init__(
             placeholder="Select Item Rarity",
             min_values=1,
@@ -307,9 +308,9 @@ class RaritySelect(disnake.ui.Select[ListingConst]):
 
     def _refresh_rarity_select(self):
         self.options.clear()
-        for x in self.view.rarities:
+        for x in self.rarities:
             selected = True if x == self.firstrare else False
-            self.add_option(label=f"{x} - {self.raritylist[x]} gp fee", value=x, default=selected)
+            self.add_option(label=f"{x} - {self.rarities[x]} gp fee", value=x, default=selected)
 
     async def callback(self, inter: disnake.MessageInteraction):
         await inter.response.defer()

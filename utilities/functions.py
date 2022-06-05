@@ -32,7 +32,7 @@ class timedeltaplus():
 
     @property
     def fdict(self) -> dict:
-        return {f"{x}{'s' if y > 1 or y < -1 else ''}": y for x,y in zip(self.timetab, self.iter) if x != 0}
+        return {f"{x}{'s' if y > 1 or y < -1 else ''}": y for x,y in zip(self.timetab, self.iter) if y != 0}
 
     @property
     def dict(self) -> dict:
