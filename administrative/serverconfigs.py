@@ -1,4 +1,5 @@
 from json import JSONDecodeError, loads
+from typing import TYPE_CHECKING, TypeVar
 import disnake
 from disnake.ext import commands
 
@@ -6,8 +7,14 @@ from badgelog.browser import create_CharSelect
 from utilities import checks
 from utilities.functions import confirm, confirmInter
 
+_LabyrinthianT = TypeVar("_LabyrinthianT", bound=disnake.Client)
+if TYPE_CHECKING:
+    from bot import Labyrinthian
+
+    _LabyrinthianT = Labyrinthian
+
 class Configs(commands.Cog):
-    def __init__(self, bot: commands.Bot) -> None:
+    def __init__(self, bot: _LabyrinthianT) -> None:
         self.bot = bot
         self.valid = [
             'Artificer',

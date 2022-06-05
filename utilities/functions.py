@@ -5,6 +5,8 @@ Created on Oct 29, 2016
 import asyncio
 import re
 from typing import Callable, TypeVar
+from disnake.ext import commands
+import disnake
 
 from rapidfuzz import fuzz, process
 
@@ -107,7 +109,7 @@ def search(
     else:
         return results[0], True
 
-async def confirm(ctx, message, delete_msgs=False, response_check=get_positivity):
+async def confirm(ctx: commands.Context, message: disnake.Message, delete_msgs=False, response_check=get_positivity):
     """
     Confirms whether a user wants to take an action.
     :rtype: bool|None
@@ -118,9 +120,9 @@ async def confirm(ctx, message, delete_msgs=False, response_check=get_positivity
     :type response_check: (str) -> bool
     :return: Whether the user confirmed or not. None if no reply was recieved
     """
-    msg = await ctx.channel.send(message)
+    msg: disnake.Message = await ctx.channel.send(message)
     try:
-        reply = await ctx.bot.wait_for("message", timeout=30, check=auth_and_chan(ctx))
+        reply: disnake.Message = await ctx.bot.wait_for("message", timeout=30, check=auth_and_chan(ctx))
     except asyncio.TimeoutError:
         return None
     reply_bool = response_check(reply.content) if reply is not None else None
@@ -132,7 +134,7 @@ async def confirm(ctx, message, delete_msgs=False, response_check=get_positivity
             pass
     return reply_bool
 
-async def confirmInter(inter, message, delete_msgs=False, response_check=get_positivity):
+async def confirmInter(inter: disnake.Interaction, message, delete_msgs=False, response_check=get_positivity):
     """
     Confirms whether a user wants to take an action.
     :rtype: bool|None
@@ -158,10 +160,10 @@ async def confirmInter(inter, message, delete_msgs=False, response_check=get_pos
     return reply_bool
 
 # ==== misc helpers ====
-def auth_and_chan(ctx):
+def auth_and_chan(ctx: commands.Context):
     """Message check: same author and channel"""
 
-    def chk(msg):
+    def chk(msg: disnake.Message):
         return msg.author == ctx.author and msg.channel == ctx.channel
 
     return chk

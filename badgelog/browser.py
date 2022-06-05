@@ -1,7 +1,7 @@
 ﻿from asyncio import TimeoutError
 from contextlib import suppress
 from copy import deepcopy
-from typing import Dict, List, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional, TypeVar
 
 import disnake
 from bson import ObjectId
@@ -10,13 +10,19 @@ from pymongo import DESCENDING
 
 TOO_MANY_CHARACTERS_SENTINEL = "__special:too_many_characters"
 
+_LabyrinthianT = TypeVar("_LabyrinthianT", bound=disnake.Client)
+if TYPE_CHECKING:
+    from bot import Labyrinthian
+
+    _LabyrinthianT = Labyrinthian
+
 async def create_CharSelect(inter: disnake.ApplicationCommandInteraction, *args, **kwargs):
     Sel = CharSelect(*args, **kwargs)
     await Sel._init(inter)
 
 
 class CharSelect(disnake.ui.View):
-    def __init__(self, bot: commands.Bot, owner: disnake.User, guild: disnake.Guild, user: disnake.Member=None, ephem: bool=False):
+    def __init__(self, bot: _LabyrinthianT, owner: disnake.User, guild: disnake.Guild, user: disnake.Member=None, ephem: bool=False):
         super().__init__(timeout=180)
         self.bot = bot
         self.owner = owner
@@ -124,7 +130,7 @@ class CharSelect(disnake.ui.View):
             self.select_char.disabled = False
 
 class LogBrowser(disnake.ui.View):
-    def __init__(self, bot: commands.Bot, owner: disnake.Member, guild: disnake.Guild, charname: str, charlist: List[Dict], user: disnake.Member):
+    def __init__(self, bot: _LabyrinthianT, owner: disnake.Member, guild: disnake.Guild, charname: str, charlist: List[Dict], user: disnake.Member):
         super().__init__(timeout=180)
         self.bot = bot
         self.owner = owner

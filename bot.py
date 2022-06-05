@@ -69,39 +69,39 @@ class Labyrinthian(commands.Bot):
         self.prefixes[guild_id] = gp
         return gp
 
-Lab = Labyrinthian(
+bot = Labyrinthian(
     prefix="'",
     testing=config.TESTING,
     intents=intents,
     reload=True if config.TESTING_VAR == "True" else False
 )
 
-@Lab.event
+@bot.event
 async def on_ready():
-    if not Lab.persistent_views_added:
-        constviews = await Lab.sdb['srvconf'].find({}).to_list(None)
+    if not bot.persistent_views_added:
+        constviews = await bot.sdb['srvconf'].find({}).to_list(None)
         for x in constviews:
             if 'constid' in x:
                 try:
                     channel, message = x['constid']
-                    channel: Union[disnake.abc.GuildChannel, disnake.abc.Messageable] = await Lab.fetch_channel(int(channel))
+                    channel: Union[disnake.abc.GuildChannel, disnake.abc.Messageable] = await bot.fetch_channel(int(channel))
                     message = await channel.fetch_message(int(message))
-                    Lab.add_view(ConstSender(), message_id=message.id)
+                    bot.add_view(ConstSender(), message_id=message.id)
                 except (InvalidData, HTTPException, NotFound, Forbidden) as e:
                     print(f"{e} trying again")
                     try:
                         channel, message = x['constid']
-                        channel: Union[disnake.abc.GuildChannel, disnake.abc.Messageable] = await Lab.fetch_channel(int(channel))
+                        channel: Union[disnake.abc.GuildChannel, disnake.abc.Messageable] = await bot.fetch_channel(int(channel))
                         message = await channel.fetch_message(int(message))
-                        Lab.add_view(ConstSender(), message_id=message.id)
+                        bot.add_view(ConstSender(), message_id=message.id)
                     except (InvalidData, HTTPException, NotFound, Forbidden) as e:
                         print(f"{e} deleting view IDs")
                         x.pop('constid')
-                        await Lab.sdb['srvconf'].replace_one({"guild": x['guild']}, x, True)
-        Lab.persistent_views_added = True
+                        await bot.sdb['srvconf'].replace_one({"guild": x['guild']}, x, True)
+        bot.persistent_views_added = True
 
-@Lab.event
-async def on_slash_command_error(inter, error):
+@bot.event
+async def on_slash_command_error(inter: disnake.Interaction, error):
     if isinstance(error, commands.CommandNotFound):
         return
 
@@ -154,6 +154,6 @@ async def on_slash_command_error(inter, error):
                 return await inter.send("Error: Internal server error on Discord's end. Please try again.")
 
 for ext in extensions:
-    Lab.load_extension(ext)
+    bot.load_extension(ext)
 
-Lab.run(config.TOKEN)
+bot.run(config.TOKEN)

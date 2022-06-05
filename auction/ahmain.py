@@ -1,10 +1,17 @@
+from typing import TYPE_CHECKING, TypeVar
 import disnake
 from disnake.ext import commands
 from administrative.serverconfigs import Configs
 from auction.listingconstructor import ConstSender, send_const
 
+_LabyrinthianT = TypeVar("_LabyrinthianT", bound=disnake.Client)
+if TYPE_CHECKING:
+    from bot import Labyrinthian
+
+    _LabyrinthianT = Labyrinthian
+
 class AuctionHouse(commands.Cog):
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: _LabyrinthianT):
         self.bot = bot
 
     @commands.slash_command()
