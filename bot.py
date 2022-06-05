@@ -102,59 +102,6 @@ async def on_ready():
         Lab.persistent_views_added = True
 
 @Lab.event
-async def on_command_error(ctx, error):
-    if isinstance(error, commands.CommandNotFound):
-        return
-
-    elif isinstance(error, LabyrinthianException):
-        return await ctx.send(str(error))
-
-    elif isinstance(error, (commands.UserInputError, commands.NoPrivateMessage, ValueError)):
-        return await ctx.send(
-            f"Error: {str(error)}\nUse `{ctx.prefix}help " + ctx.command.qualified_name + "` for help."
-        )
-
-    elif isinstance(error, commands.CheckFailure):
-        msg = str(error) or "You are not allowed to run this command."
-        return await ctx.send(f"Error: {msg}")
-
-    elif isinstance(error, commands.CommandOnCooldown):
-        return await ctx.send("This command is on cooldown for {:.1f} seconds.".format(error.retry_after))
-
-    elif isinstance(error, commands.MaxConcurrencyReached):
-        return await ctx.send(str(error))
-
-    elif isinstance(error, CommandInvokeError):
-        original = error.original
-
-        if isinstance(original, LabyrinthianException):
-            return await ctx.send(str(original)) 
-
-        elif isinstance(original, Forbidden):
-            try:
-                return await ctx.author.send(
-                    "Error: I am missing permissions to run this command. "
-                    f"Please make sure I have permission to send messages to <#{ctx.channel.id}>."
-                )
-            except HTTPException:
-                try:
-                    return await ctx.send("Error: I cannot send messages to this user.")
-                except HTTPException:
-                    return
-
-        elif isinstance(original, NotFound):
-            return await ctx.send("Error: I tried to edit or delete a message that no longer exists.")
-
-        elif isinstance(original, (ClientResponseError, InvalidArgument, asyncio.TimeoutError, ClientOSError)):
-            return await ctx.send("Error in Discord API. Please try again.")
-
-        elif isinstance(original, HTTPException):
-            if original.response.status == 400:
-                return await ctx.send(f"Error: Message is too long, malformed, or empty.\n{original.text}")
-            elif 499 < original.response.status < 600:
-                return await ctx.send("Error: Internal server error on Discord's end. Please try again.")
-
-@Lab.event
 async def on_slash_command_error(inter, error):
     if isinstance(error, commands.CommandNotFound):
         return
