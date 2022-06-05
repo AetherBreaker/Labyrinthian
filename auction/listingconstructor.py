@@ -105,7 +105,7 @@ class ListingConst(disnake.ui.View):
         emb = (
             disnake.Embed(title=self.item.name, description=self.item.description, color=disnake.Colour.random().value)
             .set_author(name=self.character.name)
-            .add_field(name="Rarity:", value=self.item.rarity.display_name, inline=True)
+            .add_field(name="Rarity:", value=self.item.rarity.rarity, inline=True)
             .add_field(name=f"Attunement: {'Yes' if self.item.attunement_required else 'No'}", value=self.item.attunement_info, inline=True)
             .add_field(name="\u200b", value="\u200b", inline=True)
             .add_field(name=f"Top Bidder: {self.character.name}", value=f"Highest Bid: {self.prices.bid}", inline=True)
@@ -158,7 +158,7 @@ class ListingConst(disnake.ui.View):
         durlist = srvconf.get('listingdurs', {"86400": 75,"259200": 150,"604800": 275,"1209600": 450,"2630000": 750})
         inst.rarities = srvconf.get('rarities', {"Common": 20, "Uncommon": 40, "Rare": 60, "Very Rare": 80, "Legendary": 200, "Artifact": 400, "Unknown": 0})
         inst.durations = {
-            str(timedeltaplus(seconds=duration)): Duration(int(duration), cost)
+            str(timedeltaplus(seconds=int(duration))): Duration(int(duration), cost)
             for duration, cost in durlist.items()
         }
         inst.add_item(CharSelect(inst.bot, charlist))
