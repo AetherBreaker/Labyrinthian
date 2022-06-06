@@ -449,6 +449,7 @@ class SendModalButton(disnake.ui.Button[ListingConst]):
 
 class SendListingButton(disnake.ui.Button[ListingConst]):
     def __init__(self, bot: _LabyrinthianT):
+        self.bot = bot
         super().__init__(
             style=disnake.ButtonStyle.green,
             label="Post Listing",
@@ -460,4 +461,4 @@ class SendListingButton(disnake.ui.Button[ListingConst]):
             "embed": self.view.auction_embed.to_dict(),
             "data": self.view.listingdata
         }
-        self.sdb[]
+        listingID = await self.bot.sdb['auction_listings'].insert_one({})
