@@ -145,7 +145,9 @@ class ListingConst(disnake.ui.View):
             'top bidder': 'None',
             'highest bid': self.prices.bid,
             'buynow': self.prices.buy,
-            'enddate': disnake.utils.utcnow() + timedelta(seconds=self.duration.time)
+            'enddate': disnake.utils.utcnow() + timedelta(seconds=self.duration.time),
+            'owner': self.character.name,
+            'user': str(self.owner.id)
         }
 
     @classmethod
@@ -441,12 +443,12 @@ class SendModalButton(disnake.ui.Button[ListingConst]):
 
         if self.view.send_listing_button_added == False:
             self.view.send_listing_button_added = True
-            self.view.add_item(SendListingButton())
+            self.view.add_item(SendListingButton(self.view.bot))
 
         await self.view.refresh_content(modal_inter)
 
 class SendListingButton(disnake.ui.Button[ListingConst]):
-    def __init__(self):
+    def __init__(self, bot: _LabyrinthianT):
         super().__init__(
             style=disnake.ButtonStyle.green,
             label="Post Listing",
@@ -454,4 +456,8 @@ class SendListingButton(disnake.ui.Button[ListingConst]):
         )
     
     async def callback(self, inter: disnake.MessageInteraction):
-        pass
+        dbpackage = {
+            "embed": self.view.auction_embed.to_dict(),
+            "data": self.view.listingdata
+        }
+        self.sdb[]
