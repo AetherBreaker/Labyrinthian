@@ -5,7 +5,7 @@ from typing import Union
 import disnake
 import motor.motor_asyncio
 from aiohttp import ClientOSError, ClientResponseError
-from disnake.errors import Forbidden, HTTPException, InvalidArgument, NotFound, InvalidData
+from disnake.errors import Forbidden, HTTPException, NotFound, InvalidData
 from disnake.ext import commands
 from disnake.ext.commands.errors import CommandInvokeError
 from auction.listingconstructor import ConstSender
@@ -144,7 +144,7 @@ async def on_slash_command_error(inter: disnake.Interaction, error):
         elif isinstance(original, NotFound):
             return await inter.send("Error: I tried to edit or delete a message that no longer exists.")
 
-        elif isinstance(original, (ClientResponseError, InvalidArgument, asyncio.TimeoutError, ClientOSError)):
+        elif isinstance(original, (ClientResponseError, asyncio.TimeoutError, ClientOSError)):
             return await inter.send("Error in Discord API. Please try again.")
 
         elif isinstance(original, HTTPException):
