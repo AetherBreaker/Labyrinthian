@@ -145,7 +145,7 @@ class ListingConst(disnake.ui.View):
             'top bidder': 'None',
             'highest bid': self.prices.bid,
             'buynow': self.prices.buy,
-            'enddate': self.duration.enddate
+            'enddate': disnake.utils.utcnow() + timedelta(seconds=self.duration.time)
         }
 
     @classmethod
