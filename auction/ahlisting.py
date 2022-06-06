@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING, Any, Dict, TypeVar
 import disnake
 from disnake.ext import commands
 
@@ -8,8 +8,29 @@ if TYPE_CHECKING:
 
     _LabyrinthianT = Labyrinthian
 
-class ListingView(disnake.ui.View):
-    def __init__(self) -> None:
-        super().__init__(timeout=None)
+class ListingActionRow(disnake.ui.ActionRow):
+    def __init__(self, bot: _LabyrinthianT, listingdat: Dict[str, Any]):
+        self.bot = bot
+        components = [
+            disnake.ui.Button(
+                custom_id="auction_bid_lowest",
+                emoji="<:DDBPlatinum:983191639042457712>",
+                style=disnake.ButtonStyle.blurple,
+                label=f"Bid: {listingdat['highestbid']+50} gp"
+            ),
+            disnake.ui.Button(
+                custom_id="auction_bid_custom",
+                emoji="<:DDBGold:983191635376623667>",
+                style=disnake.ButtonStyle.gray,
+                label="Bid: Custom Amount"
+            ),
+            disnake.ui.Button(
+                custom_id="auction_buy_now",
+                emoji="🪙",
+                style=disnake.ButtonStyle.danger,
+                label=f"Buy Now: {listingdat['buynow']} gp"
+            )
+        ]
+        super().__init__(components=components)
 
 
