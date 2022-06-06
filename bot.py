@@ -8,7 +8,7 @@ from aiohttp import ClientOSError, ClientResponseError
 from disnake.errors import Forbidden, HTTPException, NotFound, InvalidData
 from disnake.ext import commands
 from disnake.ext.commands.errors import CommandInvokeError
-from auction.listingconstructor import ConstSender
+from auction.auction_constructor import ConstSender
 
 from utilities import checks, config
 from utilities.errors import LabyrinthianException
@@ -25,7 +25,7 @@ intents = disnake.Intents.all()
 extensions = (
     "badgelog.main",
     "administrative.serverconfigs",
-    "auction.ahmain",
+    "auction.auction_main",
 )
 
 async def get_prefix(bot: commands.Bot, message: disnake.Message):

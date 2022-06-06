@@ -7,7 +7,7 @@ import traceback
 from typing import TYPE_CHECKING, List, NoReturn, Optional, TypeVar, Dict
 import disnake
 from pymongo.results import InsertOneResult
-from auction.ahlisting import ListingActionRow
+from auction.auction_listing import ListingActionRow
 
 from utilities.functions import timedeltaplus
 
@@ -148,6 +148,7 @@ class ListingConst(disnake.ui.View):
             'topbidder': 'None',
             'topbidchar': 'None',
             'highestbid': self.prices.bid,
+            'startingbid': self.prices.bid,
             'buynow': self.prices.buy,
             'enddate': disnake.utils.utcnow() + timedelta(seconds=self.duration.time),
             'character': self.character.name,
@@ -475,7 +476,7 @@ class SendListingButton(disnake.ui.Button[ListingConst]):
     async def callback(self, inter: disnake.MessageInteraction):
         self.view: ListingConst
         srvconf = await self.bot.sdb['srvconf'].find_one({"guild": str(inter.guild.id)})
-        auction_channel = await self.bot.fetch_channel(int(srvconf['ahfront']))
+        auction_channel = self.bot.get_channel(int(srvconf['ahfront']))
         listingmsg: disnake.Message = await auction_channel.send(embed=self.view.auction_embed, components=ListingActionRow(self.view.listingdata))
         usertrackmsg: disnake.Message = await inter.author.send("Thank you for using the Corrinthian Auction House.", embed=self.view.auction_embed)
         dbpackage = self.view.listingdata
