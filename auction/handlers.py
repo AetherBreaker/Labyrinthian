@@ -144,5 +144,6 @@ class ListingHandler:
             else:
                 return False
 
-    async def buy_now(self):
-        pass
+    async def buy_now(self) -> True:
+        self.bought = True
+        return True

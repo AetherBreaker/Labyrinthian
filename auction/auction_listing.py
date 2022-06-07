@@ -34,3 +34,14 @@ class ListingActionRow(disnake.ui.ActionRow):
                 )
             )
         super().__init__(*components)
+
+class CancelButton(disnake.ui.WrappedComponent):
+    def __init__(self):
+        super().__init__(
+            disnake.ui.Button(
+                style=disnake.ButtonStyle.red,
+                label="Cancel Listing",
+                custom_id="auction_cancel_listing",
+                emoji="❌"
+            )
+        )

@@ -28,12 +28,12 @@ extensions = (
     "auction.auction_main",
 )
 
-async def get_prefix(bot: commands.Bot, message: disnake.Message):
-    """Redefines Disnake get_prefix function to redirect get_guild_prefix when running in servers."""
-    if not message.guild:
-        return commands.when_mentioned_or(config.DEFAULT_PREFIX)(bot, message)
-    guildprefix = await bot.get_guild_prefix(message.guild)
-    return commands.when_mentioned_or(guildprefix)(bot, message)
+# async def get_prefix(bot: commands.Bot, message: disnake.Message):
+#     """Redefines Disnake get_prefix function to redirect get_guild_prefix when running in servers."""
+#     if not message.guild:
+#         return commands.when_mentioned_or(config.DEFAULT_PREFIX)(bot, message)
+#     guildprefix = await bot.get_guild_prefix(message.guild)
+#     return commands.when_mentioned_or(guildprefix)(bot, message)
 
 class Labyrinthian(commands.Bot):
     def __init__(self, prefix: str, help_command=None, description=None, **options) -> None:
@@ -46,28 +46,25 @@ class Labyrinthian(commands.Bot):
             owner_ids=config.OWNER_ID,
             **options
         )
-        self.state = "init"
         self.persistent_views_added = False
         
         #databases
         self.mclient = motor.motor_asyncio.AsyncIOMotorClient(config.MONGO_URL)
         self.sdb: motor.motor_asyncio.AsyncIOMotorClient = self.mclient[config.MONGODB_SERVERDB_NAME]
+        # self.cache = cachetools.TTLCache()
 
-        #misc caches
-        self.prefixes = dict()
-
-    async def get_guild_prefix(self, guild: disnake.Guild) -> str:
-        guild_id = str(guild.id)
-        if guild_id in self.prefixes:
-            return self.prefixes.get(guild_id, config.DEFAULT_PREFIX)
-        # load from db and cache
-        gp_obj = await self.sdb['srvconf'].find_one({"guild_id": guild_id})
-        if gp_obj.has_key("prefix"):
-            gp = config.DEFAULT_PREFIX
-        else:
-            gp = gp_obj['prefix']
-        self.prefixes[guild_id] = gp
-        return gp
+    # async def get_guild_prefix(self, guild: disnake.Guild) -> str:
+    #     guild_id = str(guild.id)
+    #     if guild_id in self.prefixes:
+    #         return self.prefixes.get(guild_id, config.DEFAULT_PREFIX)
+    #     # load from db and cache
+    #     gp_obj = await self.sdb['srvconf'].find_one({"guild_id": guild_id})
+    #     if gp_obj.has_key("prefix"):
+    #         gp = config.DEFAULT_PREFIX
+    #     else:
+    #         gp = gp_obj['prefix']
+    #     self.prefixes[guild_id] = gp
+    #     return gp
 
 bot = Labyrinthian(
     prefix="'",

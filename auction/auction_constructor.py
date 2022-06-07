@@ -7,7 +7,7 @@ import traceback
 from typing import TYPE_CHECKING, List, NoReturn, Optional, TypeVar, Dict
 import disnake
 from pymongo.results import InsertOneResult
-from auction.auction_listing import ListingActionRow
+from auction.auction_listing import CancelButton, ListingActionRow
 
 from utilities.functions import timedeltaplus
 
@@ -488,7 +488,7 @@ class SendListingButton(disnake.ui.Button[ListingConst]):
             "guild": str(inter.guild.id)
         }
         listingID: InsertOneResult = await self.bot.sdb['auction_listings'].insert_one(dbpackage)
-        await usertrackmsg.edit(f"Thank you for using the Corrinthian Auction House.\nHeres your listing ID: {listingID.inserted_id}")
+        await usertrackmsg.edit(f"Thank you for using the Corrinthian Auction House.\nHeres your listing ID: {listingID.inserted_id}", components=disnake.ui.Button(style=disnake.ButtonStyle.red,label="Cancel Listing",custom_id="auction_cancel_listing",emoji="❌"))
         
         if inter.response.is_done():
             await inter.edit_original_message("Listing Created! Thank you for being a patron of the Corrinthian Auction House", embeds=[], view=None)
