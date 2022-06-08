@@ -18,7 +18,7 @@ if config.TESTING_VAR == "True":
     import sys
     sys.dont_write_bytecode = True
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 intents = disnake.Intents.all()
 
