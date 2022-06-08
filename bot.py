@@ -10,9 +10,8 @@ from disnake.ext import commands
 from disnake.ext.commands.errors import CommandInvokeError
 from auction.auction_constructor import ConstSender
 
-from utilities import checks, config
+from utilities import config
 from utilities.errors import LabyrinthianException
-from utilities.functions import confirm
 
 if config.TESTING_VAR == "True":
     import sys
