@@ -98,7 +98,7 @@ class Configs(commands.Cog):
             roleslist.append(role4)
         role_ids = [r.id for r in roleslist]
         srvconf = await self.bot.sdb['srvconf'].find_one({"guild": str(inter.guild.id)})
-        if srvconf == None:
+        if srvconf is None:
             srvconf = {"guild": str(inter.guild.id)}
             srvconf['dmroles'] = []
         else:
@@ -122,7 +122,7 @@ class Configs(commands.Cog):
             roleslist.append(role4)
         role_ids = {r.id for r in roleslist}
         srvconf = await self.bot.sdb['srvconf'].find_one({"guild": str(inter.guild.id)})
-        if srvconf == None:
+        if srvconf is None:
             srvconf = {"guild": str(inter.guild.id)}
             srvconf['dmroles'] = []
         else:
@@ -149,7 +149,7 @@ class Configs(commands.Cog):
         if classname4!=None:
             classlist.append(classname4)
         srvconf = await self.bot.sdb['srvconf'].find_one({"guild": str(inter.guild.id)})
-        if srvconf == None:
+        if srvconf is None:
             srvconf = {"guild": str(inter.guild.id)}
             srvconf['classlist'] = []
         else:
@@ -172,7 +172,7 @@ class Configs(commands.Cog):
         if classname4!=None:
             classlist.append(classname4)
         srvconf = await self.bot.sdb['srvconf'].find_one({"guild": str(inter.guild.id)})
-        if srvconf == None:
+        if srvconf is None:
             srvconf = {"guild": str(inter.guild.id)}
             srvconf['classlist'] = []
         else:

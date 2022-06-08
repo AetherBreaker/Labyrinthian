@@ -115,7 +115,7 @@ class Badges(commands.Cog):
         charname: The name of your character.
         newname: Your characters new name."""
         character: Dict[str, Any] = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].find_one({"user": str(inter.author.id), "character": charname})
-        if character == None:
+        if character is None:
             await inter.response.send_message(f"{charname} doesn't exist!")
         else:
             character['character'] = newname
@@ -146,7 +146,7 @@ class Badges(commands.Cog):
             await inter.response.send_message(f"{multiclassname} is not a valid class, try using the autocompletion to select a class.")
         else:
             character: Dict[str, Any] = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].find_one({"user": str(inter.author.id), "character": charname})
-            if character == None:
+            if character is None:
                 await inter.response.send_message(f"{charname} doesn't exist!")
             elif len(character['classes']) < 5:
                 if (sum(character['classes'].values())+multiclasslevel) > 20:
@@ -181,7 +181,7 @@ class Badges(commands.Cog):
         charname: The name of your character.
         multiclassname: The class you wish to remove."""
         character: Dict[str, Any] = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].find_one({"user": str(inter.author.id), "character": charname})
-        if character == None:
+        if character is None:
             await inter.response.send_message(f"{charname} doesn't exist!")
         elif multiclassname not in character['classes'].keys():
             await inter.response.send_message(f"{charname} isn't {'an' if multiclassname == 'Artificer' else 'a'} {multiclassname}")
@@ -213,7 +213,7 @@ class Badges(commands.Cog):
         multiclassname: The class you're updating.
         multiclasslevel: The new level of your class."""
         character: Dict[str, Any] = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].find_one({"user": str(inter.author.id), "character": charname})
-        if character == None:
+        if character is None:
             await inter.response.send_message(f"{charname} doesn't exist!")
         elif multiclassname not in character['classes'].keys():
             await inter.response.send_message(f"{charname} isn't {'an' if multiclassname == 'Artificer' else 'a'} {multiclassname}")
