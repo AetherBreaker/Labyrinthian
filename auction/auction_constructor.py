@@ -152,7 +152,7 @@ class ListingConst(disnake.ui.View):
             'buynow': self.prices.buy,
             'enddate': disnake.utils.utcnow() + timedelta(seconds=self.duration.time),
             'character': self.character.name,
-            'user': str(self.owner.id)
+            'userid': str(self.owner.id)
         }
 
     @classmethod
@@ -397,14 +397,14 @@ class SendModalButton(disnake.ui.Button[ListingConst]):
                 placeholder="GP only, no decimals",
                 custom_id="bidStart",
                 style=disnake.TextInputStyle.single_line,
-                max_length=10
+                max_length=9
             ),
             disnake.ui.TextInput(
                 label="Buy Now Price *Optional*",
                 placeholder="Optional price to purchase item immediately",
                 custom_id="buyNow",
                 style=disnake.TextInputStyle.single_line,
-                max_length=10,
+                max_length=9,
                 required=False
             )
         ]
@@ -485,7 +485,7 @@ class SendListingButton(disnake.ui.Button[ListingConst]):
             "embed": self.view.auction_embed.to_dict(),
             "usertrack": [str(inter.author.id), str(usertrackmsg.id)],
             "originalchan": str(auction_channel.id),
-            "guild": str(inter.guild.id)
+            "guildid": str(inter.guild.id)
         }
         listingID: InsertOneResult = await self.bot.sdb['auction_listings'].insert_one(dbpackage)
         await usertrackmsg.edit(f"Thank you for using the Corrinthian Auction House.\nHeres your listing ID: {listingID.inserted_id}", components=disnake.ui.Button(style=disnake.ButtonStyle.red,label="Cancel Listing",custom_id="auction_cancel_listing",emoji="❌"))

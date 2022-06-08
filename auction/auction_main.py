@@ -41,7 +41,7 @@ class AuctionHouse(commands.Cog):
         elif listingdat is None:
             await inter.send(f"<@{inter.author.id}> This listing seems to be broken, or its data has been lost, please contact the listing owner or a staff member for assistance.", ephemeral=True)
             return
-        # elif str(inter.author.id) == listingdat['user']:
+        # elif str(inter.author.id) == listingdat['userid']:
         #     await inter.send(f"<@{inter.author.id}> You can't bid on your own auctions!", ephemeral=True)
         elif listingdat['enddate'].replace(tzinfo=timezone.utc)<disnake.utils.utcnow():
             await inter.message.delete()
@@ -64,7 +64,7 @@ class AuctionHouse(commands.Cog):
                         placeholder="Must outbid by atleast 50gp",
                         value=f"{listingdat['highestbid']+50}",
                         style=disnake.TextInputStyle.single_line,
-                        max_length=20
+                        max_length=9
                     )
                 )
             rand = randint(111111, 9999999)
@@ -130,8 +130,8 @@ class AuctionHouse(commands.Cog):
     #     if not inter.component.custom_id == "auction_cancel_listing":
     #         return
     #     listingdat: Dict[str, Any] = await self.bot.sdb['auction_listings'].find_one({"usertrack": [str(inter.author.id), str(inter.message.id)]})
-    #     srvconf: Dict[str, Any] = await self.bot.sdb['srvconf'].find_one({"guild": listingdat["guild"]})
-    #     if str(inter.author.id) != listingdat['user']:
+    #     srvconf: Dict[str, Any] = await self.bot.sdb['srvconf'].find_one({"guild": listingdat["guildid"]})
+    #     if str(inter.author.id) != listingdat['userid']:
     #         return
     #     component = disnake.ui.TextInput(
     #         style=disnake.TextInputStyle.single_line,
