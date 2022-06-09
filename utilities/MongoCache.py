@@ -6,6 +6,7 @@ from bson import ObjectId
 import cachetools
 import disnake
 import asyncio
+import os
 
 _LabyrinthianT = TypeVar("_LabyrinthianT", bound=disnake.Client)
 if TYPE_CHECKING:
@@ -14,9 +15,11 @@ if TYPE_CHECKING:
     _LabyrinthianT = Labyrinthian
 
 class MongoCache(cachetools.TTLCache):
-    def __init__(self, bot: _LabyrinthianT, maxsize: float, ttl: float, timer: Callable[[], float] = ..., getsizeof: Callable[[cachetools._VT], float] | None = ...) -> None:
+    def __init__(self, bot: _LabyrinthianT, workdir: str, maxsize: float, ttl: float, timer: Callable[[], float] = ..., getsizeof: Callable[[cachetools._VT], float] | None = ...) -> None:
         super().__init__(maxsize, ttl, timer, getsizeof)
         self.bot = bot
+
+        self.dbwritebackup = open()
 
     def __missing__(self):
         return None
@@ -30,4 +33,4 @@ class MongoCache(cachetools.TTLCache):
     async def updatedb(self, key: str, value: Dict[str, Union[str, int, List, Dict, ObjectId, datetime, float]]):
         collectionkey = deepcopy(value['collectionkey'])
         value.pop('collectionkey')
-        self.bot.sdb[collectionkey].replace_one({'_id': value['_id']}, value, True)
+        await self.bot.sdb[collectionkey].replace_one({'_id': value['_id']}, value, True)

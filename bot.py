@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 from typing import Union
 
 import disnake
@@ -10,7 +11,7 @@ from disnake.ext import commands
 from disnake.ext.commands.errors import CommandInvokeError
 from auction.auction_constructor import ConstSender
 
-from utilities import config
+from utilities import MongoCache, config
 from utilities.errors import LabyrinthianException
 
 if config.TESTING_VAR == "True":
@@ -20,6 +21,8 @@ if config.TESTING_VAR == "True":
 logging.basicConfig(level=logging.DEBUG)
 
 intents = disnake.Intents.all()
+
+cwd = os.getcwd()
 
 extensions = (
     "badgelog.main",
@@ -50,7 +53,7 @@ class Labyrinthian(commands.Bot):
         #databases
         self.mclient = motor.motor_asyncio.AsyncIOMotorClient(config.MONGO_URL)
         self.sdb: motor.motor_asyncio.AsyncIOMotorClient = self.mclient[config.MONGODB_SERVERDB_NAME]
-        # self.cache = cachetools.TTLCache()
+        self.dbcache = MongoCache(self, cwd, maxsize=50, ttl=20)
 
     # async def get_guild_prefix(self, guild: disnake.Guild) -> str:
     #     guild_id = str(guild.id)
