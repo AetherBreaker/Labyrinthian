@@ -1,22 +1,35 @@
 import ast
-from copy import deepcopy
-from ctypes import Union
-from datetime import datetime
-from typing import TYPE_CHECKING, Callable, Dict, List, TypeVar
-from bson import ObjectId
-import cachetools
-import disnake
 import asyncio
 import os
+from copy import deepcopy
+from ctypes import Union
+from dataclasses import dataclass
+from datetime import datetime
+from random import randint
+from typing import (TYPE_CHECKING, Any, Callable, Dict, List, Mapping,
+                    MutableMapping, Optional, Sequence, TypeVar)
+
+import cachetools
+import disnake
 import pymongo
+from bson import ObjectId
+from bson.raw_bson import RawBSONDocument
 from pymongo.errors import PyMongoError
-from pymongo.results import UpdateResult
+from pymongo.results import InsertOneResult, UpdateResult, DeleteResult
+from pymongo.typings import _DocumentType
 
 _LabyrinthianT = TypeVar("_LabyrinthianT", bound=disnake.Client)
 if TYPE_CHECKING:
     from bot import Labyrinthian
 
     _LabyrinthianT = Labyrinthian
+
+@dataclass
+class UpdateResultFacade:
+    inserted_id: ObjectId
+
+
+
 
 class MongoCache(cachetools.TTLCache):
     def __init__(self, bot: _LabyrinthianT, workdir: str, maxsize: float, ttl: float, timer: Callable[[], float] = ..., getsizeof: Callable[[cachetools._VT], float] | None = ...) -> None:
@@ -125,11 +138,55 @@ class MongoCache(cachetools.TTLCache):
         LITdat.write(data)
         LITdat.close()
 
+    def find_matches_in_self(self, searchfilter: Mapping[str, Any]):
+        """Searches through the cache and returns a list of cache values that match the provided filter
+        filter is expected to be a dict where every key value pair must match a key value pair in a cache document"""
+        return list(filter(lambda item: all([x in item and item[x] == y for x,y in searchfilter.items()]), self.values()))
 
-    async def get(self, collectionkey: str, filter: Dict[str, Union[str, int, List, Dict, ObjectId, datetime, float]]):
+    async def insert_one(self, collectionkey: str, document: Union[MutableMapping[str, Any], RawBSONDocument], *args, **kwargs) -> InsertOneResult:
+        result: InsertOneResult = await self.bot.sdb[collectionkey].insert_one(document, *args, **kwargs)
+        data = document
+        if '_id' not in data:
+            data['_id'] = result.inserted_id
+        if 'collectionkey' not in data:
+            data['collectionkey'] = collectionkey
+        self[str(result.inserted_id)] = data
+        return result
+
+    async def find_one(self, collectionkey: str, filter: Mapping[str, Any], *args: Any, **kwargs: Any) -> Optional[_DocumentType]:
+        data = None
+        cachematches = self.find_matches_in_self(filter)
+        if cachematches:
+            cachematches[0].pop('collectionkey')
+            return cachematches[0]
+        else:
+            data: MutableMapping[str, Any] = await self.bot.sdb[collectionkey].find_one(filter, *args, **kwargs)
+            datacopy = deepcopy(data)
+            datacopy['collectionkey'] = collectionkey
+            self[str(datacopy['_id'])] = datacopy
+            return data
+
+    # async def find(self, collectionkey: str, filter: Optional[Any] = None, *args: Any, **kwargs: Any):
+    #     pass
+
+    async def replace_one(self, collectionkey: str, filter: Mapping[str, Any], replacement: Mapping[str, Any], upsert: bool = False, *args, **kwargs) -> UpdateResult:
+        if 'collectionkey' not in replacement:
+            replacement['collectionkey'] = collectionkey
+        if str(replacement['_id']) in self.keys():
+            self[str(replacement['_id'])] = replacement
+        else:
+            cachematches = self.find_matches_in_self(filter)
+            idkey = str(cachematches[0]['_id'])
+            self[idkey] = replacement
+        replacement.pop('collectionkey')
+        result: UpdateResult = await self.bot.sdb[collectionkey].replace_one(filter, replacement, upsert, *args, **kwargs)
+        return result
+
+    async def update_one(self, collectionkey: str, filter: Mapping[str, Any], update: Union[Mapping[str, Any], Sequence[Mapping[str, Any]]], upsert: bool = False, *args, **kwargs) -> Union[UpdateResult, UpdateResultFacade]:
         pass
 
-
+    async def delete_one(self, collectionkey: str, filter: Mapping[str, Any], *args, **kwargs) -> DeleteResult:
+        pass
 
     """note to self, store items in LIT file
     using keys of their object ID to ensure a unique key for each item"""
