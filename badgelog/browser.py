@@ -162,7 +162,7 @@ class LogBrowser(disnake.ui.View):
             await inter.response.edit_message(embed=self.embeds[self.embed_count], view=self)
 
     async def construct_embeds(self, charname: str) -> List[disnake.Embed]:
-        char = await self.bot.sdb[f'BLCharList_{self.guild.id}'].find_one({"user": str(self.user.id), "character": charname})
+        char = await self.bot.dbcache.find_one(f'BLCharList_{self.guild.id}', {"user": str(self.user.id), "character": charname})
         badgelog = await self.bot.sdb[f"BadgeLogMaster_{self.guild.id}"].find({"charRefId": ObjectId(char['_id']), "user": str(self.user.id)}).sort("timestamp", DESCENDING).to_list(None)
         embeds = []
         pageindex = 0

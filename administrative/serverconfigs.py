@@ -50,7 +50,7 @@ class Configs(commands.Cog):
         Parameters
         ----------
         charname: The name of your character."""
-        datachk = await self.bot.sdb[f'BLCharList_{inter.guild.id}'].find_one({"user": str(user.id)})
+        datachk = await self.bot.dbcache.find_one(f"BLCharList_{inter.guild.id}", {"user": str(user.id)})
         if datachk is None:
             inter.response.send_message(f"{user.name} has no existing character data.", ephemeral=True)
         else:
@@ -65,11 +65,11 @@ class Configs(commands.Cog):
         user: The player of the character to be updated.
         charname: The name of the character to update.
         sheetlink: The new character sheet link."""
-        userchk = await self.bot.sdb[f'BLCharList_{inter.guild.id}'].find_one({"user": str(user.id)})
+        userchk = await self.bot.dbcache.find_one(f"BLCharList_{inter.guild.id}", {"user": str(user.id)})
         if userchk is None:
             await inter.response.send_message(f"{user.name} has no existing character data.", ephemeral=True)
         else:
-            charchk = await self.bot.sdb[f'BLCharList_{inter.guild.id}'].find_one({"user": str(user.id), "character": charname})
+            charchk = await self.bot.dbcache.find_one(f"BLCharList_{inter.guild.id}", {"user": str(user.id), "character": charname})
             if charchk is None:
                 await inter.response.send_message(f'{user.name} has no character named "{charname}".\nPlease double check the characters name using the admin log browser.\nThis field is case and punctuation sensitive.', ephemeral=True)
             else:
@@ -97,7 +97,7 @@ class Configs(commands.Cog):
         if role4!=None:
             roleslist.append(role4)
         role_ids = [r.id for r in roleslist]
-        srvconf = await self.bot.sdb['srvconf'].find_one({"guild": str(inter.guild.id)})
+        srvconf = await self.bot.dbcache.find_one('srvconf', {"guild": str(inter.guild.id)})
         if srvconf is None:
             srvconf = {"guild": str(inter.guild.id)}
             srvconf['dmroles'] = []
@@ -121,7 +121,7 @@ class Configs(commands.Cog):
         if role4!=None:
             roleslist.append(role4)
         role_ids = {r.id for r in roleslist}
-        srvconf = await self.bot.sdb['srvconf'].find_one({"guild": str(inter.guild.id)})
+        srvconf = await self.bot.dbcache.find_one('srvconf', {"guild": str(inter.guild.id)})
         if srvconf is None:
             srvconf = {"guild": str(inter.guild.id)}
             srvconf['dmroles'] = []
@@ -148,7 +148,7 @@ class Configs(commands.Cog):
             classlist.append(classname3)
         if classname4!=None:
             classlist.append(classname4)
-        srvconf = await self.bot.sdb['srvconf'].find_one({"guild": str(inter.guild.id)})
+        srvconf = await self.bot.dbcache.find_one('srvconf', {"guild": str(inter.guild.id)})
         if srvconf is None:
             srvconf = {"guild": str(inter.guild.id)}
             srvconf['classlist'] = []
@@ -171,7 +171,7 @@ class Configs(commands.Cog):
             classlist.append(classname3)
         if classname4!=None:
             classlist.append(classname4)
-        srvconf = await self.bot.sdb['srvconf'].find_one({"guild": str(inter.guild.id)})
+        srvconf = await self.bot.dbcache.find_one('srvconf', {"guild": str(inter.guild.id)})
         if srvconf is None:
             srvconf = {"guild": str(inter.guild.id)}
             srvconf['classlist'] = []
@@ -195,7 +195,7 @@ class Configs(commands.Cog):
             elif x != str(itr+1):
                 return await inter.response.send_message("Error: Template keys are not a range of 1 through 20")
         if all([isinstance(x, (int, float)) for x in bdgtemplate.values()]):
-            srvconf = await self.bot.sdb['srvconf'].find_one({"guild": str(inter.guild.id)})
+            srvconf = await self.bot.dbcache.find_one('srvconf', {"guild": str(inter.guild.id)})
             srvconf['badgetemplate'] = bdgtemplate
             await self.bot.sdb['srvconf'].replace_one({"guild": str(inter.guild.id)}, srvconf, True)
             await inter.response.send_message("Badge template updated.")
@@ -208,7 +208,7 @@ class Configs(commands.Cog):
 
     @ah.sub_command()
     async def listingchan(self, inter: disnake.ApplicationCommandInteraction, channel: disnake.abc.GuildChannel):
-        ahconf = await self.bot.sdb['srvconf'].find_one({"guild": str(inter.guild.id)})
+        ahconf = await self.bot.dbcache.find_one('srvconf', {"guild": str(inter.guild.id)})
 
     @ah.sub_command()
     async def setupchan(self, inter: disnake.ApplicationCommandInteraction, channel: disnake.abc.GuildChannel):

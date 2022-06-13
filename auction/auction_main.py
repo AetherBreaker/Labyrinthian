@@ -32,9 +32,9 @@ class AuctionHouse(commands.Cog):
             return
 
         listingfinished = False
-        srvconf: Dict[str, Any] = await self.bot.sdb['srvconf'].find_one({"guild": str(inter.guild.id)})
+        srvconf: Dict[str, Any] = await self.bot.dbcache.find_one('srvconf', {"guild": str(inter.guild.id)})
         charlist: List[str] = await self.bot.sdb[f'BLCharList_{inter.guild.id}'].distinct("character", {"user": str(inter.author.id)})
-        listingdat: Dict[str, Any] = await self.bot.sdb['auction_listings'].find_one({"listingid": str(inter.message.id)})
+        listingdat: Dict[str, Any] = await self.bot.dbcache.find_one('auction_listings', {"listingid": str(inter.message.id)})
         if len(charlist) < 1:
             await inter.send(f"<@{inter.author.id}> You don't have any characters!\nYou must have a registered character to use the auction house!", ephemeral=True)
             return
@@ -129,8 +129,8 @@ class AuctionHouse(commands.Cog):
     # async def cancel_listing(self, inter: disnake.MessageInteraction):
     #     if not inter.component.custom_id == "auction_cancel_listing":
     #         return
-    #     listingdat: Dict[str, Any] = await self.bot.sdb['auction_listings'].find_one({"usertrack": [str(inter.author.id), str(inter.message.id)]})
-    #     srvconf: Dict[str, Any] = await self.bot.sdb['srvconf'].find_one({"guild": listingdat["guildid"]})
+    #     listingdat: Dict[str, Any] = await self.bot.dbcache.find_one('auction_listings', {"usertrack": [str(inter.author.id), str(inter.message.id)]})
+    #     srvconf: Dict[str, Any] = await self.bot.dbcache.find_one('srvconf', {"guild": listingdat["guildid"]})
     #     if str(inter.author.id) != listingdat['userid']:
     #         return
     #     component = disnake.ui.TextInput(

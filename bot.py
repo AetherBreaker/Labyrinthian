@@ -18,7 +18,7 @@ if config.TESTING_VAR == "True":
     import sys
     sys.dont_write_bytecode = True
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 intents = disnake.Intents.all()
 
@@ -53,7 +53,7 @@ class Labyrinthian(commands.Bot):
         #databases
         self.mclient = motor.motor_asyncio.AsyncIOMotorClient(config.MONGO_URL)
         self.sdb: motor.motor_asyncio.AsyncIOMotorCollection = self.mclient[config.MONGODB_SERVERDB_NAME]
-        self.dbcache = MongoCache(self, cwd, maxsize=50, ttl=20)
+        self.dbcache = MongoCache.MongoCache(self, cwd, maxsize=50, ttl=20)
 
     # async def get_guild_prefix(self, guild: disnake.Guild) -> str:
     #     guild_id = str(guild.id)

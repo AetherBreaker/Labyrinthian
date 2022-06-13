@@ -7,7 +7,7 @@ import traceback
 from typing import TYPE_CHECKING, List, NoReturn, Optional, TypeVar, Dict
 import disnake
 from pymongo.results import InsertOneResult
-from auction.auction_listing import CancelButton, ListingActionRow
+from auction.auction_listing import ListingActionRow
 
 from utilities.functions import timedeltaplus
 
@@ -37,7 +37,7 @@ class ConstSender(disnake.ui.View):
         )
         await inter.response.send_message(embed=emb, view=inst)
         response = await inter.original_message()
-        await inter.bot.sdb['srvconf'].update_one({"guild": str(inter.guild.id)}, {"$set": {"constid": [str(response.channel.id), str(response.id)]}}, True)
+        await inter.bot.dbcache.update_one('srvconf', {"guild": str(inter.guild.id)}, {"$set": {"constid": [str(response.channel.id), str(response.id)]}}, True)
 
 
     @disnake.ui.button(emoji="💳", style=disnake.ButtonStyle.primary, custom_id='constsender:primary')
@@ -159,7 +159,7 @@ class ListingConst(disnake.ui.View):
     async def _init(cls, inter: disnake.MessageInteraction, bot: _LabyrinthianT, owner: disnake.Member):
         inst: ListingConst = cls(bot=bot, owner=owner)
         charlist = await inst.bot.sdb[f'BLCharList_{inter.guild.id}'].find({"user": str(inst.owner.id)}).to_list(None)
-        srvconf = await inst.bot.sdb['srvconf'].find_one({"guild": str(inter.guild.id)})
+        srvconf = await inst.bot.dbcache.find_one('srvconf', {"guild": str(inter.guild.id)})
         durlist = srvconf.get('listingdurs', {"86400": 75,"259200": 150,"604800": 275,"1209600": 450,"2630000": 750})
         inst.rarities = srvconf.get('rarities', {"Common": 20, "Uncommon": 40, "Rare": 60, "Very Rare": 80, "Legendary": 200, "Artifact": 400, "Unknown": 0})
         inst.durations = {
@@ -475,7 +475,7 @@ class SendListingButton(disnake.ui.Button[ListingConst]):
     
     async def callback(self, inter: disnake.MessageInteraction):
         self.view: ListingConst
-        srvconf = await self.bot.sdb['srvconf'].find_one({"guild": str(inter.guild.id)})
+        srvconf = await self.bot.dbcache.find_one('srvconf', {"guild": str(inter.guild.id)})
         auction_channel = self.bot.get_channel(int(srvconf['ahfront']))
         listingmsg: disnake.Message = await auction_channel.send(embed=self.view.auction_embed, components=ListingActionRow(self.view.listingdata))
         usertrackmsg: disnake.Message = await inter.author.send("Thank you for using the Corrinthian Auction House.", embed=self.view.auction_embed)

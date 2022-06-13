@@ -1,13 +1,15 @@
 import ast
 import asyncio
+import json
 import os
 from copy import deepcopy
-from ctypes import Union
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 from random import randint
-from typing import (TYPE_CHECKING, Any, Callable, Dict, List, Mapping,
-                    MutableMapping, Optional, Sequence, TypeVar)
+import traceback
+from typing import (TYPE_CHECKING, Any, Dict, Iterable, List, Mapping,
+                    MutableMapping, Optional, Sequence, Tuple, TypeVar, Union)
 
 import cachetools
 import disnake
@@ -17,6 +19,7 @@ from bson.raw_bson import RawBSONDocument
 from pymongo.errors import PyMongoError
 from pymongo.results import InsertOneResult, UpdateResult, DeleteResult
 from pymongo.typings import _DocumentType
+import yaml
 
 _LabyrinthianT = TypeVar("_LabyrinthianT", bound=disnake.Client)
 if TYPE_CHECKING:
@@ -32,20 +35,25 @@ class UpdateResultFacade:
 
 
 class MongoCache(cachetools.TTLCache):
-    def __init__(self, bot: _LabyrinthianT, workdir: str, maxsize: float, ttl: float, timer: Callable[[], float] = ..., getsizeof: Callable[[cachetools._VT], float] | None = ...) -> None:
-        super().__init__(maxsize, ttl, timer, getsizeof)
+    def __init__(self, bot: _LabyrinthianT, workdir: str, maxsize: float, ttl: float, *args, **kwargs) -> None:
+        super().__init__(maxsize, ttl, *args, **kwargs)
         self.bot = bot
 
         LITdatDONE = False
         index = 0
+        path = os.path.join(workdir, "LITdat")
+        p = Path(path)
+        if not p.exists():
+            p.parent.mkdir(parents=True)
         while not LITdatDONE:
             try:
-                path = os.path.join(workdir, "LITdat", f"LITlog{'' if index == 0 else index}")
-                LITdat = open(path, "x")
-                LITdat.close()
+                path = os.path.join(workdir, "LITdat", f"LITlog{'' if index == 0 else str(index)}.txt")
+                with open(path, 'x'):
+                    pass
                 self.path = path
                 LITdatDONE = True
-            except FileExistsError:
+            except FileExistsError as e:
+                print(f"{e}\n{traceback.format_exc()}")
                 index += 1
 
     def popitem(self):
@@ -55,7 +63,7 @@ class MongoCache(cachetools.TTLCache):
         print('Key "%s" evicted with value "%s"' % (key, value))
         return key, value
 
-    async def updatedb(self, key: str, value: Dict[str, Union[str, int, List, Dict, ObjectId, datetime, float]]):
+    async def updatedb(self, key: str, value: Union[MutableMapping[str, Any], RawBSONDocument]):
         collectionkey = deepcopy(value['collectionkey'])
         value.pop('collectionkey')
         result: UpdateResult = await self.bot.sdb[collectionkey].replace_one({'_id': value['_id']}, value, True)
@@ -68,6 +76,7 @@ class MongoCache(cachetools.TTLCache):
                 self.removefromLITdat(key)
         except:
             pass
+        print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
 
     def updateLITdat(self, key: str, value: Dict[str, Union[str, int, List, Dict, ObjectId, datetime, float]]):
         # open our sessions lost in transit data file in read only mode
@@ -151,19 +160,22 @@ class MongoCache(cachetools.TTLCache):
         if 'collectionkey' not in data:
             data['collectionkey'] = collectionkey
         self[str(result.inserted_id)] = data
+        print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
         return result
 
     async def find_one(self, collectionkey: str, filter: Mapping[str, Any], *args: Any, **kwargs: Any) -> Optional[_DocumentType]:
         data = None
-        cachematches = self.find_matches_in_self(filter)
+        cachematches = deepcopy(self.find_matches_in_self(filter))
         if cachematches:
             cachematches[0].pop('collectionkey')
+            print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
             return cachematches[0]
         else:
             data: MutableMapping[str, Any] = await self.bot.sdb[collectionkey].find_one(filter, *args, **kwargs)
             datacopy = deepcopy(data)
             datacopy['collectionkey'] = collectionkey
             self[str(datacopy['_id'])] = datacopy
+            print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
             return data
 
     # async def find(self, collectionkey: str, filter: Optional[Any] = None, *args: Any, **kwargs: Any):
@@ -180,10 +192,15 @@ class MongoCache(cachetools.TTLCache):
             self[idkey] = replacement
         replacement.pop('collectionkey')
         result: UpdateResult = await self.bot.sdb[collectionkey].replace_one(filter, replacement, upsert, *args, **kwargs)
+        print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
         return result
 
     async def update_one(self, collectionkey: str, filter: Mapping[str, Any], update: Union[Mapping[str, Any], Sequence[Mapping[str, Any]]], upsert: bool = False, *args, **kwargs) -> Union[UpdateResult, UpdateResultFacade]:
-        pass
+        document = await self.bot.sdb[collectionkey].find_one_and_update(filter, update, upsert, *args, return_document=True, **kwargs)
+        document['collectionkey'] = collectionkey
+        self[str(document['_id'])] = document
+        print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
+        return UpdateResultFacade(inserted_id=document['_id'])
 
     async def delete_one(self, collectionkey: str, filter: Mapping[str, Any], *args, **kwargs) -> DeleteResult:
         pass

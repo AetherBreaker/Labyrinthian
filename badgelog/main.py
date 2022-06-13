@@ -30,7 +30,7 @@ class Badges(commands.Cog):
         ----------
         self: The Badges class. It may be better to move this within the class.
         guildID: Put inter.guild.id here."""
-        srvconf: Dict[str, Any] = await self.bot.sdb[f'srvconf'].find_one({"guild": str(guildID)})
+        srvconf: Dict[str, Any] = await self.bot.dbcache.find_one('srvconf', {"guild": str(guildID)})
         if 'classlist' in srvconf:
             if srvconf['classlist']:
                 validc = srvconf['classlist']
@@ -55,7 +55,7 @@ class Badges(commands.Cog):
             await inter.response.send_message(f"{startingclass} is not a valid class, try using the autocompletion to select a class.")
         else:
             if urlCheck(sheetlink):
-                character: Dict[str, Any] = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].find_one({"user": str(inter.author.id), "character": charname})
+                character: Dict[str, Any] = await self.bot.dbcache.find_one(f"BLCharList_{inter.guild.id}", {"user": str(inter.author.id), "character": charname})
                 if character != None:
                     await inter.response.send_message(f"{charname}'s badge log already exists!")
                 else:
@@ -114,7 +114,7 @@ class Badges(commands.Cog):
         ----------
         charname: The name of your character.
         newname: Your characters new name."""
-        character: Dict[str, Any] = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].find_one({"user": str(inter.author.id), "character": charname})
+        character: Dict[str, Any] = await self.bot.dbcache.find_one(f"BLCharList_{inter.guild.id}", {"user": str(inter.author.id), "character": charname})
         if character is None:
             await inter.response.send_message(f"{charname} doesn't exist!")
         else:
@@ -140,12 +140,12 @@ class Badges(commands.Cog):
         charname: The name of your character.
         multiclassname: The class your multiclassing into.
         multiclasslevel: The level of your new multiclass."""
-        srvconf: Dict[str, Any] = await self.bot.sdb[f'srvconf'].find_one({"guild": str(inter.guild.id)})
+        srvconf: Dict[str, Any] = await self.bot.dbcache.find_one('srvconf', {"guild": str(inter.guild.id)})
         validc = self.valid if srvconf is None or 'classlist' not in srvconf else srvconf['classlist']
         if multiclassname not in validc:
             await inter.response.send_message(f"{multiclassname} is not a valid class, try using the autocompletion to select a class.")
         else:
-            character: Dict[str, Any] = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].find_one({"user": str(inter.author.id), "character": charname})
+            character: Dict[str, Any] = await self.bot.dbcache.find_one(f"BLCharList_{inter.guild.id}", {"user": str(inter.author.id), "character": charname})
             if character is None:
                 await inter.response.send_message(f"{charname} doesn't exist!")
             elif len(character['classes']) < 5:
@@ -167,7 +167,7 @@ class Badges(commands.Cog):
     @add.autocomplete("multiclassname")
     async def autocomp_class(self, inter: disnake.ApplicationCommandInteraction, user_input: str):
         charname = inter.filled_options['charname']
-        char: Dict[str, Any] = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].find_one({"user": str(inter.author.id), "character": charname})
+        char: Dict[str, Any] = await self.bot.dbcache.find_one(f"BLCharList_{inter.guild.id}", {"user": str(inter.author.id), "character": charname})
         validc = await self.validateClass(inter.guild.id)
         validclasses = [x for x in validc if x not in char['classes']] if char is not None else validc
         return [name for name in validclasses if "".join(user_input.split()).casefold() in "".join(name.split()).casefold()]
@@ -180,7 +180,7 @@ class Badges(commands.Cog):
         ----------
         charname: The name of your character.
         multiclassname: The class you wish to remove."""
-        character: Dict[str, Any] = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].find_one({"user": str(inter.author.id), "character": charname})
+        character: Dict[str, Any] = await self.bot.dbcache.find_one(f"BLCharList_{inter.guild.id}", {"user": str(inter.author.id), "character": charname})
         if character is None:
             await inter.response.send_message(f"{charname} doesn't exist!")
         elif multiclassname not in character['classes'].keys():
@@ -199,7 +199,7 @@ class Badges(commands.Cog):
     @remove.autocomplete("multiclassname")
     async def autocomp_class(self, inter: disnake.ApplicationCommandInteraction, user_input: str):
         charname = inter.filled_options['charname']
-        char: Dict[str, Any] = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].find_one({"user": str(inter.author.id), "character": charname})
+        char: Dict[str, Any] = await self.bot.dbcache.find_one(f"BLCharList_{inter.guild.id}", {"user": str(inter.author.id), "character": charname})
         validclasses = char['classes'].keys()
         return [name for name in validclasses if "".join(user_input.split()).casefold() in "".join(name.split()).casefold()]
 
@@ -212,7 +212,7 @@ class Badges(commands.Cog):
         charname: The name of your character.
         multiclassname: The class you're updating.
         multiclasslevel: The new level of your class."""
-        character: Dict[str, Any] = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].find_one({"user": str(inter.author.id), "character": charname})
+        character: Dict[str, Any] = await self.bot.dbcache.find_one(f"BLCharList_{inter.guild.id}", {"user": str(inter.author.id), "character": charname})
         if character is None:
             await inter.response.send_message(f"{charname} doesn't exist!")
         elif multiclassname not in character['classes'].keys():
@@ -236,7 +236,7 @@ class Badges(commands.Cog):
     @update.autocomplete("multiclassname")
     async def autocomp_class(self, inter: disnake.ApplicationCommandInteraction, user_input: str):
         charname = inter.filled_options['charname']
-        char: Dict[str, Any] = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].find_one({"user": str(inter.author.id), "character": charname})
+        char: Dict[str, Any] = await self.bot.dbcache.find_one(f"BLCharList_{inter.guild.id}", {"user": str(inter.author.id), "character": charname})
         validclasses = char['classes'].keys()
         return [name for name in validclasses if "".join(user_input.split()).casefold() in "".join(name.split()).casefold()]
 
@@ -249,8 +249,8 @@ class Badges(commands.Cog):
         charname: The name of your character
         badgeinput: The amount of badges to add (or remove)
         awardingdm: The DM that awarded you badges, if fixing/adjusting your badges, select @Labyrinthian"""
-        character: Dict[str, Any] = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].find_one({"user": str(inter.author.id), "character": charname})
-        srvconf: Dict[str, Any] = await self.bot.sdb['srvconf'].find_one({"guild": str(inter.guild.id)})
+        character: Dict[str, Any] = await self.bot.dbcache.find_one(f"BLCharList_{inter.guild.id}", {"user": str(inter.author.id), "character": charname})
+        srvconf: Dict[str, Any] = await self.bot.dbcache.find_one('srvconf', {"guild": str(inter.guild.id)})
         if isinstance(character, type(None)):
             await inter.response.send_message(f"{charname} doesn't exist!")
         elif badgeinput == 0:
@@ -260,8 +260,8 @@ class Badges(commands.Cog):
         else:
             timeStamp = int(time())
             newlog = {"charRefId": character['_id'], "user": str(inter.author.id), "character": charname, "previous badges": character['currentbadges'], "badges added": badgeinput, "awarding DM": awardingdm.id, "timestamp": timeStamp}
-            objID: InsertOneResult = await self.bot.sdb[f"BadgeLogMaster_{inter.guild.id}"].insert_one(newlog)
-            badgetemp: Dict[str, Any] = await self.bot.sdb['srvconf'].find_one({"guild": str(inter.guild.id)})
+            objID: InsertOneResult = await self.bot.dbcache.insert_one(f"BadgeLogMaster_{inter.guild.id}", newlog)
+            badgetemp: Dict[str, Any] = await self.bot.dbcache.find_one('srvconf', {"guild": str(inter.guild.id)})
             badgetemp = badgetemp['badgetemplate']
             for x,y in badgetemp.items():
                 if character['currentbadges']+badgeinput >= y:

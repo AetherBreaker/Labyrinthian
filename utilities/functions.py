@@ -50,7 +50,7 @@ def get_positivity(string):
     if isinstance(string, bool):  # oi!
         return string
     lowered = string.lower()
-    if lowered in ("yes", "y", "true", "t", "1", "enable", "on"):
+    if lowered in ("yes", "y", "True", "t", "1", "enable", "on"):
         return True
     elif lowered in ("no", "n", "false", "f", "0", "disable", "off"):
         return False
