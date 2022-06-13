@@ -452,7 +452,12 @@ class SendModalButton(disnake.ui.Button[ListingConst]):
 
         if 'buyNow' in modal_inter.text_values and len(modal_inter.text_values['buyNow']) > 0:
             try:
-                self.view.prices.buy = int(modal_inter.text_values['buyNow'])
+                if int(modal_inter.text_values['buyNow']) <= int(modal_inter.text_values['bidStart']):
+                    self.view.errmsg = f"Please make sure your buy now price is larger than your starting bid"
+                    self.view.errembs.append(self.view.error_embed)
+                    errchk = True
+                else:
+                    self.view.prices.buy = int(modal_inter.text_values['buyNow'])
             except (ValueError, TypeError):
                 self.view.errmsg = f"It seems your buy now price couldn't be converted to a whole number, heres the error traceback:\n```{errorfrmt}{traceback.format_exc()}```"
                 self.view.errembs.append(self.view.error_embed)
