@@ -1,7 +1,7 @@
 from time import time
 from json import JSONDecodeError, loads
 from string import Template
-from typing import TYPE_CHECKING, Any, Dict, TypeVar
+from typing import TYPE_CHECKING, Any, Dict, List, TypeVar
 
 import disnake
 from disnake.ext import commands
@@ -124,7 +124,7 @@ class Badges(commands.Cog):
 
     @rename.autocomplete("charname")
     async def autocomp_charnames(self, inter: disnake.ApplicationCommandInteraction, user_input: str):
-        charlist: Dict[str, Any] = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].distinct("character", {"user": str(inter.author.id)})
+        charlist: List[str] = await self.bot.charcache.find_distinct_chardat(str(inter.guild.id), str(inter.author.id))
         return [name for name in charlist if "".join(user_input.split()).casefold() in "".join(name.split()).casefold()]
 
     @commands.slash_command(description="Set your characters classes in their badge log.")
@@ -161,7 +161,7 @@ class Badges(commands.Cog):
 
     @add.autocomplete("charname")
     async def autocomp_charnames(self, inter: disnake.ApplicationCommandInteraction, user_input: str):
-        charlist: Dict[str, str] = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].distinct("character", {"user": str(inter.author.id)})
+        charlist: List[str] = await self.bot.charcache.find_distinct_chardat(str(inter.guild.id), str(inter.author.id))
         return [name for name in charlist if "".join(user_input.split()).casefold() in "".join(name.split()).casefold()]
 
     @add.autocomplete("multiclassname")
@@ -193,7 +193,7 @@ class Badges(commands.Cog):
 
     @remove.autocomplete("charname")
     async def autocomp_charnames(self, inter: disnake.ApplicationCommandInteraction, user_input: str):
-        charlist: Dict[str, str] = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].distinct("character", {"user": str(inter.author.id)})
+        charlist: List[str] = await self.bot.charcache.find_distinct_chardat(str(inter.guild.id), str(inter.author.id))
         return [name for name in charlist if "".join(user_input.split()).casefold() in "".join(name.split()).casefold()]
 
     @remove.autocomplete("multiclassname")
@@ -230,7 +230,7 @@ class Badges(commands.Cog):
 
     @update.autocomplete("charname")
     async def autocomp_charnames(self, inter: disnake.ApplicationCommandInteraction, user_input: str):
-        charlist: Dict[str, str] = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].distinct("character", {"user": str(inter.author.id)})
+        charlist: List[str] = await self.bot.charcache.find_distinct_chardat(str(inter.guild.id), str(inter.author.id))
         return [name for name in charlist if "".join(user_input.split()).casefold() in "".join(name.split()).casefold()]
 
     @update.autocomplete("multiclassname")
@@ -279,7 +279,7 @@ class Badges(commands.Cog):
 
     @updatelog.autocomplete("charname")
     async def autocomp_charnames(self, inter: disnake.ApplicationCommandInteraction, user_input: str):
-        charlist: Dict[str, str] = await self.bot.sdb[f"BLCharList_{inter.guild.id}"].distinct("character", {"user": str(inter.author.id)})
+        charlist: List[str] = await self.bot.charcache.find_distinct_chardat(str(inter.guild.id), str(inter.author.id))
         return [name for name in charlist if "".join(user_input.split()).casefold() in "".join(name.split()).casefold()]
 
     @commands.slash_command(name="log-browser")

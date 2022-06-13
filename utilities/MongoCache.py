@@ -41,19 +41,22 @@ class MongoCache(cachetools.TTLCache):
 
         LITdatDONE = False
         index = 0
-        path = os.path.join(workdir, "LITdat")
+        path = os.path.join(workdir, "logs", "LITdat")
         p = Path(path)
         if not p.exists():
-            p.parent.mkdir(parents=True)
+            p.mkdir(parents=True, exist_ok=True)
         while not LITdatDONE:
             try:
-                path = os.path.join(workdir, "LITdat", f"LITlog{'' if index == 0 else str(index)}.txt")
+                path = os.path.join(workdir, "logs", "LITdat", f"LITlog{'' if index == 0 else str(index)}.txt")
                 with open(path, 'x'):
                     pass
                 self.path = path
                 LITdatDONE = True
             except FileExistsError as e:
-                print(f"{e}\n{traceback.format_exc()}")
+                with open(path, "r") as LITdat:
+                    if len(LITdat.read(-1)) < 1:
+                        self.path = path
+                        LITdatDONE = True
                 index += 1
 
     def popitem(self):
@@ -83,7 +86,7 @@ class MongoCache(cachetools.TTLCache):
         # and store the contents in a variable
         # we then close the file
         LITdat = open(self.path, "r")
-        data = LITdat.read(size=-1)
+        data = LITdat.read(-1)
         LITdat.close()
 
         # next we run split on the file contents to create a list separated by newlines
@@ -207,3 +210,19 @@ class MongoCache(cachetools.TTLCache):
 
     """note to self, store items in LIT file
     using keys of their object ID to ensure a unique key for each item"""
+
+
+class CharlistCache(cachetools.TTLCache):
+    def __init__(self, bot: _LabyrinthianT, maxsize: float, ttl: float, *args, **kwargs) -> None:
+        super().__init__(maxsize, ttl, *args, **kwargs)
+        self.bot = bot
+
+    async def find_distinct_chardat(self, guildkey: str, userkey: str) -> List[str]:
+        if f"{guildkey}{userkey}" in self:
+            print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
+            return self[f'{guildkey}{userkey}']
+        else:
+            data: List[str] = await self.bot.sdb[f'BLCharList_{guildkey}'].distinct("character", {"user": userkey})
+            self[f'{guildkey}{userkey}'] = data
+            print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
+            return data
