@@ -249,7 +249,7 @@ class Badges(commands.Cog):
         awardingdm: The DM that awarded you badges, if fixing/adjusting your badges, select @Labyrinthian"""
         character: Dict[str, Any] = await self.bot.dbcache.find_one(f"BLCharList_{inter.guild.id}", {"user": str(inter.author.id), "character": charname})
         srvconf: Dict[str, Any] = await self.bot.dbcache.find_one('srvconf', {"guild": str(inter.guild.id)})
-        if isinstance(character, type(None)):
+        if character is None:
             await inter.response.send_message(f"{charname} doesn't exist!")
         elif badgeinput == 0:
             await inter.response.send_message("You can't add zero badges!")
