@@ -195,7 +195,7 @@ class MongoCache(cachetools.TTLCache):
         return result
 
     async def update_one(self, collectionkey: str, filter: Mapping[str, Any], update: Union[Mapping[str, Any], Sequence[Mapping[str, Any]]], upsert: bool = False, *args, **kwargs) -> Union[UpdateResult, UpdateResultFacade]:
-        document = await self.bot.sdb[collectionkey].find_one_and_update(filter, update, upsert, *args, return_document=True, **kwargs)
+        document = await self.bot.sdb[collectionkey].find_one_and_update(*args, filter=filter, update=update, upsert=upsert, return_document=True, **kwargs)
         document['collectionkey'] = collectionkey
         self[str(document['_id'])] = document
         print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
