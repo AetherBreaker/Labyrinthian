@@ -73,6 +73,7 @@ class Badges(commands.Cog):
                         "lastlogtime": time()
                     }
                     await self.bot.sdb[f"BLCharList_{inter.guild.id}"].insert_one(char)
+                    self.bot.charcache.pop(f'{inter.guild.id}{inter.author.id}')
                     await inter.response.send_message(f"Registered {charname}'s badge log with the Adventurers Coalition.")
                     Embed = {
                         "title": f"{charname}'s Adventurers ID'",
