@@ -6,7 +6,7 @@ import disnake
 from cogs.badgelog.browser import create_CharSelect
 from disnake.ext import commands
 from pymongo.results import InsertOneResult
-from utilities.checks import urlCheck
+from utils.checks import urlCheck
 
 _LabyrinthianT = TypeVar("_LabyrinthianT", bound=disnake.Client)
 if TYPE_CHECKING:

@@ -1,9 +1,9 @@
 import re
 import disnake.utils
 
-from utilities import config
-from utilities.errors import ExternalImportError
-from utilities.functions import extract_gsheet_id_from_url
+from utils import config
+from utils.models.errors import ExternalImportError
+from utils.functions import extract_gsheet_id_from_url
 
 DDB_URL_RE = re.compile(r"(?:https?://)?(?:www\.dndbeyond\.com|ddb\.ac)(?:/profile/.+)?/characters/(\d+)/?")
 DICECLOUD_URL_RE = re.compile(r"(?:https?://)?dicecloud\.com/character/([\d\w]+)/?")

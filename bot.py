@@ -11,8 +11,8 @@ from disnake.ext import commands
 from disnake.ext.commands.errors import CommandInvokeError
 
 from cogs.auction.auction_constructor import ConstSender
-from utilities import MongoCache, config
-from utilities.errors import LabyrinthianException
+from utils import MongoCache, config
+from utils.models.errors import LabyrinthianException
 
 if config.TESTING_VAR == "True":
     import sys

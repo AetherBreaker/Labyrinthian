@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, TypeVar
 import disnake
 from cogs.badgelog.browser import create_CharSelect
 from disnake.ext import commands
-from utilities import checks
+from utils import checks
 
 _LabyrinthianT = TypeVar("_LabyrinthianT", bound=disnake.Client)
 if TYPE_CHECKING:

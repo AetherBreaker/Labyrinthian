@@ -10,7 +10,7 @@ import disnake
 
 from rapidfuzz import fuzz, process
 
-from utilities.errors import ExternalImportError
+from utils.models.errors import ExternalImportError
 
 class timedeltaplus():
     def __init__(self,seconds:int=0,minutes:int=0,hours:int=0,days:int=0,weeks:int=0,months:int=0,years:int=0) -> None:

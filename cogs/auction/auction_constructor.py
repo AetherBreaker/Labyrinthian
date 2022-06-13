@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Dict, List, NoReturn, Optional, TypeVar
 import disnake
 from cogs.auction.auction_listing import ListingActionRow
 from pymongo.results import InsertOneResult
-from utilities.functions import timedeltaplus
+from utils.functions import timedeltaplus
 
 _LabyrinthianT = TypeVar("_LabyrinthianT", bound=disnake.Client)
 if TYPE_CHECKING:
