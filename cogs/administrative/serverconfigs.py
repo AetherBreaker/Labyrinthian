@@ -1,4 +1,5 @@
 from json import JSONDecodeError, loads
+import traceback
 from typing import TYPE_CHECKING, TypeVar
 
 import disnake
@@ -187,7 +188,7 @@ class Configs(commands.Cog):
         try:
             bdgtemplate = loads(templatedict)
         except JSONDecodeError:
-            return await inter.response.send_message("Error: Template not a valid JSON")
+            return await inter.response.send_message(f"Error: Template not a valid JSON\n Traceback:```py\n{traceback.print_exc()}```")
         for itr,x in enumerate(bdgtemplate.keys()):
             if itr > 20:
                 return await inter.response.send_message("Error: Template has too many entries")
@@ -201,23 +202,8 @@ class Configs(commands.Cog):
         else:
             return await inter.response.send_message("Error: Template value is not of type integer or float")
 
-    @admin.sub_command_group()
-    async def ah(self, inter: disnake.ApplicationCommandInteraction):
-        pass
 
-    @ah.sub_command()
-    async def listingchan(self, inter: disnake.ApplicationCommandInteraction, channel: disnake.abc.GuildChannel):
-        ahconf = await self.bot.dbcache.find_one('srvconf', {"guild": str(inter.guild.id)})
-
-    @ah.sub_command()
-    async def setupchan(self, inter: disnake.ApplicationCommandInteraction, channel: disnake.abc.GuildChannel):
-        pass
-
-    @staff.sub_command_group(name="listing")
-    async def stafflisting(self, inter: disnake.ApplicationCommandInteraction):
-        pass
-
-    @stafflisting.sub_command(name="remove")
+    @staff.sub_command()
     async def removelisting(self, inter: disnake.ApplicationCommandInteraction, listing: str):
         pass
 
