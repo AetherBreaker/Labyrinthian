@@ -1,6 +1,5 @@
 import re
 import disnake.utils
-from disnake.ext import commands
 
 from utilities import config
 from utilities.errors import ExternalImportError

@@ -6,11 +6,11 @@ from typing import Union
 import disnake
 import motor.motor_asyncio
 from aiohttp import ClientOSError, ClientResponseError
-from disnake.errors import Forbidden, HTTPException, NotFound, InvalidData
+from disnake.errors import Forbidden, HTTPException, InvalidData, NotFound
 from disnake.ext import commands
 from disnake.ext.commands.errors import CommandInvokeError
-from auction.auction_constructor import ConstSender
 
+from cogs.auction.auction_constructor import ConstSender
 from utilities import MongoCache, config
 from utilities.errors import LabyrinthianException
 
@@ -25,9 +25,9 @@ intents = disnake.Intents.all()
 cwd = os.getcwd()
 
 extensions = (
-    "badgelog.main",
-    "administrative.serverconfigs",
-    "auction.auction_main",
+    "cogs.badgelog.main",
+    "cogs.administrative.serverconfigs",
+    "cogs.auction.auction_main",
 )
 
 # async def get_prefix(bot: commands.Bot, message: disnake.Message):

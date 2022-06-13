@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING, Dict, List, Optional, TypeVar
 
 import disnake
 from bson import ObjectId
-from disnake.ext import commands
 from pymongo import DESCENDING
 
 TOO_MANY_CHARACTERS_SENTINEL = "__special:too_many_characters"

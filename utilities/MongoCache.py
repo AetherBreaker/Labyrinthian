@@ -1,25 +1,21 @@
 import ast
 import asyncio
-import json
 import os
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from random import randint
-import traceback
-from typing import (TYPE_CHECKING, Any, Dict, Iterable, List, Mapping,
-                    MutableMapping, Optional, Sequence, Tuple, TypeVar, Union)
+from typing import (TYPE_CHECKING, Any, Dict, List, Mapping, MutableMapping,
+                    Optional, Sequence, TypeVar, Union)
 
 import cachetools
 import disnake
-import pymongo
+import yaml
 from bson import ObjectId
 from bson.raw_bson import RawBSONDocument
-from pymongo.errors import PyMongoError
-from pymongo.results import InsertOneResult, UpdateResult, DeleteResult
+from pymongo.results import DeleteResult, InsertOneResult, UpdateResult
 from pymongo.typings import _DocumentType
-import yaml
 
 _LabyrinthianT = TypeVar("_LabyrinthianT", bound=disnake.Client)
 if TYPE_CHECKING:

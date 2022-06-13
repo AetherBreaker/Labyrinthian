@@ -1,11 +1,10 @@
 from json import JSONDecodeError, loads
 from typing import TYPE_CHECKING, TypeVar
-import disnake
-from disnake.ext import commands
 
-from badgelog.browser import create_CharSelect
+import disnake
+from cogs.badgelog.browser import create_CharSelect
+from disnake.ext import commands
 from utilities import checks
-from utilities.functions import confirm, confirmInter
 
 _LabyrinthianT = TypeVar("_LabyrinthianT", bound=disnake.Client)
 if TYPE_CHECKING:

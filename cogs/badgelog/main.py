@@ -1,15 +1,12 @@
-from time import time
-from json import JSONDecodeError, loads
 from string import Template
+from time import time
 from typing import TYPE_CHECKING, Any, Dict, List, TypeVar
 
 import disnake
+from cogs.badgelog.browser import create_CharSelect
 from disnake.ext import commands
 from pymongo.results import InsertOneResult
 from utilities.checks import urlCheck
-from utilities.txtformatting import mkTable
-
-from badgelog.browser import create_CharSelect
 
 _LabyrinthianT = TypeVar("_LabyrinthianT", bound=disnake.Client)
 if TYPE_CHECKING:

@@ -1,11 +1,9 @@
-from dataclasses import dataclass
-from datetime import timezone, tzinfo
 import traceback
-from typing import TYPE_CHECKING, Any, List, NoReturn, Optional, TypeVar, Dict
-import disnake
-from disnake.ext import commands
+from dataclasses import dataclass
+from datetime import timezone
+from typing import TYPE_CHECKING, Any, Dict, TypeVar
 
-from utilities.functions import timedeltaplus
+import disnake
 
 _LabyrinthianT = TypeVar("_LabyrinthianT", bound=disnake.Client)
 if TYPE_CHECKING:

@@ -1,6 +1,5 @@
 from typing import TYPE_CHECKING, Any, Dict, TypeVar
 import disnake
-from disnake.ext import commands
 
 _LabyrinthianT = TypeVar("_LabyrinthianT", bound=disnake.Client)
 if TYPE_CHECKING:
