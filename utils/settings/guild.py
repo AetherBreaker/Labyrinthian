@@ -5,15 +5,60 @@ from utils.settings import SettingsBaseModel
 
 
 DEFAULT_DM_ROLE_NAMES = {"dm", "gm", "dungeon master", "game master"}
+DEFAULT_BADGE_TEMPLATE = {
+    "1": 0,
+    "2": 1,
+    "3": 3,
+    "4": 6,
+    "5": 10,
+    "6": 14,
+    "7": 20,
+    "8": 26,
+    "9": 34,
+    "10": 42,
+    "11": 50,
+    "12": 58,
+    "13": 66,
+    "14": 76,
+    "15": 86,
+    "16": 96,
+    "17": 108,
+    "18": 120,
+    "19": 135,
+    "20": 150
+}
+DEFAULT_LISTING_DURS = {
+    "86400": 75,
+    "259200": 150,
+    "604800": 275,
+    "1209600": 450,
+    "2630000": 750
+}
+DEFAULT_RARITIES = {
+    "Common": 20,
+    "Uncommon": 40,
+    "Rare": 60,
+    "Very Rare": 80,
+    "Legendary": 200,
+    "Artifact": 400,
+    "Unknown": 0
+}
+DEFAULT_OUTBID_THRESHOLD = 50
+
 
 class ServerSettings(SettingsBaseModel):
     guild: int
-    dmroles: Optional[List[int]] = None
+    dmroles: Optional[List[str]] = None
     # lookup_dm_required: bool = True
     # lookup_pm_dm: bool = False
     # lookup_pm_result: bool = False
-    badgetemplate: Optional[Dict[Union[int, str], int]]
-    
+    badgetemplate: Optional[Dict[Union[int, str], int]] = DEFAULT_BADGE_TEMPLATE
+    listingdurs: Optional[Dict[Union[int,str], int]] = DEFAULT_LISTING_DURS
+    rarities: Optional[Dict[str,int]] = DEFAULT_RARITIES
+    outbitthreshold: Optional[int] = DEFAULT_OUTBID_THRESHOLD
+    ahfront: Optional[str] = None
+    ahback: Optional[str] = None
+    ahinternal: Optional[str] = None
 
     # ==== lifecycle ====
     @classmethod
@@ -28,12 +73,12 @@ class ServerSettings(SettingsBaseModel):
 
     async def commit(self, db):
         """Commits the settings to the database."""
-        await db.update_one('srvconf', {"guild": self.guild_id}, {"$set": self.dict()}, upsert=True)
+        await db.update_one('srvconf', {"guild": self.guild}, {"$set": self.dict()}, upsert=True)
 
     # ==== helpers ====
     def is_dm(self, member: disnake.Member):
         """Returns whether the given member is considered a DM given the DM roles specified in the servsettings."""
-        if not self.dm_roles:
+        if not self.dmroles:
             return any(r.name.lower() in DEFAULT_DM_ROLE_NAMES for r in member.roles)
-        dm_role_set = set(self.dm_roles)
+        dm_role_set = set(self.dmroles)
         return any(r.id in dm_role_set for r in member.roles)

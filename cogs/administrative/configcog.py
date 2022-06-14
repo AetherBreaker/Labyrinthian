@@ -6,6 +6,7 @@ import disnake
 from cogs.badgelog.browser import create_CharSelect
 from disnake.ext import commands
 from utils import checks
+from utils.ui.settingsui import SettingsNav
 
 _LabyrinthianT = TypeVar("_LabyrinthianT", bound=disnake.Client)
 if TYPE_CHECKING:
@@ -96,7 +97,7 @@ class Configs(commands.Cog):
             roleslist.append(role3)
         if role4!=None:
             roleslist.append(role4)
-        role_ids = [r.id for r in roleslist]
+        role_ids = [str(r.id) for r in roleslist]
         srvconf = await self.bot.dbcache.find_one('srvconf', {"guild": str(inter.guild.id)})
         if srvconf is None:
             srvconf = {"guild": str(inter.guild.id)}
@@ -206,6 +207,12 @@ class Configs(commands.Cog):
     @staff.sub_command()
     async def removelisting(self, inter: disnake.ApplicationCommandInteraction, listing: str):
         pass
+
+    @admin.sub_command()
+    async def serversettings(self, inter: disnake.ApplicationCommandInteraction):
+        settings = await self.bot.get_server_settings(str(inter.guild.id))
+        settings_ui = SettingsNav.new(self.bot, inter.author, settings, inter.guild)
+        await settings_ui.send_to(inter, ephemeral=True)
 
 def setup(bot):
     bot.add_cog(Configs(bot))

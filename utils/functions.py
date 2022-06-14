@@ -134,6 +134,12 @@ async def confirm(ctx: commands.Context, message: disnake.Message, delete_msgs=F
             pass
     return reply_bool
 
+def natural_join(things, between: str):
+    if len(things) < 3:
+        return f" {between} ".join(things)
+    first_part = ", ".join(things[:-1])
+    return f"{first_part}, {between} {things[-1]}"
+
 async def confirmInter(inter: disnake.Interaction, message, delete_msgs=False, response_check=get_positivity):
     """
     Confirms whether a user wants to take an action.

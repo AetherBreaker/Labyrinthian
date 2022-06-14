@@ -12,7 +12,7 @@ class MenuBase(disnake.ui.View):
 
     @classmethod
     def from_menu(cls, other: "MenuBase"):
-        inst = cls(owner=other.owner)
+        inst = cls(owner=other.owner, timeout=other.timeout)
         inst.message = other.message
         for attr in cls.__menu_copy_attrs__:
             # copy the instance attr to the new instance if available, or fall back to the class default
@@ -32,6 +32,7 @@ class MenuBase(disnake.ui.View):
 
     async def on_timeout(self):
         if self.message is None:
+            print("thisis a test")
             return
         try:
             await self.message.edit(view=None)
@@ -53,13 +54,13 @@ class MenuBase(disnake.ui.View):
         pass
 
     # ==== helpers ====
-    async def send_to(self, destination: disnake.abc.Messageable, *args, **kwargs):
+    async def send_to(self, destination: disnake.Interaction, *args, **kwargs):
         """Sends this menu to a given destination."""
         await self._before_send()
         content_kwargs = await self.get_content()
-        message = await destination.send(*args, view=self, **content_kwargs, **kwargs)
-        self.message = message
-        return message
+        await destination.send(*args, view=self, **content_kwargs, **kwargs)
+        self.message = await destination.original_message()
+        return self.message
 
     async def defer_to(self, view_type: Type["MenuBase"], interaction: disnake.Interaction, stop=True):
         """Defers control to another menu item."""

@@ -26,9 +26,9 @@ intents = disnake.Intents.all()
 cwd = os.getcwd()
 
 extensions = (
-    "cogs.badgelog.main",
-    "cogs.administrative.serverconfigs",
-    "cogs.auction.auction_main",
+    "cogs.badgelog.badgelogcog",
+    "cogs.administrative.configcog",
+    "cogs.auction.auctioncog",
 )
 
 # async def get_prefix(bot: commands.Bot, message: disnake.Message):
@@ -57,7 +57,7 @@ class Labyrinthian(commands.Bot):
         self.dbcache = MongoCache.MongoCache(self, cwd, maxsize=50, ttl=20)
         self.charcache = MongoCache.CharlistCache(self, maxsize=50, ttl=20)
 
-    async def get_server_settings(self, guild_id: str):
+    async def get_server_settings(self, guild_id: str) -> ServerSettings:
         if not isinstance(guild_id, str):
             guild_id = str(guild_id)
         server_settings = await ServerSettings.for_guild(self.dbcache, guild_id)

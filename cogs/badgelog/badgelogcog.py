@@ -1,3 +1,4 @@
+from http import server
 from string import Template
 from time import time
 from typing import TYPE_CHECKING, Any, Dict, List, TypeVar
@@ -7,6 +8,7 @@ from cogs.badgelog.browser import create_CharSelect
 from disnake.ext import commands
 from pymongo.results import InsertOneResult
 from utils.checks import urlCheck
+from utils.settings.guild import ServerSettings
 
 _LabyrinthianT = TypeVar("_LabyrinthianT", bound=disnake.Client)
 if TYPE_CHECKING:
@@ -248,12 +250,12 @@ class Badges(commands.Cog):
         badgeinput: The amount of badges to add (or remove)
         awardingdm: The DM that awarded you badges, if fixing/adjusting your badges, select @Labyrinthian"""
         character: Dict[str, Any] = await self.bot.dbcache.find_one(f"BLCharList_{inter.guild.id}", {"user": str(inter.author.id), "character": charname})
-        srvconf: Dict[str, Any] = await self.bot.dbcache.find_one('srvconf', {"guild": str(inter.guild.id)})
+        serverconf: ServerSettings = self.bot.get_server_settings(str(inter.guild.id))
         if character is None:
             await inter.response.send_message(f"{charname} doesn't exist!")
         elif badgeinput == 0:
             await inter.response.send_message("You can't add zero badges!")
-        elif not any([role.id in srvconf['dmroles'] for role in awardingdm.roles]) and not awardingdm == self.bot.user:
+        elif not serverconf.is_dm(awardingdm) and not awardingdm == self.bot.user:
             await inter.response.send_message(f"<@{awardingdm.id}> isn't a DM!")
         else:
             timeStamp = int(time())
