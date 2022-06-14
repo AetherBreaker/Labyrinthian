@@ -59,7 +59,7 @@ class MongoCache(cachetools.TTLCache):
         key, value = super().popitem()
         self.updateLITdat(key, value)
         asyncio.create_task(self.updatedb(key, value))
-        print('Key "%s" evicted with value "%s"' % (key, value))
+        #print('Key "%s" evicted with value "%s"' % (key, value))
         return key, value
 
     async def updatedb(self, key: str, value: Union[MutableMapping[str, Any], RawBSONDocument]):
@@ -75,7 +75,7 @@ class MongoCache(cachetools.TTLCache):
                 self.removefromLITdat(key)
         except:
             pass
-        print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
+        #print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
 
     def updateLITdat(self, key: str, value: Dict[str, Union[str, int, List, Dict, ObjectId, datetime, float]]):
         # open our sessions lost in transit data file in read only mode
@@ -159,7 +159,7 @@ class MongoCache(cachetools.TTLCache):
         if 'collectionkey' not in data:
             data['collectionkey'] = collectionkey
         self[str(result.inserted_id)] = data
-        print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
+        #print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
         return result
 
     async def find_one(self, collectionkey: str, filter: Mapping[str, Any], *args: Any, **kwargs: Any) -> Optional[_DocumentType]:
@@ -167,14 +167,14 @@ class MongoCache(cachetools.TTLCache):
         cachematches = deepcopy(self.find_matches_in_self(filter))
         if cachematches:
             cachematches[0].pop('collectionkey')
-            print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
+            #print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
             return cachematches[0]
         else:
             data: MutableMapping[str, Any] = await self.bot.sdb[collectionkey].find_one(filter, *args, **kwargs)
             datacopy = deepcopy(data)
             datacopy['collectionkey'] = collectionkey
             self[str(datacopy['_id'])] = datacopy
-            print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
+            #print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
             return data
 
     # async def find(self, collectionkey: str, filter: Optional[Any] = None, *args: Any, **kwargs: Any):
@@ -191,14 +191,14 @@ class MongoCache(cachetools.TTLCache):
             self[idkey] = replacement
         replacement.pop('collectionkey')
         result: UpdateResult = await self.bot.sdb[collectionkey].replace_one(filter, replacement, upsert, *args, **kwargs)
-        print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
+        #print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
         return result
 
     async def update_one(self, collectionkey: str, filter: Mapping[str, Any], update: Union[Mapping[str, Any], Sequence[Mapping[str, Any]]], upsert: bool = False, *args, **kwargs) -> Union[UpdateResult, UpdateResultFacade]:
         document = await self.bot.sdb[collectionkey].find_one_and_update(*args, filter=filter, update=update, upsert=upsert, return_document=True, **kwargs)
         document['collectionkey'] = collectionkey
         self[str(document['_id'])] = document
-        print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
+        #print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
         return UpdateResultFacade(inserted_id=document['_id'])
 
     async def delete_one(self, collectionkey: str, filter: Mapping[str, Any], *args, **kwargs) -> DeleteResult:
@@ -215,10 +215,10 @@ class CharlistCache(cachetools.TTLCache):
 
     async def find_distinct_chardat(self, guildkey: str, userkey: str) -> List[str]:
         if f"{guildkey}{userkey}" in self:
-            print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
+            #print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
             return self[f'{guildkey}{userkey}']
         else:
             data: List[str] = await self.bot.sdb[f'BLCharList_{guildkey}'].distinct("character", {"user": userkey})
             self[f'{guildkey}{userkey}'] = data
-            print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
+            #print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
             return data

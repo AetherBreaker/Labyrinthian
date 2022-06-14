@@ -21,8 +21,6 @@ class Badges(commands.Cog):
         self.bot = bot
         self.valid = ['Artificer', 'Barbarian', 'Bard', 'Blood Hunter', 'Cleric', 'Druid', 'Fighter', 'Monk', 'Paladin', 'Ranger', 'Rogue', 'Sorcerer', 'Warlock', 'Wizard']
 
-    validClass = commands.option_enum(['Artificer', 'Barbarian', 'Bard', 'Blood Hunter', 'Cleric', 'Druid', 'Fighter', 'Monk', 'Paladin', 'Ranger', 'Rogue', 'Sorcerer', 'Warlock', 'Wizard'])
-
     async def validateClass(self, guildID):
         """Returns a list of valid classes from classlist in the server config if exists, otherwise the Badges default valid classes.
         Parameters

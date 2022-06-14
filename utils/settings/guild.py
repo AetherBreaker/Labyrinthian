@@ -1,3 +1,4 @@
+from optparse import Option
 from typing import Dict, List, Optional, Union
 
 import disnake
@@ -43,22 +44,39 @@ DEFAULT_RARITIES = {
     "Artifact": 400,
     "Unknown": 0
 }
-DEFAULT_OUTBID_THRESHOLD = 50
+DEFAULT_CLASS_LIST = (
+    'Artificer',
+    'Barbarian',
+    'Bard',
+    'Blood Hunter',
+    'Cleric',
+    'Druid',
+    'Fighter',
+    'Monk',
+    'Paladin',
+    'Ranger',
+    'Rogue',
+    'Sorcerer',
+    'Warlock',
+    'Wizard'
+)
 
 
 class ServerSettings(SettingsBaseModel):
-    guild: int
+    guild: str
     dmroles: Optional[List[str]] = None
+    classlist: Optional[List[str]] = DEFAULT_CLASS_LIST
     # lookup_dm_required: bool = True
     # lookup_pm_dm: bool = False
     # lookup_pm_result: bool = False
-    badgetemplate: Optional[Dict[Union[int, str], int]] = DEFAULT_BADGE_TEMPLATE
-    listingdurs: Optional[Dict[Union[int,str], int]] = DEFAULT_LISTING_DURS
+    badgetemplate: Optional[Dict[str, int]] = DEFAULT_BADGE_TEMPLATE
+    listingdurs: Optional[Dict[str, int]] = DEFAULT_LISTING_DURS
     rarities: Optional[Dict[str,int]] = DEFAULT_RARITIES
-    outbitthreshold: Optional[int] = DEFAULT_OUTBID_THRESHOLD
+    outbidthreshold: Optional[int] = 50
     ahfront: Optional[str] = None
     ahback: Optional[str] = None
     ahinternal: Optional[str] = None
+    badgelabel: Optional[str] = 'badges'
 
     # ==== lifecycle ====
     @classmethod

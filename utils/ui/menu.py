@@ -32,7 +32,6 @@ class MenuBase(disnake.ui.View):
 
     async def on_timeout(self):
         if self.message is None:
-            print("thisis a test")
             return
         try:
             await self.message.edit(view=None)

@@ -317,9 +317,9 @@ class RaritySelect(disnake.ui.Select[ListingConst]):
 
     def _refresh_rarity_select(self):
         self.options.clear()
-        for x in self.rarities:
+        for x,y in self.rarities.items():
             selected = True if x == self.firstrare else False
-            self.add_option(label=f"{x} - {self.rarities[x]} gp fee", value=x, default=selected)
+            self.add_option(label=f"{x} - {y} gp fee", value=x, default=selected)
 
     async def callback(self, inter: disnake.MessageInteraction):
         self.view: ListingConst
