@@ -6,8 +6,18 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from random import randint
-from typing import (TYPE_CHECKING, Any, Dict, List, Mapping, MutableMapping,
-                    Optional, Sequence, TypeVar, Union)
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    TypeVar,
+    Union,
+)
 
 import cachetools
 import disnake
@@ -23,15 +33,22 @@ if TYPE_CHECKING:
 
     _LabyrinthianT = Labyrinthian
 
+
 @dataclass
 class UpdateResultFacade:
     inserted_id: ObjectId
 
 
-
-
 class MongoCache(cachetools.TTLCache):
-    def __init__(self, bot: _LabyrinthianT, workdir: str, maxsize: float, ttl: float, *args, **kwargs) -> None:
+    def __init__(
+        self,
+        bot: _LabyrinthianT,
+        workdir: str,
+        maxsize: float,
+        ttl: float,
+        *args,
+        **kwargs,
+    ) -> None:
         super().__init__(maxsize, ttl, *args, **kwargs)
         self.bot = bot
 
@@ -43,8 +60,13 @@ class MongoCache(cachetools.TTLCache):
             p.mkdir(parents=True, exist_ok=True)
         while not LITdatDONE:
             try:
-                path = os.path.join(workdir, "logs", "LITdat", f"LITlog{'' if index == 0 else str(index)}.txt")
-                with open(path, 'x'):
+                path = os.path.join(
+                    workdir,
+                    "logs",
+                    "LITdat",
+                    f"LITlog{'' if index == 0 else str(index)}.txt",
+                )
+                with open(path, "x"):
                     pass
                 self.path = path
                 LITdatDONE = True
@@ -59,13 +81,17 @@ class MongoCache(cachetools.TTLCache):
         key, value = super().popitem()
         self.updateLITdat(key, value)
         asyncio.create_task(self.updatedb(key, value))
-        #print('Key "%s" evicted with value "%s"' % (key, value))
+        # print('Key "%s" evicted with value "%s"' % (key, value))
         return key, value
 
-    async def updatedb(self, key: str, value: Union[MutableMapping[str, Any], RawBSONDocument]):
-        collectionkey = deepcopy(value['collectionkey'])
-        value.pop('collectionkey')
-        result: UpdateResult = await self.bot.sdb[collectionkey].replace_one({'_id': value['_id']}, value, True)
+    async def updatedb(
+        self, key: str, value: Union[MutableMapping[str, Any], RawBSONDocument]
+    ):
+        collectionkey = deepcopy(value["collectionkey"])
+        value.pop("collectionkey")
+        result: UpdateResult = await self.bot.sdb[collectionkey].replace_one(
+            {"_id": value["_id"]}, value, True
+        )
 
         # this is to check if our write operation to the database succeeded
         # if matched_count is less than 1 or it throws an error, the operation failed
@@ -75,9 +101,13 @@ class MongoCache(cachetools.TTLCache):
                 self.removefromLITdat(key)
         except:
             pass
-        #print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
+        # print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
 
-    def updateLITdat(self, key: str, value: Dict[str, Union[str, int, List, Dict, ObjectId, datetime, float]]):
+    def updateLITdat(
+        self,
+        key: str,
+        value: Dict[str, Union[str, int, List, Dict, ObjectId, datetime, float]],
+    ):
         # open our sessions lost in transit data file in read only mode
         # and store the contents in a variable
         # we then close the file
@@ -104,13 +134,14 @@ class MongoCache(cachetools.TTLCache):
 
         # time to join the data back together with newlines for text editor readability
         # data is stored as "key: value" per line
-        data = '\n'.join([f"{datakey}: {datavalue}" for datakey, datavalue in data.items()])
+        data = "\n".join(
+            [f"{datakey}: {datavalue}" for datakey, datavalue in data.items()]
+        )
 
         # overwrite the contents of the original file, then close it.
         LITdat = open(self.path, "w")
         LITdat.write(data)
         LITdat.close()
-
 
     def removefromLITdat(self, key: str):
         # open our sessions lost in transit data file in read only mode
@@ -139,7 +170,9 @@ class MongoCache(cachetools.TTLCache):
 
         # time to join the data back together with newlines for text editor readability
         # data is stored as "key: value" per line
-        data = '\n'.join([f"{datakey}: {datavalue}" for datakey, datavalue in data.items()])
+        data = "\n".join(
+            [f"{datakey}: {datavalue}" for datakey, datavalue in data.items()]
+        )
 
         # overwrite the contents of the original file, then close it.
         LITdat = open(self.path, "w")
@@ -149,59 +182,105 @@ class MongoCache(cachetools.TTLCache):
     def find_matches_in_self(self, searchfilter: Mapping[str, Any]):
         """Searches through the cache and returns a list of cache values that match the provided filter
         filter is expected to be a dict where every key value pair must match a key value pair in a cache document"""
-        return list(filter(lambda item: all([x in item and item[x] == y for x,y in searchfilter.items()]), self.values()))
+        return list(
+            filter(
+                lambda item: all(
+                    [x in item and item[x] == y for x, y in searchfilter.items()]
+                ),
+                self.values(),
+            )
+        )
 
-    async def insert_one(self, collectionkey: str, document: Union[MutableMapping[str, Any], RawBSONDocument], *args, **kwargs) -> InsertOneResult:
-        result: InsertOneResult = await self.bot.sdb[collectionkey].insert_one(document, *args, **kwargs)
+    async def insert_one(
+        self,
+        collectionkey: str,
+        document: Union[MutableMapping[str, Any], RawBSONDocument],
+        *args,
+        **kwargs,
+    ) -> InsertOneResult:
+        result: InsertOneResult = await self.bot.sdb[collectionkey].insert_one(
+            document, *args, **kwargs
+        )
         data = document
-        if '_id' not in data:
-            data['_id'] = result.inserted_id
-        if 'collectionkey' not in data:
-            data['collectionkey'] = collectionkey
+        if "_id" not in data:
+            data["_id"] = result.inserted_id
+        if "collectionkey" not in data:
+            data["collectionkey"] = collectionkey
         self[str(result.inserted_id)] = data
-        #print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
+        # print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
         return result
 
-    async def find_one(self, collectionkey: str, filter: Mapping[str, Any], *args: Any, **kwargs: Any) -> Optional[_DocumentType]:
+    async def find_one(
+        self, collectionkey: str, filter: Mapping[str, Any], *args: Any, **kwargs: Any
+    ) -> Optional[_DocumentType]:
         data = None
         cachematches = deepcopy(self.find_matches_in_self(filter))
         if cachematches:
-            cachematches[0].pop('collectionkey')
-            #print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
+            cachematches[0].pop("collectionkey")
+            # print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
             return cachematches[0]
         else:
-            data: MutableMapping[str, Any] = await self.bot.sdb[collectionkey].find_one(filter, *args, **kwargs)
+            data: MutableMapping[str, Any] = await self.bot.sdb[collectionkey].find_one(
+                filter, *args, **kwargs
+            )
             datacopy = deepcopy(data)
-            datacopy['collectionkey'] = collectionkey
-            self[str(datacopy['_id'])] = datacopy
-            #print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
+            datacopy["collectionkey"] = collectionkey
+            self[str(datacopy["_id"])] = datacopy
+            # print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
             return data
 
     # async def find(self, collectionkey: str, filter: Optional[Any] = None, *args: Any, **kwargs: Any):
     #     pass
 
-    async def replace_one(self, collectionkey: str, filter: Mapping[str, Any], replacement: Mapping[str, Any], upsert: bool = False, *args, **kwargs) -> UpdateResult:
-        if 'collectionkey' not in replacement:
-            replacement['collectionkey'] = collectionkey
-        if str(replacement['_id']) in self.keys():
-            self[str(replacement['_id'])] = replacement
+    async def replace_one(
+        self,
+        collectionkey: str,
+        filter: Mapping[str, Any],
+        replacement: Mapping[str, Any],
+        upsert: bool = False,
+        *args,
+        **kwargs,
+    ) -> UpdateResult:
+        if "collectionkey" not in replacement:
+            replacement["collectionkey"] = collectionkey
+        if str(replacement["_id"]) in self.keys():
+            self[str(replacement["_id"])] = replacement
         else:
             cachematches = self.find_matches_in_self(filter)
-            idkey = str(cachematches[0]['_id'])
+            idkey = str(cachematches[0]["_id"])
             self[idkey] = replacement
-        replacement.pop('collectionkey')
-        result: UpdateResult = await self.bot.sdb[collectionkey].replace_one(filter, replacement, upsert, *args, **kwargs)
-        #print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
+        replacement.pop("collectionkey")
+        result: UpdateResult = await self.bot.sdb[collectionkey].replace_one(
+            filter, replacement, upsert, *args, **kwargs
+        )
+        # print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
         return result
 
-    async def update_one(self, collectionkey: str, filter: Mapping[str, Any], update: Union[Mapping[str, Any], Sequence[Mapping[str, Any]]], upsert: bool = False, *args, **kwargs) -> Union[UpdateResult, UpdateResultFacade]:
-        document = await self.bot.sdb[collectionkey].find_one_and_update(*args, filter=filter, update=update, upsert=upsert, return_document=True, **kwargs)
-        document['collectionkey'] = collectionkey
-        self[str(document['_id'])] = document
-        #print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
-        return UpdateResultFacade(inserted_id=document['_id'])
+    async def update_one(
+        self,
+        collectionkey: str,
+        filter: Mapping[str, Any],
+        update: Union[Mapping[str, Any], Sequence[Mapping[str, Any]]],
+        upsert: bool = False,
+        *args,
+        **kwargs,
+    ) -> Union[UpdateResult, UpdateResultFacade]:
+        document = await self.bot.sdb[collectionkey].find_one_and_update(
+            *args,
+            filter=filter,
+            update=update,
+            upsert=upsert,
+            return_document=True,
+            **kwargs,
+        )
+        document["collectionkey"] = collectionkey
+        self[str(document["_id"])] = document
+        # print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
+        return UpdateResultFacade(inserted_id=document["_id"])
 
-    async def delete_one(self, collectionkey: str, filter: Mapping[str, Any], *args, **kwargs) -> DeleteResult:
+    async def delete_one(
+        self, collectionkey: str, filter: Mapping[str, Any], *args, **kwargs
+    ) -> DeleteResult:
         pass
 
     """note to self, store items in LIT file
@@ -209,16 +288,20 @@ class MongoCache(cachetools.TTLCache):
 
 
 class CharlistCache(cachetools.TTLCache):
-    def __init__(self, bot: _LabyrinthianT, maxsize: float, ttl: float, *args, **kwargs) -> None:
+    def __init__(
+        self, bot: _LabyrinthianT, maxsize: float, ttl: float, *args, **kwargs
+    ) -> None:
         super().__init__(maxsize, ttl, *args, **kwargs)
         self.bot = bot
 
     async def find_distinct_chardat(self, guildkey: str, userkey: str) -> List[str]:
         if f"{guildkey}{userkey}" in self:
-            #print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
-            return self[f'{guildkey}{userkey}']
+            # print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
+            return self[f"{guildkey}{userkey}"]
         else:
-            data: List[str] = await self.bot.sdb[f'BLCharList_{guildkey}'].distinct("character", {"user": userkey})
-            self[f'{guildkey}{userkey}'] = data
-            #print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
+            data: List[str] = await self.bot.sdb[f"BLCharList_{guildkey}"].distinct(
+                "character", {"user": userkey}
+            )
+            self[f"{guildkey}{userkey}"] = data
+            # print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
             return data

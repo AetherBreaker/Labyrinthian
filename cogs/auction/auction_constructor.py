@@ -21,8 +21,12 @@ TOO_MANY_CHARACTERS_SENTINEL = "__special:too_many_characters"
 instructionsfrmt = "ansi\n\u001b[1;40;32m"
 errorfrmt = "ansi\n\u001b[1;40;31m"
 
-async def send_const(inter: disnake.ApplicationCommandInteraction, *args, **kwargs) -> NoReturn:
+
+async def send_const(
+    inter: disnake.ApplicationCommandInteraction, *args, **kwargs
+) -> NoReturn:
     await ConstSender._init(inter, *args, **kwargs)
+
 
 class ConstSender(disnake.ui.View):
     def __init__(self) -> None:
@@ -33,26 +37,37 @@ class ConstSender(disnake.ui.View):
         inst = cls()
         emb = disnake.Embed(
             title="Auction House",
-            description="To post an item to the auction house, click the button below and follow the instructions provided."
+            description="To post an item to the auction house, click the button below and follow the instructions provided.",
         )
         await inter.response.send_message(embed=emb, view=inst)
         response = await inter.original_message()
-        await inter.bot.dbcache.update_one('srvconf', {"guild": str(inter.guild.id)}, {"$set": {"constid": [str(response.channel.id), str(response.id)]}}, True)
+        await inter.bot.dbcache.update_one(
+            "srvconf",
+            {"guild": str(inter.guild.id)},
+            {"$set": {"constid": [str(response.channel.id), str(response.id)]}},
+            True,
+        )
 
-
-    @disnake.ui.button(emoji="💳", style=disnake.ButtonStyle.primary, custom_id='constsender:primary')
-    async def send_constructor(self, button: disnake.ui.Button, inter: disnake.MessageInteraction) -> None:
+    @disnake.ui.button(
+        emoji="💳", style=disnake.ButtonStyle.primary, custom_id="constsender:primary"
+    )
+    async def send_constructor(
+        self, button: disnake.ui.Button, inter: disnake.MessageInteraction
+    ) -> None:
         await ListingConst._init(inter, inter.bot, inter.author)
+
 
 @dataclass
 class Rarity:
-    rarity: str = '\u200B'
+    rarity: str = "\u200B"
     fee: int = 0
+
 
 @dataclass
 class Prices:
     bid: int = 0
     buy: int = None
+
 
 @dataclass
 class Item:
@@ -62,6 +77,7 @@ class Item:
     attunement_info: str = "\u200B"
     rarity: Rarity = Rarity
 
+
 @dataclass
 class Duration:
     time: int = 0
@@ -69,13 +85,22 @@ class Duration:
 
     @property
     def enddate(self) -> str:
-        time = '\u200B' if self.time == 0 else disnake.utils.format_dt(disnake.utils.utcnow() + timedelta(seconds=self.time),"R",)
+        time = (
+            "\u200B"
+            if self.time == 0
+            else disnake.utils.format_dt(
+                disnake.utils.utcnow() + timedelta(seconds=self.time),
+                "R",
+            )
+        )
         return time
+
 
 @dataclass
 class Character:
     name: str = "Sir Richard of Astley"
     sheet: str = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+
 
 class ListingConst(disnake.ui.View):
     def __init__(self, bot: _LabyrinthianT, owner: disnake.Member) -> None:
@@ -87,12 +112,10 @@ class ListingConst(disnake.ui.View):
         self.duration = Duration()
         self.prices = Prices()
         self.character = Character()
-        self.item = Item(
-            rarity=Rarity()
-        )
+        self.item = Item(rarity=Rarity())
         self.instructions = f"""```{instructionsfrmt}To create your listing, first you must select a character using the dropdown shown below.```"""
-        self.errmsg = '\u200B'
-        self.selectmsg = '\u200B'
+        self.errmsg = "\u200B"
+        self.selectmsg = "\u200B"
         self.embeds = List[disnake.Embed]
         self.errembs = []
         self.dur_select_added = False
@@ -104,25 +127,38 @@ class ListingConst(disnake.ui.View):
     @property
     def auction_embed(self):
         emb = (
-            disnake.Embed(title=self.item.name, description=self.item.description, color=disnake.Colour.random().value)
+            disnake.Embed(
+                title=self.item.name,
+                description=self.item.description,
+                color=disnake.Colour.random().value,
+            )
             .set_author(name=self.character.name)
             .add_field(name="Rarity:", value=self.item.rarity.rarity, inline=True)
-            .add_field(name=f"Attunement: {'Yes' if self.item.attunement_required else 'No'}", value=self.item.attunement_info, inline=True)
+            .add_field(
+                name=f"Attunement: {'Yes' if self.item.attunement_required else 'No'}",
+                value=self.item.attunement_info,
+                inline=True,
+            )
             .add_field(name="\u200b", value="\u200b", inline=True)
-            .add_field(name=f"Top Bidder: None", value=f"Highest Bid: {self.prices.bid} gp", inline=True)
+            .add_field(
+                name=f"Top Bidder: None",
+                value=f"Highest Bid: {self.prices.bid} gp",
+                inline=True,
+            )
             .add_field(name="Ends:", value=self.duration.enddate, inline=True)
             .set_footer(text=f"{self.owner.name}#{self.owner.discriminator}")
         )
         if self.prices.buy != None:
-            emb.insert_field_at(4, name="Buy Now Price:", value=f"{self.prices.buy} gp", inline=True)
+            emb.insert_field_at(
+                4, name="Buy Now Price:", value=f"{self.prices.buy} gp", inline=True
+            )
         return emb
 
     @property
     def instructions_embed(self):
-        return (
-            disnake.Embed(title="Listing Creator", description=self.instructions)
-            .add_field(name="Auction Fees:", value=self.total_cost)
-        )
+        return disnake.Embed(
+            title="Listing Creator", description=self.instructions
+        ).add_field(name="Auction Fees:", value=self.total_cost)
 
     @property
     def total_cost(self) -> str:
@@ -130,38 +166,61 @@ class ListingConst(disnake.ui.View):
 
     @property
     def error_embed(self):
-        return (
-            disnake.Embed(title="Exception:", description=self.errmsg)
-        )
+        return disnake.Embed(title="Exception:", description=self.errmsg)
 
     @property
     def select_embed(self):
         return disnake.Embed(
             title="Character Select",
             description=self.selectmsg,
-            color=disnake.Colour.random().value
+            color=disnake.Colour.random().value,
         )
 
     @property
     def listingdata(self):
         return {
-            'topbidder': 'None',
-            'topbidchar': 'None',
-            'highestbid': self.prices.bid,
-            'startingbid': self.prices.bid,
-            'buynow': self.prices.buy,
-            'enddate': disnake.utils.utcnow() + timedelta(seconds=self.duration.time),
-            'character': self.character.name,
-            'userid': str(self.owner.id)
+            "topbidder": "None",
+            "topbidchar": "None",
+            "highestbid": self.prices.bid,
+            "startingbid": self.prices.bid,
+            "buynow": self.prices.buy,
+            "enddate": disnake.utils.utcnow() + timedelta(seconds=self.duration.time),
+            "character": self.character.name,
+            "userid": str(self.owner.id),
         }
 
     @classmethod
-    async def _init(cls, inter: disnake.MessageInteraction, bot: _LabyrinthianT, owner: disnake.Member):
+    async def _init(
+        cls,
+        inter: disnake.MessageInteraction,
+        bot: _LabyrinthianT,
+        owner: disnake.Member,
+    ):
         inst: ListingConst = cls(bot=bot, owner=owner)
-        charlist = await inst.bot.sdb[f'BLCharList_{inter.guild.id}'].find({"user": str(inst.owner.id)}).to_list(None)
-        srvconf = await inst.bot.dbcache.find_one('srvconf', {"guild": str(inter.guild.id)})
-        durlist = srvconf.get('listingdurs', {"86400": 75,"259200": 150,"604800": 275,"1209600": 450,"2630000": 750})
-        inst.rarities = srvconf.get('rarities', {"Common": 20, "Uncommon": 40, "Rare": 60, "Very Rare": 80, "Legendary": 200, "Artifact": 400, "Unknown": 0})
+        charlist = (
+            await inst.bot.sdb[f"BLCharList_{inter.guild.id}"]
+            .find({"user": str(inst.owner.id)})
+            .to_list(None)
+        )
+        srvconf = await inst.bot.dbcache.find_one(
+            "srvconf", {"guild": str(inter.guild.id)}
+        )
+        durlist = srvconf.get(
+            "listingdurs",
+            {"86400": 75, "259200": 150, "604800": 275, "1209600": 450, "2630000": 750},
+        )
+        inst.rarities = srvconf.get(
+            "rarities",
+            {
+                "Common": 20,
+                "Uncommon": 40,
+                "Rare": 60,
+                "Very Rare": 80,
+                "Legendary": 200,
+                "Artifact": 400,
+                "Unknown": 0,
+            },
+        )
         inst.durations = {
             str(timedeltaplus(seconds=int(duration))): Duration(int(duration), cost)
             for duration, cost in durlist.items()
@@ -169,11 +228,22 @@ class ListingConst(disnake.ui.View):
         inst.add_item(CharSelect(inst.bot, charlist))
         inst.embeds = [inst.auction_embed, inst.instructions_embed]
         if len(charlist) <= 0:
-            await inter.response.send_message("You don't have any characters to post a listing with!\nPlease create a character with /create before using this.", ephemeral=True)
+            await inter.response.send_message(
+                "You don't have any characters to post a listing with!\nPlease create a character with /create before using this.",
+                ephemeral=True,
+            )
         else:
-            await inter.response.send_message(embeds=inst.embeds, view=inst, ephemeral=True)
+            await inter.response.send_message(
+                embeds=inst.embeds, view=inst, ephemeral=True
+            )
 
-    async def refresh_content(self, inter: disnake.Interaction, error: bool=False, select: bool=False, **kwargs):
+    async def refresh_content(
+        self,
+        inter: disnake.Interaction,
+        error: bool = False,
+        select: bool = False,
+        **kwargs,
+    ):
         self.embeds = [self.auction_embed, self.instructions_embed]
         if select:
             self.embeds.insert(3, self.selectmsg)
@@ -187,16 +257,14 @@ class ListingConst(disnake.ui.View):
         else:
             await inter.response.edit_message(embeds=self.embeds, view=self, **kwargs)
 
+
 class CharSelect(disnake.ui.Select[ListingConst]):
     def __init__(self, bot: _LabyrinthianT, charlist: List[str]) -> None:
         self.bot = bot
         self.charlist = charlist
         self.firstchar = None
         super().__init__(
-            placeholder="Select Character",
-            min_values=1,
-            max_values=1,
-            row=0
+            placeholder="Select Character", min_values=1, max_values=1, row=0
         )
         self._refresh_character_select()
 
@@ -204,12 +272,13 @@ class CharSelect(disnake.ui.Select[ListingConst]):
         self.options.clear()
         if len(self.charlist) > 25:
             self.add_option(
-                label="Whoa, you have a lot of characters! Click here to select one.", value=TOO_MANY_CHARACTERS_SENTINEL
+                label="Whoa, you have a lot of characters! Click here to select one.",
+                value=TOO_MANY_CHARACTERS_SENTINEL,
             )
             return
         for char in reversed(self.charlist):  # display highest-first
-            selected = True if char['character'] == self.firstchar else False
-            self.add_option(label=char['character'], default=selected)
+            selected = True if char["character"] == self.firstchar else False
+            self.add_option(label=char["character"], default=selected)
 
     async def callback(self, inter: disnake.MessageInteraction):
         self.view: ListingConst
@@ -221,8 +290,8 @@ class CharSelect(disnake.ui.Select[ListingConst]):
         self.firstchar = charname
         self.view.character.name = charname
         for x in self.charlist:
-            if x['character'] == charname:
-                self.view.character.sheet = x['sheet']
+            if x["character"] == charname:
+                self.view.character.sheet = x["sheet"]
                 break
         self._refresh_character_select()
         if not self.view.dur_select_added:
@@ -234,41 +303,55 @@ class CharSelect(disnake.ui.Select[ListingConst]):
             )
         await self.view.refresh_content(inter)
 
-    async def _text_select_char(self, inter: disnake.MessageInteraction) -> Optional[str]:
+    async def _text_select_char(
+        self, inter: disnake.MessageInteraction
+    ) -> Optional[str]:
         self.disabled = True
-        self.view.selectmsg="Choose one of the following characters by sending a message to this channel.\n"+'\n'.join([x['character'] for x in self.charlist]),
+        self.view.selectmsg = (
+            "Choose one of the following characters by sending a message to this channel.\n"
+            + "\n".join([x["character"] for x in self.charlist]),
+        )
         await self.view.refresh_content(inter, select=True)
 
         try:
             input_msg: disnake.Message = await self.bot.wait_for(
                 "message",
                 timeout=60,
-                check=lambda msg: msg.author == inter.author and msg.channel.id == inter.channel_id,
+                check=lambda msg: msg.author == inter.author
+                and msg.channel.id == inter.channel_id,
             )
             with suppress(disnake.HTTPException):
                 await input_msg.delete()
                 await self.view.refresh_content(inter)
 
-            charname=[]
+            charname = []
             for x in self.charlist:
-                if "".join(input_msg.content.split()).casefold() in "".join(x['character'].split()).casefold():
-                    charname = x['character']
+                if (
+                    "".join(input_msg.content.split()).casefold()
+                    in "".join(x["character"].split()).casefold()
+                ):
+                    charname = x["character"]
 
             if charname:
                 return charname
-            self.view.selectmsg = "No valid character found. Use the select menu to try again."
+            self.view.selectmsg = (
+                "No valid character found. Use the select menu to try again."
+            )
             await self.view.refresh_content(inter, select=True)
             await asyncio.sleep(6.0)
             await self.view.refresh_content(inter)
             return None
         except TimeoutError:
-            self.view.selectmsg = "No valid character found. Use the select menu to try again."
+            self.view.selectmsg = (
+                "No valid character found. Use the select menu to try again."
+            )
             await self.view.refresh_content(inter, select=True)
             await asyncio.sleep(6.0)
             await self.view.refresh_content(inter)
             return
         finally:
             self.disabled = False
+
 
 class DurSelect(disnake.ui.Select[ListingConst]):
     def __init__(self, durlist: List[int]) -> None:
@@ -278,7 +361,7 @@ class DurSelect(disnake.ui.Select[ListingConst]):
             placeholder="Select the Duration of your Listing",
             min_values=1,
             max_values=1,
-            row=1
+            row=1,
         )
         self._refresh_dur_select()
 
@@ -287,7 +370,11 @@ class DurSelect(disnake.ui.Select[ListingConst]):
         durcls: Duration
         for display_dur, durcls in self.durlist.items():
             selected = True if durcls == self.firstdur else False
-            self.add_option(label=f"{str(timedeltaplus(seconds=durcls.time))} - {durcls.fee} gp fee", value=display_dur, default=selected)
+            self.add_option(
+                label=f"{str(timedeltaplus(seconds=durcls.time))} - {durcls.fee} gp fee",
+                value=display_dur,
+                default=selected,
+            )
 
     async def callback(self, inter: disnake.MessageInteraction):
         self.view: ListingConst
@@ -303,21 +390,19 @@ class DurSelect(disnake.ui.Select[ListingConst]):
             self.view.add_item(AttunementButton())
         await self.view.refresh_content(inter)
 
+
 class RaritySelect(disnake.ui.Select[ListingConst]):
     def __init__(self, rarities: Dict[str, int]) -> None:
         self.firstrare = None
         self.rarities = rarities
         super().__init__(
-            placeholder="Select Item Rarity",
-            min_values=1,
-            max_values=1,
-            row=2
-            )
+            placeholder="Select Item Rarity", min_values=1, max_values=1, row=2
+        )
         self._refresh_rarity_select()
 
     def _refresh_rarity_select(self):
         self.options.clear()
-        for x,y in self.rarities.items():
+        for x, y in self.rarities.items():
             selected = True if x == self.firstrare else False
             self.add_option(label=f"{x} - {y} gp fee", value=x, default=selected)
 
@@ -338,6 +423,7 @@ class RaritySelect(disnake.ui.Select[ListingConst]):
         self._refresh_rarity_select()
         await self.view.refresh_content(inter)
 
+
 class AttunementButton(disnake.ui.Button[ListingConst]):
     def __init__(self):
         self.selected = False
@@ -345,7 +431,7 @@ class AttunementButton(disnake.ui.Button[ListingConst]):
             style=disnake.ButtonStyle.secondary,
             label="Attunement: No",
             emoji="🔳",
-            row=3
+            row=3,
         )
 
     async def callback(self, inter: disnake.MessageInteraction):
@@ -354,50 +440,47 @@ class AttunementButton(disnake.ui.Button[ListingConst]):
         if self.selected == False:
             self.selected = True
             self.view.item.attunement_required = True
-            self.style=disnake.ButtonStyle.success
-            self.label="Attunement: Yes"
-            self.emoji="✅"
+            self.style = disnake.ButtonStyle.success
+            self.label = "Attunement: Yes"
+            self.emoji = "✅"
         elif self.selected == True:
             self.selected = False
             self.view.item.attunement_required = True
-            self.style=disnake.ButtonStyle.secondary
-            self.label="Attunement: No"
-            self.emoji="🔳"
+            self.style = disnake.ButtonStyle.secondary
+            self.label = "Attunement: No"
+            self.emoji = "🔳"
         await self.view.refresh_content(inter)
+
 
 class SendModalButton(disnake.ui.Button[ListingConst]):
     def __init__(self, bot: _LabyrinthianT):
         self.bot = bot
-        super().__init__(
-            style=disnake.ButtonStyle.green,
-            label="Continue",
-            emoji="➡️"
-            )
-    
+        super().__init__(style=disnake.ButtonStyle.green, label="Continue", emoji="➡️")
+
     async def callback(self, inter: disnake.MessageInteraction):
         self.view: ListingConst
         random = randint(20934845, 790708956087)
-        components=[
+        components = [
             disnake.ui.TextInput(
                 label="Item Name",
                 placeholder="Winged Boots",
                 custom_id="itemName",
                 style=disnake.TextInputStyle.single_line,
-                max_length=256
+                max_length=256,
             ),
             disnake.ui.TextInput(
                 label="Description",
                 placeholder=f"""Item Description""",
                 custom_id="itemDesc",
                 style=disnake.TextInputStyle.multi_line,
-                max_length=4000
+                max_length=4000,
             ),
             disnake.ui.TextInput(
                 label="Starting Bid",
                 placeholder="GP only, no decimals",
                 custom_id="bidStart",
                 style=disnake.TextInputStyle.single_line,
-                max_length=9
+                max_length=9,
             ),
             disnake.ui.TextInput(
                 label="Buy Now Price *Optional*",
@@ -405,27 +488,31 @@ class SendModalButton(disnake.ui.Button[ListingConst]):
                 custom_id="buyNow",
                 style=disnake.TextInputStyle.single_line,
                 max_length=9,
-                required=False
-            )
+                required=False,
+            ),
         ]
         if self.view.item.attunement_required:
-            components.insert(2, disnake.ui.TextInput(
-                label="Additional Attunement Info",
-                required=False,
-                custom_id="attunementInfo",
-                style=disnake.TextInputStyle.single_line,
-                max_length=1024
-            ))
+            components.insert(
+                2,
+                disnake.ui.TextInput(
+                    label="Additional Attunement Info",
+                    required=False,
+                    custom_id="attunementInfo",
+                    style=disnake.TextInputStyle.single_line,
+                    max_length=1024,
+                ),
+            )
         await inter.response.send_modal(
             title="Listing Text Form",
             custom_id=f"{random}listing_form_modal",
-            components=components
+            components=components,
         )
 
         try:
             modal_inter: disnake.ModalInteraction = await self.bot.wait_for(
                 "modal_submit",
-                check=lambda i: i.custom_id == f"{random}listing_form_modal" and i.author.id == inter.author.id,
+                check=lambda i: i.custom_id == f"{random}listing_form_modal"
+                and i.author.id == inter.author.id,
                 timeout=300,
             )
         except asyncio.TimeoutError:
@@ -435,29 +522,36 @@ class SendModalButton(disnake.ui.Button[ListingConst]):
             return
 
         errchk = False
-        self.view.item.name = modal_inter.text_values['itemName']
+        self.view.item.name = modal_inter.text_values["itemName"]
 
-        self.view.item.description = modal_inter.text_values['itemDesc']
+        self.view.item.description = modal_inter.text_values["itemDesc"]
 
-        if 'attunementInfo' in modal_inter.text_values and len(modal_inter.text_values['attunementInfo']) > 0:
-            self.view.item.attunement_info = modal_inter.text_values['attunementInfo']
+        if (
+            "attunementInfo" in modal_inter.text_values
+            and len(modal_inter.text_values["attunementInfo"]) > 0
+        ):
+            self.view.item.attunement_info = modal_inter.text_values["attunementInfo"]
 
         try:
-            self.view.prices.bid = int(modal_inter.text_values['bidStart'])
+            self.view.prices.bid = int(modal_inter.text_values["bidStart"])
         except (ValueError, TypeError):
             self.view.errmsg = f"It seems your starting bid couldn't be converted to a whole number, heres the error traceback:\n```{errorfrmt}{traceback.format_exc()}```"
             self.view.errembs.append(self.view.error_embed)
             errchk = True
 
-
-        if 'buyNow' in modal_inter.text_values and len(modal_inter.text_values['buyNow']) > 0:
+        if (
+            "buyNow" in modal_inter.text_values
+            and len(modal_inter.text_values["buyNow"]) > 0
+        ):
             try:
-                if int(modal_inter.text_values['buyNow']) <= int(modal_inter.text_values['bidStart']):
+                if int(modal_inter.text_values["buyNow"]) <= int(
+                    modal_inter.text_values["bidStart"]
+                ):
                     self.view.errmsg = f"Please make sure your buy now price is larger than your starting bid"
                     self.view.errembs.append(self.view.error_embed)
                     errchk = True
                 else:
-                    self.view.prices.buy = int(modal_inter.text_values['buyNow'])
+                    self.view.prices.buy = int(modal_inter.text_values["buyNow"])
             except (ValueError, TypeError):
                 self.view.errmsg = f"It seems your buy now price couldn't be converted to a whole number, heres the error traceback:\n```{errorfrmt}{traceback.format_exc()}```"
                 self.view.errembs.append(self.view.error_embed)
@@ -469,33 +563,58 @@ class SendModalButton(disnake.ui.Button[ListingConst]):
 
         await self.view.refresh_content(modal_inter, error=errchk)
 
+
 class SendListingButton(disnake.ui.Button[ListingConst]):
     def __init__(self, bot: _LabyrinthianT):
         self.bot = bot
         super().__init__(
-            style=disnake.ButtonStyle.green,
-            label="Post Listing",
-            emoji="🔰"
+            style=disnake.ButtonStyle.green, label="Post Listing", emoji="🔰"
         )
-    
+
     async def callback(self, inter: disnake.MessageInteraction):
         self.view: ListingConst
-        srvconf = await self.bot.dbcache.find_one('srvconf', {"guild": str(inter.guild.id)})
-        auction_channel = self.bot.get_channel(int(srvconf['ahfront']))
-        listingmsg: disnake.Message = await auction_channel.send(embed=self.view.auction_embed, components=ListingActionRow(self.view.listingdata))
-        usertrackmsg: disnake.Message = await inter.author.send("Thank you for using the Corrinthian Auction House.", embed=self.view.auction_embed)
+        srvconf = await self.bot.dbcache.find_one(
+            "srvconf", {"guild": str(inter.guild.id)}
+        )
+        auction_channel = self.bot.get_channel(int(srvconf["ahfront"]))
+        listingmsg: disnake.Message = await auction_channel.send(
+            embed=self.view.auction_embed,
+            components=ListingActionRow(self.view.listingdata),
+        )
+        usertrackmsg: disnake.Message = await inter.author.send(
+            "Thank you for using the Corrinthian Auction House.",
+            embed=self.view.auction_embed,
+        )
         dbpackage = self.view.listingdata
         dbpackage |= {
             "listingid": str(listingmsg.id),
             "embed": self.view.auction_embed.to_dict(),
             "usertrack": [str(inter.author.id), str(usertrackmsg.id)],
             "originalchan": str(auction_channel.id),
-            "guildid": str(inter.guild.id)
+            "guildid": str(inter.guild.id),
         }
-        listingID: InsertOneResult = await self.bot.sdb['auction_listings'].insert_one(dbpackage)
-        await usertrackmsg.edit(f"Thank you for using the Corrinthian Auction House.\nHeres your listing ID: {listingID.inserted_id}", components=disnake.ui.Button(style=disnake.ButtonStyle.red,label="Cancel Listing",custom_id="auction_cancel_listing",emoji="❌"))
-        
+        listingID: InsertOneResult = await self.bot.sdb["auction_listings"].insert_one(
+            dbpackage
+        )
+        await usertrackmsg.edit(
+            f"Thank you for using the Corrinthian Auction House.\nHeres your listing ID: {listingID.inserted_id}",
+            components=disnake.ui.Button(
+                style=disnake.ButtonStyle.red,
+                label="Cancel Listing",
+                custom_id="auction_cancel_listing",
+                emoji="❌",
+            ),
+        )
+
         if inter.response.is_done():
-            await inter.edit_original_message("Listing Created! Thank you for being a patron of the Corrinthian Auction House", embeds=[], view=None)
+            await inter.edit_original_message(
+                "Listing Created! Thank you for being a patron of the Corrinthian Auction House",
+                embeds=[],
+                view=None,
+            )
         else:
-            await inter.response.edit_message("Listing Created! Thank you for being a patron of the Corrinthian Auction House", embeds=[], view=None)
+            await inter.response.edit_message(
+                "Listing Created! Thank you for being a patron of the Corrinthian Auction House",
+                embeds=[],
+                view=None,
+            )

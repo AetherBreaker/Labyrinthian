@@ -2,8 +2,17 @@ from textwrap import shorten
 from string import Template
 from math import floor
 
-class mkTable():
-    def fromListofDicts(dataIn: list, columns: list, columnsmaxwidth: dict, maxwidth: int, templstr: str='', wrapstr: str='', itemwrap: dict = None):
+
+class mkTable:
+    def fromListofDicts(
+        dataIn: list,
+        columns: list,
+        columnsmaxwidth: dict,
+        maxwidth: int,
+        templstr: str = "",
+        wrapstr: str = "",
+        itemwrap: dict = None,
+    ):
         """
         Attributes
         ----------
@@ -26,30 +35,36 @@ class mkTable():
         itemwrap: :class:'dict'
             An optional arguement to wrap table 'cells' in a set of characters before padding them.
         """
-        colWidthHrd={}
-        colWidthSft={}
-        templInp={}
-        joinlist=[]
-        maxWidth = maxwidth-(len(templstr)-sum([len(x)+1 for x in columns]))
+        colWidthHrd = {}
+        colWidthSft = {}
+        templInp = {}
+        joinlist = []
+        maxWidth = maxwidth - (len(templstr) - sum([len(x) + 1 for x in columns]))
         for x in columns:
             if x in columnsmaxwidth.keys():
-                colWidthHrd[x]=columnsmaxwidth[x]
+                colWidthHrd[x] = columnsmaxwidth[x]
                 continue
             for y in dataIn:
                 if x in colWidthSft:
                     colWidthSft.update({x: max(len(y[x]), colWidthSft[x])})
                 else:
                     colWidthSft.update({x: len(y[x])})
-        maxWidth-=sum(colWidthHrd.values())
+        maxWidth -= sum(colWidthHrd.values())
         if sum(colWidthSft.values()) > maxWidth:
-            for x,y in colWidthSft.items():
-                if y >= floor(maxWidth/len(colWidthSft)):
-                    colWidthSft[x]=floor(maxWidth/len(colWidthSft))
+            for x, y in colWidthSft.items():
+                if y >= floor(maxWidth / len(colWidthSft)):
+                    colWidthSft[x] = floor(maxWidth / len(colWidthSft))
         for x in dataIn:
             for y in columns:
                 if y in itemwrap:
                     if y in colWidthSft.keys():
-                        tempStr = shorten(str(x[y]), width=colWidthSft[y], expand_tabs=False, break_on_hyphens=False, placeholder=' [...]')
+                        tempStr = shorten(
+                            str(x[y]),
+                            width=colWidthSft[y],
+                            expand_tabs=False,
+                            break_on_hyphens=False,
+                            placeholder=" [...]",
+                        )
                         wrapMapping = {y: tempStr}
                         wrapTempl = Template(itemwrap[y])
                         tempStr = wrapTempl.substitute(**wrapMapping)
@@ -61,15 +76,21 @@ class mkTable():
                         tempStr = f"{tempStr:{colWidthHrd[y]}}"
                 else:
                     if y in colWidthSft.keys():
-                        tempStr = shorten(str(x[y]), width=colWidthSft[y], expand_tabs=False, break_on_hyphens=False, placeholder=' [...]')
+                        tempStr = shorten(
+                            str(x[y]),
+                            width=colWidthSft[y],
+                            expand_tabs=False,
+                            break_on_hyphens=False,
+                            placeholder=" [...]",
+                        )
                         tempStr = f"{tempStr:{colWidthSft[y]}}"
                     else:
                         tempStr = f"{x[y]:{colWidthHrd[y]}}"
-                templInp[y]=tempStr
-            line=Template(templstr)
+                templInp[y] = tempStr
+            line = Template(templstr)
             if len(wrapstr) == 0:
                 joinlist.append(line.substitute(**templInp))
             else:
-                joinlist.append(wrapstr+line.substitute(**templInp)+wrapstr)
+                joinlist.append(wrapstr + line.substitute(**templInp) + wrapstr)
             templInp.clear()
-        return '\n'.join(joinlist)
+        return "\n".join(joinlist)

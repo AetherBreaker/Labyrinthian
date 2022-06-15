@@ -15,4 +15,4 @@ class SettingsBaseModel(BaseModel):
 
 from .guild import ServerSettings  # noqa: E402
 
-__all__ = ("ServerSettings")
+__all__ = "ServerSettings"

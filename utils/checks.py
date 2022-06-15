@@ -5,11 +5,15 @@ from utils import config
 from utils.models.errors import ExternalImportError
 from utils.functions import extract_gsheet_id_from_url
 
-DDB_URL_RE = re.compile(r"(?:https?://)?(?:www\.dndbeyond\.com|ddb\.ac)(?:/profile/.+)?/characters/(\d+)/?")
+DDB_URL_RE = re.compile(
+    r"(?:https?://)?(?:www\.dndbeyond\.com|ddb\.ac)(?:/profile/.+)?/characters/(\d+)/?"
+)
 DICECLOUD_URL_RE = re.compile(r"(?:https?://)?dicecloud\.com/character/([\d\w]+)/?")
+
 
 def author_is_owner(ctx):
     return ctx.author.id == config.OWNER_ID
+
 
 def _check_permissions(ctx, perms):
     if author_is_owner(ctx):
@@ -22,6 +26,7 @@ def _check_permissions(ctx, perms):
     except AttributeError:
         resolved = None
     return all(getattr(resolved, name, None) == value for name, value in perms.items())
+
 
 def _role_or_permissions(ctx, role_filter, **perms):
     if _check_permissions(ctx, perms):
@@ -37,6 +42,7 @@ def _role_or_permissions(ctx, role_filter, **perms):
     except:
         return False
     return role is not None
+
 
 def urlCheck(url: str) -> bool:
     # Sheets in order: DDB, Dicecloud, Gsheet

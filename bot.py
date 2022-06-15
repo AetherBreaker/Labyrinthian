@@ -17,6 +17,7 @@ from utils.settings.guild import ServerSettings
 
 if config.TESTING_VAR == "True":
     import sys
+
     sys.dont_write_bytecode = True
 
 logging.basicConfig(level=logging.INFO)
@@ -38,8 +39,11 @@ extensions = (
 #     guildprefix = await bot.get_guild_prefix(message.guild)
 #     return commands.when_mentioned_or(guildprefix)(bot, message)
 
+
 class Labyrinthian(commands.Bot):
-    def __init__(self, prefix: str, help_command=None, description=None, **options) -> None:
+    def __init__(
+        self, prefix: str, help_command=None, description=None, **options
+    ) -> None:
         super().__init__(
             prefix,
             help_command=help_command,
@@ -47,13 +51,15 @@ class Labyrinthian(commands.Bot):
             test_guilds=config.COMMAND_TEST_GUILD_IDS,
             sync_commands_debug=config.TESTING,
             owner_ids=config.OWNER_ID,
-            **options
+            **options,
         )
         self.persistent_views_added = False
-        
-        #databases
+
+        # databases
         self.mclient = motor.motor_asyncio.AsyncIOMotorClient(config.MONGO_URL)
-        self.sdb: motor.motor_asyncio.AsyncIOMotorCollection = self.mclient[config.MONGODB_SERVERDB_NAME]
+        self.sdb: motor.motor_asyncio.AsyncIOMotorCollection = self.mclient[
+            config.MONGODB_SERVERDB_NAME
+        ]
         self.dbcache = MongoCache.MongoCache(self, cwd, maxsize=50, ttl=20)
         self.charcache = MongoCache.CharlistCache(self, maxsize=50, ttl=20)
 
@@ -76,36 +82,45 @@ class Labyrinthian(commands.Bot):
     #     self.prefixes[guild_id] = gp
     #     return gp
 
+
 bot = Labyrinthian(
     prefix="'",
     testing=config.TESTING,
     intents=intents,
-    reload=True if config.TESTING_VAR == "True" else False
+    reload=True if config.TESTING_VAR == "True" else False,
 )
+
 
 @bot.event
 async def on_ready():
     if not bot.persistent_views_added:
-        constviews = await bot.sdb['srvconf'].find({}).to_list(None)
+        constviews = await bot.sdb["srvconf"].find({}).to_list(None)
         for x in constviews:
-            if 'constid' in x:
+            if "constid" in x:
                 try:
-                    channel, message = x['constid']
-                    channel: Union[disnake.abc.GuildChannel, disnake.abc.Messageable] = await bot.fetch_channel(int(channel))
+                    channel, message = x["constid"]
+                    channel: Union[
+                        disnake.abc.GuildChannel, disnake.abc.Messageable
+                    ] = await bot.fetch_channel(int(channel))
                     message = await channel.fetch_message(int(message))
                     bot.add_view(ConstSender(), message_id=message.id)
                 except (InvalidData, HTTPException, NotFound, Forbidden) as e:
                     print(f"{e} trying again")
                     try:
-                        channel, message = x['constid']
-                        channel: Union[disnake.abc.GuildChannel, disnake.abc.Messageable] = await bot.fetch_channel(int(channel))
+                        channel, message = x["constid"]
+                        channel: Union[
+                            disnake.abc.GuildChannel, disnake.abc.Messageable
+                        ] = await bot.fetch_channel(int(channel))
                         message = await channel.fetch_message(int(message))
                         bot.add_view(ConstSender(), message_id=message.id)
                     except (InvalidData, HTTPException, NotFound, Forbidden) as e:
                         print(f"{e} deleting view IDs")
-                        x.pop('constid')
-                        await bot.sdb['srvconf'].replace_one({"guild": x['guild']}, x, True)
+                        x.pop("constid")
+                        await bot.sdb["srvconf"].replace_one(
+                            {"guild": x["guild"]}, x, True
+                        )
         bot.persistent_views_added = True
+
 
 @bot.event
 async def on_slash_command_error(inter: disnake.Interaction, error):
@@ -115,9 +130,13 @@ async def on_slash_command_error(inter: disnake.Interaction, error):
     elif isinstance(error, LabyrinthianException):
         return await inter.send(str(error))
 
-    elif isinstance(error, (commands.UserInputError, commands.NoPrivateMessage, ValueError)):
+    elif isinstance(
+        error, (commands.UserInputError, commands.NoPrivateMessage, ValueError)
+    ):
         return await inter.send(
-            f"Error: {str(error)}\nUse `{inter.prefix}help " + inter.command.qualified_name + "` for help."
+            f"Error: {str(error)}\nUse `{inter.prefix}help "
+            + inter.command.qualified_name
+            + "` for help."
         )
 
     elif isinstance(error, commands.CheckFailure):
@@ -125,7 +144,9 @@ async def on_slash_command_error(inter: disnake.Interaction, error):
         return await inter.send(f"Error: {msg}")
 
     elif isinstance(error, commands.CommandOnCooldown):
-        return await inter.send("This command is on cooldown for {:.1f} seconds.".format(error.retry_after))
+        return await inter.send(
+            "This command is on cooldown for {:.1f} seconds.".format(error.retry_after)
+        )
 
     elif isinstance(error, commands.MaxConcurrencyReached):
         return await inter.send(str(error))
@@ -134,7 +155,7 @@ async def on_slash_command_error(inter: disnake.Interaction, error):
         original = error.original
 
         if isinstance(original, LabyrinthianException):
-            return await inter.send(str(original)) 
+            return await inter.send(str(original))
 
         elif isinstance(original, Forbidden):
             try:
@@ -144,21 +165,32 @@ async def on_slash_command_error(inter: disnake.Interaction, error):
                 )
             except HTTPException:
                 try:
-                    return await inter.send("Error: I cannot send messages to this user.")
+                    return await inter.send(
+                        "Error: I cannot send messages to this user."
+                    )
                 except HTTPException:
                     return
 
         elif isinstance(original, NotFound):
-            return await inter.send("Error: I tried to edit or delete a message that no longer exists.")
+            return await inter.send(
+                "Error: I tried to edit or delete a message that no longer exists."
+            )
 
-        elif isinstance(original, (ClientResponseError, asyncio.TimeoutError, ClientOSError)):
+        elif isinstance(
+            original, (ClientResponseError, asyncio.TimeoutError, ClientOSError)
+        ):
             return await inter.send("Error in Discord API. Please try again.")
 
         elif isinstance(original, HTTPException):
             if original.response.status == 400:
-                return await inter.send(f"Error: Message is too long, malformed, or empty.\n{original.text}")
+                return await inter.send(
+                    f"Error: Message is too long, malformed, or empty.\n{original.text}"
+                )
             elif 499 < original.response.status < 600:
-                return await inter.send("Error: Internal server error on Discord's end. Please try again.")
+                return await inter.send(
+                    "Error: Internal server error on Discord's end. Please try again."
+                )
+
 
 for ext in extensions:
     bot.load_extension(ext)
