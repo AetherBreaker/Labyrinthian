@@ -26,14 +26,14 @@ DEFAULT_BADGE_TEMPLATE = {
     "17": 108,
     "18": 120,
     "19": 135,
-    "20": 150
+    "20": 150,
 }
 DEFAULT_LISTING_DURS = {
     "86400": 75,
     "259200": 150,
     "604800": 275,
     "1209600": 450,
-    "2630000": 750
+    "2630000": 750,
 }
 DEFAULT_RARITIES = {
     "Common": 20,
@@ -42,23 +42,23 @@ DEFAULT_RARITIES = {
     "Very Rare": 80,
     "Legendary": 200,
     "Artifact": 400,
-    "Unknown": 0
+    "Unknown": 0,
 }
 DEFAULT_CLASS_LIST = (
-    'Artificer',
-    'Barbarian',
-    'Bard',
-    'Blood Hunter',
-    'Cleric',
-    'Druid',
-    'Fighter',
-    'Monk',
-    'Paladin',
-    'Ranger',
-    'Rogue',
-    'Sorcerer',
-    'Warlock',
-    'Wizard'
+    "Artificer",
+    "Barbarian",
+    "Bard",
+    "Blood Hunter",
+    "Cleric",
+    "Druid",
+    "Fighter",
+    "Monk",
+    "Paladin",
+    "Ranger",
+    "Rogue",
+    "Sorcerer",
+    "Warlock",
+    "Wizard",
 )
 
 
@@ -71,19 +71,19 @@ class ServerSettings(SettingsBaseModel):
     # lookup_pm_result: bool = False
     badgetemplate: Optional[Dict[str, int]] = DEFAULT_BADGE_TEMPLATE
     listingdurs: Optional[Dict[str, int]] = DEFAULT_LISTING_DURS
-    rarities: Optional[Dict[str,int]] = DEFAULT_RARITIES
+    rarities: Optional[Dict[str, int]] = DEFAULT_RARITIES
     outbidthreshold: Optional[int] = 50
     ahfront: Optional[str] = None
     ahback: Optional[str] = None
     ahinternal: Optional[str] = None
-    badgelabel: Optional[str] = 'badges'
+    badgelabel: Optional[str] = "badges"
 
     # ==== lifecycle ====
     @classmethod
     async def for_guild(cls, db, guild_id: str):
         """Returns the server settings for a given guild."""
 
-        existing = await db.find_one('srvconf', {"guild": guild_id})
+        existing = await db.find_one("srvconf", {"guild": guild_id})
         if existing is not None:
             return cls.parse_obj(existing)
 
@@ -91,7 +91,9 @@ class ServerSettings(SettingsBaseModel):
 
     async def commit(self, db):
         """Commits the settings to the database."""
-        await db.update_one('srvconf', {"guild": self.guild}, {"$set": self.dict()}, upsert=True)
+        await db.update_one(
+            "srvconf", {"guild": self.guild}, {"$set": self.dict()}, upsert=True
+        )
 
     # ==== helpers ====
     def is_dm(self, member: disnake.Member):

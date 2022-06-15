@@ -4,7 +4,7 @@ Created on Oct 29, 2016
 """
 import asyncio
 import re
-from typing import Callable, TypeVar
+from typing import Any, Callable, List, TypeVar, Optional
 from disnake.ext import commands
 import disnake
 
@@ -12,38 +12,66 @@ from rapidfuzz import fuzz, process
 
 from utils.models.errors import ExternalImportError
 
-class timedeltaplus():
-    def __init__(self,seconds:int=0,minutes:int=0,hours:int=0,days:int=0,weeks:int=0,months:int=0,years:int=0) -> None:
-        secs=seconds
-        secs+=minutes*60
-        secs+=hours*3600
-        secs+=days*86400
-        secs+=weeks*604800
-        secs+=months*2630000
-        secs+=years*31556952
+
+class timedeltaplus:
+    def __init__(
+        self,
+        seconds: int = 0,
+        minutes: int = 0,
+        hours: int = 0,
+        days: int = 0,
+        weeks: int = 0,
+        months: int = 0,
+        years: int = 0,
+    ) -> None:
+        secs = seconds
+        secs += minutes * 60
+        secs += hours * 3600
+        secs += days * 86400
+        secs += weeks * 604800
+        secs += months * 2630000
+        secs += years * 31556952
         self.years, remainder = divmod(secs, 31556952)
         self.months, remainder = divmod(remainder, 2630000)
         self.weeks, remainder = divmod(remainder, 604800)
         self.days, remainder = divmod(remainder, 86400)
         self.hours, remainder = divmod(remainder, 3600)
         self.minutes, self.seconds = divmod(remainder, 60)
-        self.iter = (self.years,self.months,self.weeks,self.days,self.hours,self.minutes,self.seconds)
-        self.timetab = ('Year', 'Month', 'Week', 'Day', 'Hour', 'Minute', 'Second')
+        self.iter = (
+            self.years,
+            self.months,
+            self.weeks,
+            self.days,
+            self.hours,
+            self.minutes,
+            self.seconds,
+        )
+        self.timetab = ("Year", "Month", "Week", "Day", "Hour", "Minute", "Second")
 
     @property
     def fdict(self) -> dict:
-        return {f"{x}{'s' if y > 1 or y < -1 else ''}": y for x,y in zip(self.timetab, self.iter) if y != 0}
+        return {
+            f"{x}{'s' if y > 1 or y < -1 else ''}": y
+            for x, y in zip(self.timetab, self.iter)
+            if y != 0
+        }
 
     @property
     def dict(self) -> dict:
-        return {x: y for x,y in zip(self.timetab, self.iter)}
+        return {x: y for x, y in zip(self.timetab, self.iter)}
 
     @property
     def ftup(self) -> tuple:
         return tuple(x for x in self.iter)
 
     def __str__(self) -> str:
-        return ', '.join([f"{y} {x}{'s' if y > 1 or y < -1 else ''}" for x,y in zip(self.timetab, self.iter) if y != 0])
+        return ", ".join(
+            [
+                f"{y} {x}{'s' if y > 1 or y < -1 else ''}"
+                for x, y in zip(self.timetab, self.iter)
+                if y != 0
+            ]
+        )
 
 
 def get_positivity(string):
@@ -57,11 +85,17 @@ def get_positivity(string):
     else:
         return None
 
+
 # ==== search / select menus ====
 _HaystackT = TypeVar("_HaystackT")
 
+
 def search(
-    list_to_search: list[_HaystackT], value: str, key: Callable[[_HaystackT], str], cutoff=5, strict=False
+    list_to_search: list[_HaystackT],
+    value: str,
+    key: Callable[[_HaystackT], str],
+    cutoff=5,
+    strict=False,
 ) -> tuple[_HaystackT | list[_HaystackT], bool]:
     """Fuzzy searches a list for an object
     result can be either an object or list of objects
@@ -82,14 +116,25 @@ def search(
         if len(partial_matches) > 1 or not partial_matches:
             names = [key(d).lower() for d in list_to_search]
             fuzzy_map = {key(d).lower(): d for d in list_to_search}
-            fuzzy_results = [r for r in process.extract(value.lower(), names, scorer=fuzz.ratio) if r[1] >= cutoff]
+            fuzzy_results = [
+                r
+                for r in process.extract(value.lower(), names, scorer=fuzz.ratio)
+                if r[1] >= cutoff
+            ]
             fuzzy_sum = sum(r[1] for r in fuzzy_results)
-            fuzzy_matches_and_confidences = [(fuzzy_map[r[0]], r[1] / fuzzy_sum) for r in fuzzy_results]
+            fuzzy_matches_and_confidences = [
+                (fuzzy_map[r[0]], r[1] / fuzzy_sum) for r in fuzzy_results
+            ]
 
             # display the results in order of confidence
             weighted_results = []
-            weighted_results.extend((match, confidence) for match, confidence in fuzzy_matches_and_confidences)
-            weighted_results.extend((match, len(value) / len(key(match))) for match in partial_matches)
+            weighted_results.extend(
+                (match, confidence)
+                for match, confidence in fuzzy_matches_and_confidences
+            )
+            weighted_results.extend(
+                (match, len(value) / len(key(match))) for match in partial_matches
+            )
             sorted_weighted = sorted(weighted_results, key=lambda e: e[1], reverse=True)
 
             # build results list, unique
@@ -109,7 +154,13 @@ def search(
     else:
         return results[0], True
 
-async def confirm(ctx: commands.Context, message: disnake.Message, delete_msgs=False, response_check=get_positivity):
+
+async def confirm(
+    ctx: commands.Context,
+    message: disnake.Message,
+    delete_msgs=False,
+    response_check=get_positivity,
+):
     """
     Confirms whether a user wants to take an action.
     :rtype: bool|None
@@ -122,7 +173,9 @@ async def confirm(ctx: commands.Context, message: disnake.Message, delete_msgs=F
     """
     msg: disnake.Message = await ctx.channel.send(message)
     try:
-        reply: disnake.Message = await ctx.bot.wait_for("message", timeout=30, check=auth_and_chan(ctx))
+        reply: disnake.Message = await ctx.bot.wait_for(
+            "message", timeout=30, check=auth_and_chan(ctx)
+        )
     except asyncio.TimeoutError:
         return None
     reply_bool = response_check(reply.content) if reply is not None else None
@@ -134,13 +187,20 @@ async def confirm(ctx: commands.Context, message: disnake.Message, delete_msgs=F
             pass
     return reply_bool
 
+
 def natural_join(things, between: str):
     if len(things) < 3:
         return f" {between} ".join(things)
     first_part = ", ".join(things[:-1])
     return f"{first_part}, {between} {things[-1]}"
 
-async def confirmInter(inter: disnake.Interaction, message, delete_msgs=False, response_check=get_positivity):
+
+async def confirmInter(
+    inter: disnake.Interaction,
+    message,
+    delete_msgs=False,
+    response_check=get_positivity,
+):
     """
     Confirms whether a user wants to take an action.
     :rtype: bool|None
@@ -153,7 +213,9 @@ async def confirmInter(inter: disnake.Interaction, message, delete_msgs=False, r
     """
     msg = await inter.channel.send(message)
     try:
-        reply = await inter.bot.wait_for("message", timeout=30, check=auth_and_chan(inter))
+        reply = await inter.bot.wait_for(
+            "message", timeout=30, check=auth_and_chan(inter)
+        )
     except asyncio.TimeoutError:
         return None
     reply_bool = response_check(reply.content) if reply is not None else None
@@ -165,6 +227,7 @@ async def confirmInter(inter: disnake.Interaction, message, delete_msgs=False, r
             pass
     return reply_bool
 
+
 # ==== misc helpers ====
 def auth_and_chan(ctx: commands.Context):
     """Message check: same author and channel"""
@@ -174,8 +237,10 @@ def auth_and_chan(ctx: commands.Context):
 
     return chk
 
+
 URL_KEY_V1_RE = re.compile(r"key=([^&#]+)")
 URL_KEY_V2_RE = re.compile(r"/spreadsheets/d/([a-zA-Z0-9-_]+)")
+
 
 def extract_gsheet_id_from_url(url: str):
     m2 = URL_KEY_V2_RE.search(url)
@@ -185,3 +250,10 @@ def extract_gsheet_id_from_url(url: str):
     if m1:
         return url
     raise ExternalImportError("This is not a valid Google Sheets link.")
+
+
+T = TypeVar("T")
+
+
+def truncate_list(input: List[T], cutoff: int, repl: Optional[T] = None) -> List[T]:
+    return input[:cutoff] if repl is None else input[:cutoff] + [repl]
