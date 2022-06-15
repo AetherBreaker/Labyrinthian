@@ -130,29 +130,21 @@ class SettingsNav(SettingsMenuBase):
         inst.guild = guild
         return inst
 
-    @disnake.ui.button(
-        style=disnake.ButtonStyle.primary, label="Auction House Settings"
-    )
-    async def auction_house_settings(
-        self, _: disnake.ui.Button, inter: disnake.MessageInteraction
-    ):
+    @disnake.ui.button(style=disnake.ButtonStyle.primary, label="Auction House Settings")
+    async def auction_house_settings(self, _: disnake.ui.Button, inter: disnake.MessageInteraction):
         return
         await self.defer_to(AuctionSettingsView, inter)
 
     @disnake.ui.button(style=disnake.ButtonStyle.primary, label="Badgelog Settings")
-    async def badgelog_settings(
-        self, _: disnake.ui.Button, inter: disnake.MessageInteraction
-    ):
+    async def badgelog_settings(self, _: disnake.ui.Button, inter: disnake.MessageInteraction):
         return
         await self.defer_to(BadgelogSettingsView, inter)
 
     @disnake.ui.button(style=disnake.ButtonStyle.primary, label="Bot Settings")
-    async def bot_settings(
-        self, _: disnake.ui.Button, inter: disnake.MessageInteraction
-    ):
+    async def bot_settings(self, _: disnake.ui.Button, inter: disnake.MessageInteraction):
         await self.defer_to(BotSettingsView, inter)
 
-    @disnake.ui.button(label="Exit", style=disnake.ButtonStyle.danger)
+    @disnake.ui.button(label="Exit", style=disnake.ButtonStyle.danger, row=4)
     async def exit(self, *_):
         await self.on_timeout()
 
@@ -254,11 +246,80 @@ class SettingsNav(SettingsMenuBase):
 class AuctionSettingsView(SettingsMenuBase):
 
     # ==== ui ====
+    @disnake.ui.button(label="Configure Badge Template", style=disnake.ButtonStyle.primary)
+    async def badge_template_modal(self, _: disnake.ui.Button, inter: disnake.MessageInteraction):
+        
+        
+        
+        
+        
+        templatevalue = ""
+        components = [
+            disnake.ui.TextInput(
+                style=disnake.TextInputStyle.multi_line,
+                label="Server Badge Template",
+                placeholder=(
+                    f"Line separated list of values"
+                    f"You can also provide a key to name each level\n"
+                    f"[key]:value\n"
+                    f":value\n"
+                    f"value"
+                ),
+                custom_id="settings_badge_template_set",
+                required=False,
+            ),
+            disnake.ui.TextInput(
+                style=disnake.TextInputStyle.single_line,
+                label="Reset to Default",
+                placeholder='Type "Confirm" here to reset the badge template to the default',
+                custom_id="settings_badge_template_reset",
+                required=False,
+                max_length=7,
+            )
+        ]
+        rand = randint(111111, 999999)
+        await inter.response.send_modal(
+            custom_id=f"{rand}settings_badge_template_modal",
+            title="Add/Remove Server Classes",
+            components=components,
+        )
+        try:
+            modalinter: disnake.ModalInteraction = await self.bot.wait_for(
+                "modal_submit",
+                check=lambda i: i.custom_id == f"{rand}settings_badge_template_modal"
+                and i.author.id == inter.author.id,
+                timeout=180,
+            )
+
+            if modalinter.text_values["settings_badge_template_reset"] == "Confirm":
+                inter.send("Badge template reset to default", ephemeral=True)
+                self.settings.badgetemplate = None
+                return
+            if len(modalinter.text_values["settings_badge_template_set"]) > 0:
+                addclasses = modalinter.text_values["settings_badge_template_set"]
+                addclasses = re.split(",[ ]*|\n", addclasses)
+                for x in addclasses:
+                    x = re.sub(r"[^a-zA-Z0-9 ]", "", x)
+                    x = re.sub(r" +", " ", x).strip()
+                classlist = list(set(self.settings.classlist) | set(addclasses))
+                classlist.sort()
+                self.settings.classlist = classlist
+            await self.commit_settings()
+            await self.refresh_content(modalinter)
+        except asyncio.TimeoutError:
+            inter.send(
+                "It seems your form timed out, if you see this message, it is most likely because you took too long to fill out the form.\n\nPlease try again.",
+                ephemeral=True,
+            )
+            return
 
     @disnake.ui.button(label="Back", style=disnake.ButtonStyle.grey, row=4)
     async def back(self, _: disnake.ui.Button, inter: disnake.Interaction):
         await self.defer_to(SettingsNav, inter)
 
+    # ==== content ====
+    async def get_content(self):
+        pass
 
 class BadgelogSettingsView(SettingsMenuBase):
 
@@ -268,15 +329,17 @@ class BadgelogSettingsView(SettingsMenuBase):
     async def back(self, _: disnake.ui.Button, inter: disnake.Interaction):
         await self.defer_to(SettingsNav, inter)
 
+    # ==== content ====
+    async def get_content(self):
+        pass
+
 
 class BotSettingsView(SettingsMenuBase):
     select_dm_roles: disnake.ui.Select  # make the type checker happy
 
     # ==== ui ====
     @disnake.ui.select(placeholder="Select DM Roles", min_values=0)
-    async def select_dm_roles(
-        self, select: disnake.ui.Select, inter: disnake.Interaction
-    ):
+    async def select_dm_roles(self, select: disnake.ui.Select, inter: disnake.Interaction):
         if len(select.values) == 1 and select.values[0] == TOO_MANY_ROLES_SENTINEL:
             role_ids = await self._text_select_dm_roles(inter)
         else:
@@ -365,9 +428,7 @@ class BotSettingsView(SettingsMenuBase):
         await self.defer_to(SettingsNav, inter)
 
     # ==== handlers ====
-    async def _text_select_dm_roles(
-        self, inter: disnake.Interaction
-    ) -> Optional[List[int]]:
+    async def _text_select_dm_roles(self, inter: disnake.Interaction) -> Optional[List[int]]:
         self.select_dm_roles.disabled = True
         await self.refresh_content(inter)
         await inter.send(
