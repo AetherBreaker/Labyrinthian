@@ -57,9 +57,7 @@ class Labyrinthian(commands.Bot):
 
         # databases
         self.mclient = motor.motor_asyncio.AsyncIOMotorClient(config.MONGO_URL)
-        self.sdb: motor.motor_asyncio.AsyncIOMotorCollection = self.mclient[
-            config.MONGODB_SERVERDB_NAME
-        ]
+        self.sdb: motor.motor_asyncio.AsyncIOMotorDatabase = self.mclient[config.MONGODB_SERVERDB_NAME]
         self.dbcache = MongoCache.MongoCache(self, cwd, maxsize=50, ttl=20)
         self.charcache = MongoCache.CharlistCache(self, maxsize=50, ttl=20)
 

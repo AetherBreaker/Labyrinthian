@@ -130,18 +130,26 @@ class SettingsNav(SettingsMenuBase):
         inst.guild = guild
         return inst
 
-    @disnake.ui.button(style=disnake.ButtonStyle.primary, label="Auction House Settings")
-    async def auction_house_settings(self, _: disnake.ui.Button, inter: disnake.MessageInteraction):
+    @disnake.ui.button(
+        style=disnake.ButtonStyle.primary, label="Auction House Settings"
+    )
+    async def auction_house_settings(
+        self, _: disnake.ui.Button, inter: disnake.MessageInteraction
+    ):
         return
         await self.defer_to(AuctionSettingsView, inter)
 
     @disnake.ui.button(style=disnake.ButtonStyle.primary, label="Badgelog Settings")
-    async def badgelog_settings(self, _: disnake.ui.Button, inter: disnake.MessageInteraction):
+    async def badgelog_settings(
+        self, _: disnake.ui.Button, inter: disnake.MessageInteraction
+    ):
         return
         await self.defer_to(BadgelogSettingsView, inter)
 
     @disnake.ui.button(style=disnake.ButtonStyle.primary, label="Bot Settings")
-    async def bot_settings(self, _: disnake.ui.Button, inter: disnake.MessageInteraction):
+    async def bot_settings(
+        self, _: disnake.ui.Button, inter: disnake.MessageInteraction
+    ):
         await self.defer_to(BotSettingsView, inter)
 
     @disnake.ui.button(label="Exit", style=disnake.ButtonStyle.danger, row=4)
@@ -185,15 +193,20 @@ class SettingsNav(SettingsMenuBase):
             n,
             "tsnrhtdd"[(n // 10 % 10 != 1) * (n % 10 < 4) * n % 10 :: 4],
         )
-        firstmax = max(len(ordinal(int(x))) for x in self.settings.badgetemplate)
-        secondmax = max(len(str(x)) for x in self.settings.badgetemplate.values())
+        firstmax = max(
+            len(ordinal(int(x)))
+            for x, y in self.settings._badgetemplate.dict().values()
+        )
+        secondmax = max(
+            len(str(y)) for x, y in self.settings._badgetemplate.dict().values()
+        )
         templatestr = "\n".join(
             (
                 truncate_list(
                     [
                         f"{ordinal(int(x)):{firstmax}} requires"
                         f"{y:{secondmax}} {self.settings.badgelabel}"
-                        for x, y in self.settings.badgetemplate.items()
+                        for x, y in self.settings._badgetemplate.dict().values()
                     ],
                     5,
                 )
@@ -246,13 +259,13 @@ class SettingsNav(SettingsMenuBase):
 class AuctionSettingsView(SettingsMenuBase):
 
     # ==== ui ====
-    @disnake.ui.button(label="Configure Badge Template", style=disnake.ButtonStyle.primary)
-    async def badge_template_modal(self, _: disnake.ui.Button, inter: disnake.MessageInteraction):
-        
-        
-        
-        
-        
+    @disnake.ui.button(
+        label="Configure Badge Template", style=disnake.ButtonStyle.primary
+    )
+    async def badge_template_modal(
+        self, _: disnake.ui.Button, inter: disnake.MessageInteraction
+    ):
+
         templatevalue = ""
         components = [
             disnake.ui.TextInput(
@@ -275,7 +288,7 @@ class AuctionSettingsView(SettingsMenuBase):
                 custom_id="settings_badge_template_reset",
                 required=False,
                 max_length=7,
-            )
+            ),
         ]
         rand = randint(111111, 999999)
         await inter.response.send_modal(
@@ -321,6 +334,7 @@ class AuctionSettingsView(SettingsMenuBase):
     async def get_content(self):
         pass
 
+
 class BadgelogSettingsView(SettingsMenuBase):
 
     # ==== ui ====
@@ -339,7 +353,9 @@ class BotSettingsView(SettingsMenuBase):
 
     # ==== ui ====
     @disnake.ui.select(placeholder="Select DM Roles", min_values=0)
-    async def select_dm_roles(self, select: disnake.ui.Select, inter: disnake.Interaction):
+    async def select_dm_roles(
+        self, select: disnake.ui.Select, inter: disnake.Interaction
+    ):
         if len(select.values) == 1 and select.values[0] == TOO_MANY_ROLES_SENTINEL:
             role_ids = await self._text_select_dm_roles(inter)
         else:
@@ -428,7 +444,9 @@ class BotSettingsView(SettingsMenuBase):
         await self.defer_to(SettingsNav, inter)
 
     # ==== handlers ====
-    async def _text_select_dm_roles(self, inter: disnake.Interaction) -> Optional[List[int]]:
+    async def _text_select_dm_roles(
+        self, inter: disnake.Interaction
+    ) -> Optional[List[int]]:
         self.select_dm_roles.disabled = True
         await self.refresh_content(inter)
         await inter.send(
