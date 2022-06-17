@@ -13,7 +13,7 @@ from disnake.ext.commands.errors import CommandInvokeError
 from cogs.auction.auction_constructor import ConstSender
 from utils import MongoCache, config
 from utils.models.errors import LabyrinthianException
-from utils.settings.guild import ServerSettings
+from utils.settings.guild import ServerSettings, for_guild
 
 if config.TESTING_VAR == "True":
     import sys
@@ -64,7 +64,7 @@ class Labyrinthian(commands.Bot):
     async def get_server_settings(self, guild_id: str) -> ServerSettings:
         if not isinstance(guild_id, str):
             guild_id = str(guild_id)
-        server_settings = await ServerSettings.for_guild(self.dbcache, guild_id)
+        server_settings = await for_guild(self.dbcache, guild_id)
         return server_settings
 
     # async def get_guild_prefix(self, guild: disnake.Guild) -> str:

@@ -143,7 +143,6 @@ class SettingsNav(SettingsMenuBase):
     async def badgelog_settings(
         self, _: disnake.ui.Button, inter: disnake.MessageInteraction
     ):
-        return
         await self.defer_to(BadgelogSettingsView, inter)
 
     @disnake.ui.button(style=disnake.ButtonStyle.primary, label="Bot Settings")
@@ -194,11 +193,10 @@ class SettingsNav(SettingsMenuBase):
             "tsnrhtdd"[(n // 10 % 10 != 1) * (n % 10 < 4) * n % 10 :: 4],
         )
         firstmax = max(
-            len(ordinal(int(x)))
-            for x, y in self.settings._badgetemplate.dict().values()
+            len(ordinal(int(x))) for x, y in self.settings.badgetemplate.dict().values()
         )
         secondmax = max(
-            len(str(y)) for x, y in self.settings._badgetemplate.dict().values()
+            len(str(y)) for x, y in self.settings.badgetemplate.dict().values()
         )
         templatestr = "\n".join(
             (
@@ -206,7 +204,7 @@ class SettingsNav(SettingsMenuBase):
                     [
                         f"{ordinal(int(x)):{firstmax}} requires"
                         f"{y:{secondmax}} {self.settings.badgelabel}"
-                        for x, y in self.settings._badgetemplate.dict().values()
+                        for x, y in self.settings.badgetemplate.dict().values()
                     ],
                     5,
                 )
@@ -259,14 +257,35 @@ class SettingsNav(SettingsMenuBase):
 class AuctionSettingsView(SettingsMenuBase):
 
     # ==== ui ====
+
+    @disnake.ui.button(label="Back", style=disnake.ButtonStyle.grey, row=4)
+    async def back(self, _: disnake.ui.Button, inter: disnake.Interaction):
+        await self.defer_to(SettingsNav, inter)
+
+    # ==== content ====
+    async def get_content(self):
+        pass
+
+
+class BadgelogSettingsView(SettingsMenuBase):
+
+    # ==== ui ====
     @disnake.ui.button(
         label="Configure Badge Template", style=disnake.ButtonStyle.primary
     )
     async def badge_template_modal(
         self, _: disnake.ui.Button, inter: disnake.MessageInteraction
     ):
-
-        templatevalue = ""
+        valuestr = (
+            f"Edit the badge template shown below. The template is shown as a line separated "
+            f"list of [level name]:<{self.settings.badgelabel} threshold>. The level name may"
+            f" be removed or omitted and if done, it will reset to the default. All data entered"
+            f" below is assumed to be in ascending numerical order, starting at level one\n"
+            f"Any changes made above this line will be ignored.\n"
+            f"-----------------------------------------------------------\n"
+        )
+        badgetempraw = list(self.settings.badgetemplate.dict().values())
+        valuestr += "\n".join([f'"{x}" : {y}' for x, y in badgetempraw])
         components = [
             disnake.ui.TextInput(
                 style=disnake.TextInputStyle.multi_line,
@@ -279,6 +298,7 @@ class AuctionSettingsView(SettingsMenuBase):
                     f"value"
                 ),
                 custom_id="settings_badge_template_set",
+                value=valuestr,
                 required=False,
             ),
             disnake.ui.TextInput(
@@ -309,14 +329,8 @@ class AuctionSettingsView(SettingsMenuBase):
                 self.settings.badgetemplate = None
                 return
             if len(modalinter.text_values["settings_badge_template_set"]) > 0:
-                addclasses = modalinter.text_values["settings_badge_template_set"]
-                addclasses = re.split(",[ ]*|\n", addclasses)
-                for x in addclasses:
-                    x = re.sub(r"[^a-zA-Z0-9 ]", "", x)
-                    x = re.sub(r" +", " ", x).strip()
-                classlist = list(set(self.settings.classlist) | set(addclasses))
-                classlist.sort()
-                self.settings.classlist = classlist
+                badgetemplate = modalinter.text_values["settings_badge_template_set"]
+                # badgetemplate = re.sub(r"")
             await self.commit_settings()
             await self.refresh_content(modalinter)
         except asyncio.TimeoutError:
@@ -331,21 +345,8 @@ class AuctionSettingsView(SettingsMenuBase):
         await self.defer_to(SettingsNav, inter)
 
     # ==== content ====
-    async def get_content(self):
-        pass
-
-
-class BadgelogSettingsView(SettingsMenuBase):
-
-    # ==== ui ====
-
-    @disnake.ui.button(label="Back", style=disnake.ButtonStyle.grey, row=4)
-    async def back(self, _: disnake.ui.Button, inter: disnake.Interaction):
-        await self.defer_to(SettingsNav, inter)
-
-    # ==== content ====
-    async def get_content(self):
-        pass
+    async def get_content(self) -> Mapping:
+        return await super().get_content()
 
 
 class BotSettingsView(SettingsMenuBase):
