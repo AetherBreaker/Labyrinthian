@@ -5,6 +5,8 @@ from typing import TYPE_CHECKING, Any, Dict, TypeVar
 
 import disnake
 
+from utils.models.errors import IntegerConversionError
+
 _LabyrinthianT = TypeVar("_LabyrinthianT", bound=disnake.Client)
 if TYPE_CHECKING:
     from bot import Labyrinthian
@@ -127,12 +129,9 @@ class ListingHandler:
                 self.modal_inter.data["components"][1]["components"][0]["value"]
             )
         except (ValueError, TypeError):
-            self.error = True
-            await self.button_inter.send(
-                f"<@{self.button_inter.author.id}> It seems your starting bid couldn't be converted to a whole number, heres the error traceback:\n```{errorfrmt}{traceback.format_exc()}```",
-                ephemeral=True,
+            raise IntegerConversionError(
+                f"<@{self.button_inter.author.id}> It seems your starting bid couldn't be converted to a whole number."
             )
-            return False
 
         # Check if bid amount is atleast x higher than previous highest bid.
         # x is set from server config.

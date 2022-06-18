@@ -10,6 +10,11 @@ import disnake
 from cogs.auction.auction_listing import ListingActionRow
 from pymongo.results import InsertOneResult
 from utils.functions import timedeltaplus
+from utils.models.errors import (
+    FormTimeoutError,
+    IntegerConversionError,
+    PriceTooLowError,
+)
 
 _LabyrinthianT = TypeVar("_LabyrinthianT", bound=disnake.Client)
 if TYPE_CHECKING:
@@ -165,10 +170,6 @@ class ListingConst(disnake.ui.View):
         return f"{self.duration.fee + self.item.rarity.fee} gp"
 
     @property
-    def error_embed(self):
-        return disnake.Embed(title="Exception:", description=self.errmsg)
-
-    @property
     def select_embed(self):
         return disnake.Embed(
             title="Character Select",
@@ -240,18 +241,12 @@ class ListingConst(disnake.ui.View):
     async def refresh_content(
         self,
         inter: disnake.Interaction,
-        error: bool = False,
         select: bool = False,
         **kwargs,
     ):
         self.embeds = [self.auction_embed, self.instructions_embed]
         if select:
             self.embeds.insert(3, self.selectmsg)
-        if error:
-            for x in self.errembs:
-                self.embeds.append(x)
-        else:
-            self.errembs = []
         if inter.response.is_done():
             await inter.edit_original_message(embeds=self.embeds, view=self, **kwargs)
         else:
@@ -516,10 +511,7 @@ class SendModalButton(disnake.ui.Button[ListingConst]):
                 timeout=300,
             )
         except asyncio.TimeoutError:
-            self.view.errmsg = f"It seems your form timed out, if you see this message, it is most likely because you took too long to fill out the form.\n\nPlease try again.\nError Traceback:\n```ansi\n\u001b[1;40;32m{traceback.format_exc()}```"
-            self.view.errembs.append(self.view.error_embed)
-            await self.view.refresh_content(inter, error=False)
-            return
+            raise FormTimeoutError
 
         errchk = False
         self.view.item.name = modal_inter.text_values["itemName"]
@@ -535,10 +527,9 @@ class SendModalButton(disnake.ui.Button[ListingConst]):
         try:
             self.view.prices.bid = int(modal_inter.text_values["bidStart"])
         except (ValueError, TypeError):
-            self.view.errmsg = f"It seems your starting bid couldn't be converted to a whole number, heres the error traceback:\n```{errorfrmt}{traceback.format_exc()}```"
-            self.view.errembs.append(self.view.error_embed)
-            errchk = True
-
+            raise IntegerConversionError(
+                "It seems your starting bid couldn't be converted to a whole number"
+            )
         if (
             "buyNow" in modal_inter.text_values
             and len(modal_inter.text_values["buyNow"]) > 0
@@ -547,21 +538,21 @@ class SendModalButton(disnake.ui.Button[ListingConst]):
                 if int(modal_inter.text_values["buyNow"]) <= int(
                     modal_inter.text_values["bidStart"]
                 ):
-                    self.view.errmsg = f"Please make sure your buy now price is larger than your starting bid"
-                    self.view.errembs.append(self.view.error_embed)
-                    errchk = True
+                    raise PriceTooLowError(
+                        "Please make sure your buy now price is larger than your starting bid"
+                    )
                 else:
                     self.view.prices.buy = int(modal_inter.text_values["buyNow"])
             except (ValueError, TypeError):
-                self.view.errmsg = f"It seems your buy now price couldn't be converted to a whole number, heres the error traceback:\n```{errorfrmt}{traceback.format_exc()}```"
-                self.view.errembs.append(self.view.error_embed)
-                errchk = True
+                raise IntegerConversionError(
+                    "It seems your buy now price couldn't be converted to a whole number."
+                )
 
         if self.view.send_listing_button_added == False:
             self.view.send_listing_button_added = True
             self.view.add_item(SendListingButton(self.view.bot))
 
-        await self.view.refresh_content(modal_inter, error=errchk)
+        await self.view.refresh_content(modal_inter)
 
 
 class SendListingButton(disnake.ui.Button[ListingConst]):
