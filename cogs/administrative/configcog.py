@@ -6,6 +6,7 @@ import disnake
 from cogs.badgelog.browser import create_CharSelect
 from disnake.ext import commands
 from utils import checks
+from utils.models.errors import FormTimeoutError
 from utils.ui.settingsui import SettingsNav
 
 _LabyrinthianT = TypeVar("_LabyrinthianT", bound=disnake.Client)
