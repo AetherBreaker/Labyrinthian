@@ -4,7 +4,6 @@ from pydantic import BaseModel
 class SettingsBaseModel(BaseModel):
     class Config:
         validate_assignment = True
-        underscore_attrs_are_private = True
 
     @classmethod
     def from_dict(cls, *args, **kwargs):

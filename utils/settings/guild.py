@@ -127,6 +127,9 @@ class BadgeField(int):
     def __repr__(self) -> str:
         return f"BadgeField(name={self.name!r}, value={int(self.value)})"
 
+    def __deepcopy__(self, _):
+        return BadgeField(self.name, self.value)
+
 
 class BadgeConfig:
     def __init__(self, fields: List[BadgeField]):
@@ -204,7 +207,7 @@ class ServerSettings(SettingsBaseModel):
     # lookup_dm_required: bool = True
     # lookup_pm_dm: bool = False
     # lookup_pm_result: bool = False
-    _badgetemplate: BadgeConfig = BadgeConfig.from_dict(DEFAULT_BADGE_TEMPLATE)
+    badgetemplate: BadgeConfig = BadgeConfig.from_dict(DEFAULT_BADGE_TEMPLATE)
     listingdurs: Optional[Dict[str, int]] = DEFAULT_LISTING_DURS
     rarities: Optional[Dict[str, int]] = DEFAULT_RARITIES
     outbidthreshold: Optional[int] = 50
