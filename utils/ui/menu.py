@@ -1,8 +1,19 @@
+import traceback
 from typing import Mapping, Optional, Type
 import disnake
 
 
-class MenuBase(disnake.ui.View):
+class UIBase(disnake.ui.View):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    async def on_error(error, item, inter: disnake.Interaction):
+        await inter.author.send(
+            f"Error in {item}\n" f"{error}\n```py\n{traceback.format_exc()}```"
+        )
+
+
+class MenuBase(UIBase):
     __menu_copy_attrs__ = ()
 
     def __init__(self, owner: disnake.User, *args, **kwargs):

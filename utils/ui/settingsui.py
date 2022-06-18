@@ -7,7 +7,8 @@ import re
 from typing import TYPE_CHECKING, Any, Dict, List, Mapping, Optional, TypeVar
 import disnake
 from utils.functions import natural_join, timedeltaplus, truncate_list
-from utils.settings.guild import ServerSettings
+from utils.models.errors import FormTimeoutError
+from utils.settings.guild import DEFAULT_BADGE_TEMPLATE, BadgeConfig, ServerSettings
 
 from utils.ui.menu import MenuBase
 
@@ -193,10 +194,11 @@ class SettingsNav(SettingsMenuBase):
             "tsnrhtdd"[(n // 10 % 10 != 1) * (n % 10 < 4) * n % 10 :: 4],
         )
         firstmax = max(
-            len(ordinal(int(x))) for x, y in self.settings.badgetemplate.dict().values()
+            len(ordinal(int(x)))
+            for x, y in self.settings._badgetemplate.dict().values()
         )
         secondmax = max(
-            len(str(y)) for x, y in self.settings.badgetemplate.dict().values()
+            len(str(y)) for x, y in self.settings._badgetemplate.dict().values()
         )
         templatestr = "\n".join(
             (
@@ -204,7 +206,7 @@ class SettingsNav(SettingsMenuBase):
                     [
                         f"{ordinal(int(x)):{firstmax}} requires"
                         f"{y:{secondmax}} {self.settings.badgelabel}"
-                        for x, y in self.settings.badgetemplate.dict().values()
+                        for x, y in self.settings._badgetemplate.dict().values()
                     ],
                     5,
                 )
@@ -276,17 +278,21 @@ class BadgelogSettingsView(SettingsMenuBase):
     async def badge_template_modal(
         self, _: disnake.ui.Button, inter: disnake.MessageInteraction
     ):
-        valuestr = (
+        descstr = (
             f"Edit the badge template shown below. The template is shown as a line separated "
             f"list of [level name]:<{self.settings.badgelabel} threshold>. The level name may"
             f" be removed or omitted and if done, it will reset to the default. All data entered"
             f" below is assumed to be in ascending numerical order, starting at level one\n"
-            f"Any changes made above this line will be ignored.\n"
-            f"-----------------------------------------------------------\n"
         )
-        badgetempraw = list(self.settings.badgetemplate.dict().values())
-        valuestr += "\n".join([f'"{x}" : {y}' for x, y in badgetempraw])
+        valuestr = self.settings._badgetemplate.to_str()
         components = [
+            disnake.ui.TextInput(
+                style=disnake.TextInputStyle.multi_line,
+                label="Description",
+                custom_id="settings_badge_template_desc",
+                value=descstr,
+                required=False,
+            ),
             disnake.ui.TextInput(
                 style=disnake.TextInputStyle.multi_line,
                 label="Server Badge Template",
@@ -326,19 +332,18 @@ class BadgelogSettingsView(SettingsMenuBase):
 
             if modalinter.text_values["settings_badge_template_reset"] == "Confirm":
                 inter.send("Badge template reset to default", ephemeral=True)
-                self.settings.badgetemplate = None
+                self.settings._badgetemplate = BadgeConfig.from_dict(
+                    DEFAULT_BADGE_TEMPLATE
+                )
                 return
             if len(modalinter.text_values["settings_badge_template_set"]) > 0:
-                badgetemplate = modalinter.text_values["settings_badge_template_set"]
-                # badgetemplate = re.sub(r"")
+                self.settings._badgetemplate = BadgeConfig.from_str(
+                    modalinter.text_values["settings_badge_template_set"]
+                )
             await self.commit_settings()
             await self.refresh_content(modalinter)
         except asyncio.TimeoutError:
-            inter.send(
-                "It seems your form timed out, if you see this message, it is most likely because you took too long to fill out the form.\n\nPlease try again.",
-                ephemeral=True,
-            )
-            return
+            raise FormTimeoutError
 
     @disnake.ui.button(label="Back", style=disnake.ButtonStyle.grey, row=4)
     async def back(self, _: disnake.ui.Button, inter: disnake.Interaction):
