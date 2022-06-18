@@ -1,7 +1,11 @@
 import asyncio
 import logging
 import os
+import traceback
+from types import TracebackType
 from typing import Union
+import typing
+from black import err
 
 import disnake
 import motor.motor_asyncio
@@ -13,7 +17,7 @@ from disnake.ext.commands.errors import CommandInvokeError
 from cogs.auction.auction_constructor import ConstSender
 from utils import MongoCache, config
 from utils.models.errors import LabyrinthianException
-from utils.settings.guild import ServerSettings, for_guild
+from utils.settings.guild import ServerSettings
 
 if config.TESTING_VAR == "True":
     import sys
@@ -57,14 +61,16 @@ class Labyrinthian(commands.Bot):
 
         # databases
         self.mclient = motor.motor_asyncio.AsyncIOMotorClient(config.MONGO_URL)
-        self.sdb: motor.motor_asyncio.AsyncIOMotorDatabase = self.mclient[config.MONGODB_SERVERDB_NAME]
+        self.sdb: motor.motor_asyncio.AsyncIOMotorDatabase = self.mclient[
+            config.MONGODB_SERVERDB_NAME
+        ]
         self.dbcache = MongoCache.MongoCache(self, cwd, maxsize=50, ttl=20)
         self.charcache = MongoCache.CharlistCache(self, maxsize=50, ttl=20)
 
     async def get_server_settings(self, guild_id: str) -> ServerSettings:
         if not isinstance(guild_id, str):
             guild_id = str(guild_id)
-        server_settings = await for_guild(self.dbcache, guild_id)
+        server_settings = await ServerSettings.for_guild(self.dbcache, guild_id)
         return server_settings
 
     # async def get_guild_prefix(self, guild: disnake.Guild) -> str:
@@ -126,7 +132,7 @@ async def on_slash_command_error(inter: disnake.Interaction, error):
         return
 
     elif isinstance(error, LabyrinthianException):
-        return await inter.send(str(error))
+        return await inter.author.send(str(error))
 
     elif isinstance(
         error, (commands.UserInputError, commands.NoPrivateMessage, ValueError)
@@ -153,7 +159,7 @@ async def on_slash_command_error(inter: disnake.Interaction, error):
         original = error.original
 
         if isinstance(original, LabyrinthianException):
-            return await inter.send(str(original))
+            return await inter.author.send(str(original))
 
         elif isinstance(original, Forbidden):
             try:
@@ -188,6 +194,18 @@ async def on_slash_command_error(inter: disnake.Interaction, error):
                 return await inter.send(
                     "Error: Internal server error on Discord's end. Please try again."
                 )
+
+    else:
+        return await inter.author.send(f"{error}\n```py\n{traceback.format_exc()}```")
+
+
+@bot.event
+async def on_error(event: str, *args, **kwargs):
+    for arg in args:
+        if isinstance(arg, disnake.Interaction):
+            await arg.author.send(f"```py\n{traceback.format_exc()}```")
+        elif isinstance(arg, commands.Context):
+            await arg.author.send(f"```py\n{traceback.format_exc()}```")
 
 
 for ext in extensions:
