@@ -7,6 +7,8 @@ import disnake
 from bson import ObjectId
 from pymongo import DESCENDING
 
+from utils.ui.menu import UIBase
+
 TOO_MANY_CHARACTERS_SENTINEL = "__special:too_many_characters"
 
 _LabyrinthianT = TypeVar("_LabyrinthianT", bound=disnake.Client)
@@ -23,7 +25,7 @@ async def create_CharSelect(
     await Sel._init(inter)
 
 
-class CharSelect(disnake.ui.View):
+class CharSelect(UIBase):
     def __init__(
         self,
         bot: _LabyrinthianT,
@@ -164,7 +166,7 @@ class CharSelect(disnake.ui.View):
             self.select_char.disabled = False
 
 
-class LogBrowser(disnake.ui.View):
+class LogBrowser(UIBase):
     def __init__(
         self,
         bot: _LabyrinthianT,
