@@ -165,54 +165,54 @@ class AuctionHouse(commands.Cog):
         else:
             return
 
-    @commands.Cog.listener("on_button_click")
-    async def cancel_listing(self, inter: disnake.MessageInteraction):
-        if not inter.component.custom_id == "auction_cancel_listing":
-            return
-        listingdat: Dict[str, Any] = await self.bot.dbcache.find_one(
-            "auction_listings",
-            {"usertrack": [str(inter.author.id), str(inter.message.id)]},
-        )
-        srvconf: Dict[str, Any] = await self.bot.dbcache.find_one(
-            "srvconf", {"guild": listingdat["guildid"]}
-        )
-        if str(inter.author.id) != listingdat["userid"]:
-            return
-        component = disnake.ui.TextInput(
-            style=disnake.TextInputStyle.single_line,
-            label="Are you sure you want to cancel this listing?",
-            placeholder='Type "CONFIRM" to confirm cancellation.',
-            custom_id="confirm_cancel_field",
-            max_length=7,
-        )
-        rand = randint(111111, 99999999)
-        await inter.response.send_modal(
-            title="Confirm Cancel",
-            custom_id=f"{rand}confirm_cancel_modal",
-            components=component,
-        )
-        try:
-            modal_inter: disnake.ModalInteraction = await self.bot.wait_for(
-                "modal_submit",
-                check=lambda i: i.custom_id == f"{rand}confirm_cancel_modal"
-                and i.author.id == inter.author.id,
-                timeout=60,
-            )
-        except asyncio.TimeoutError:
-            return
-        confirm = modal_inter.text_values["confirm_cancel_field"]
-        if confirm.casefold() != "confirm":
-            modal_inter.send("Confirmation failed, abortting cancel...", ephemeral=True)
-            return
-        modal_inter.send("Confirmed, cancelling item listing.")
-        embed = listingdat["embed"]
-        embed["fields"] = embed["fields"][:3]
-        embed = disnake.Embed.from_dict(embed).add_field(name="")
+    # @commands.Cog.listener("on_button_click")
+    # async def cancel_listing(self, inter: disnake.MessageInteraction):
+    #     if not inter.component.custom_id == "auction_cancel_listing":
+    #         return
+    #     listingdat: Dict[str, Any] = await self.bot.dbcache.find_one(
+    #         "auction_listings",
+    #         {"usertrack": [str(inter.author.id), str(inter.message.id)]},
+    #     )
+    #     srvconf: Dict[str, Any] = await self.bot.dbcache.find_one(
+    #         "srvconf", {"guild": listingdat["guildid"]}
+    #     )
+    #     if str(inter.author.id) != listingdat["userid"]:
+    #         return
+    #     component = disnake.ui.TextInput(
+    #         style=disnake.TextInputStyle.single_line,
+    #         label="Are you sure you want to cancel this listing?",
+    #         placeholder='Type "CONFIRM" to confirm cancellation.',
+    #         custom_id="confirm_cancel_field",
+    #         max_length=7,
+    #     )
+    #     rand = randint(111111, 99999999)
+    #     await inter.response.send_modal(
+    #         title="Confirm Cancel",
+    #         custom_id=f"{rand}confirm_cancel_modal",
+    #         components=component,
+    #     )
+    #     try:
+    #         modal_inter: disnake.ModalInteraction = await self.bot.wait_for(
+    #             "modal_submit",
+    #             check=lambda i: i.custom_id == f"{rand}confirm_cancel_modal"
+    #             and i.author.id == inter.author.id,
+    #             timeout=60,
+    #         )
+    #     except asyncio.TimeoutError:
+    #         return
+    #     confirm = modal_inter.text_values["confirm_cancel_field"]
+    #     if confirm.casefold() != "confirm":
+    #         modal_inter.send("Confirmation failed, abortting cancel...", ephemeral=True)
+    #         return
+    #     modal_inter.send("Confirmed, cancelling item listing.")
+    #     embed = listingdat["embed"]
+    #     embed["fields"] = embed["fields"][:3]
+    #     embed = disnake.Embed.from_dict(embed).add_field(name="")
 
-        listowner: disnake.User = self.bot.get_user(int(listingdat["usertrack"][0]))
-        trackermsg: disnake.Message = await listowner.fetch_message(
-            int(listingdat["usertrack"][1])
-        )
+    #     listowner: disnake.User = self.bot.get_user(int(listingdat["usertrack"][0]))
+    #     trackermsg: disnake.Message = await listowner.fetch_message(
+    #         int(listingdat["usertrack"][1])
+    #     )
 
     @commands.slash_command()
     async def testconsend(self, inter: disnake.ApplicationCommandInteraction):
