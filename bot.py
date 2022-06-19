@@ -2,10 +2,7 @@ import asyncio
 import logging
 import os
 import traceback
-from types import TracebackType
 from typing import Union
-import typing
-from black import err
 
 import disnake
 import motor.motor_asyncio
