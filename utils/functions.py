@@ -3,6 +3,7 @@ Created on Oct 29, 2016
 @author: andrew
 """
 import asyncio
+import math
 import re
 from typing import Any, Callable, List, TypeVar, Optional
 from disnake.ext import commands
@@ -257,3 +258,27 @@ T = TypeVar("T")
 
 def truncate_list(input: List[T], cutoff: int, repl: Optional[T] = None) -> List[T]:
     return input[:cutoff] if repl is None else input[:cutoff] + [repl]
+
+
+def simple_tabulate_str(input: List[str], columnamt: int = 2) -> str:
+    length = int(math.ceil(len(input) / columnamt))
+    input = list(input)
+    columns = [
+        input[x * length : (x + 1) * length] for x, y in enumerate(range(columnamt))
+    ]
+    while len(columns[0]) > len(columns[-1]):
+        columns[-1].append("")
+    colmaxes = [max(len(y) for y in x) for x in columns]
+    joinlist = []
+    for lineindex, line in enumerate(range(length)):
+        linejoin = []
+        for columnindex, column in enumerate(columns):
+            if columnindex == 0:
+                linejoin.append(f"{column[0]:{colmaxes[columnindex]}}")
+            elif (columnindex + 1) == len(columns):
+                linejoin.append(f"{column[0]:>{colmaxes[columnindex]}}")
+            else:
+                linejoin.append(f"{column[0]:^{colmaxes[columnindex]}}")
+            columns[columnindex] = column[1:]
+        joinlist.append(" | ".join(linejoin))
+    return "\n".join(joinlist)
