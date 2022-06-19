@@ -3,12 +3,16 @@ import asyncio
 from contextlib import suppress
 from copy import deepcopy
 from random import randint
-import re
 from typing import TYPE_CHECKING, Any, Dict, List, Mapping, Optional, TypeVar
 import disnake
-from utils.functions import natural_join, timedeltaplus, truncate_list
+from utils.functions import (
+    natural_join,
+    simple_tabulate_str,
+    timedeltaplus,
+    truncate_list,
+)
 from utils.models.errors import FormTimeoutError
-from utils.settings.guild import DEFAULT_BADGE_TEMPLATE, BadgeConfig, ServerSettings
+from utils.settings.guild import BadgeConfig, ServerSettings
 
 from utils.ui.menu import MenuBase
 
@@ -63,11 +67,20 @@ class SettingsMenuBase(MenuBase, abc.ABC):
                 result[embindex]["author"] = embed["author"]
             if "footer" in embed:
                 result[embindex]["footer"] = embed["footer"]
+
             if "descitems" in embed:
+                if "skipdesc" in embed:
+                    if embed["skipdesc"]:
+                        descoverflow = 1
                 for item in embed["descitems"]:
                     itemlen = chkitemlen(item)
                     if (itemlen + len(result[embindex]["description"])) > 4096:
                         descoverflow = 1
+                    if descoverflow == 1:
+                        if len(result[embindex]["fields"]) == fieldindex:
+                            result[embindex]["fields"].append(
+                                {"name": "\u200B", "value": ""}
+                            )
                     if (
                         descoverflow == 1
                         and (
@@ -81,7 +94,6 @@ class SettingsMenuBase(MenuBase, abc.ABC):
                     if (itemlen + chktotallen(result)) > 6000:
                         return result
                     if descoverflow == 1:
-                        result[embindex]["fields"][fieldindex]["name"] = "\u200B"
                         for part, contents in item.items():
                             if part == "header":
                                 result[embindex]["fields"][fieldindex][
@@ -95,6 +107,10 @@ class SettingsMenuBase(MenuBase, abc.ABC):
                                 result[embindex]["fields"][fieldindex][
                                     "value"
                                 ] += f"\n{contents}"
+                            elif part == "inline":
+                                result[embindex]["fields"][fieldindex][
+                                    "inline"
+                                ] = contents
                     else:
                         for part, contents in item.items():
                             if part == "header":
@@ -174,6 +190,7 @@ class SettingsNav(SettingsMenuBase):
                     for x, y in self.settings.listingdurs.items()
                 ],
                 5,
+                "...",
             )
         )
 
@@ -186,6 +203,7 @@ class SettingsNav(SettingsMenuBase):
                     for x, y in self.settings.rarities.items()
                 ],
                 5,
+                "...",
             )
         )
 
@@ -194,26 +212,26 @@ class SettingsNav(SettingsMenuBase):
             "tsnrhtdd"[(n // 10 % 10 != 1) * (n % 10 < 4) * n % 10 :: 4],
         )
         firstmax = max(
-            len(ordinal(int(x)))
-            for x, y in self.settings._badgetemplate.dict().values()
+            len(ordinal(int(x))) for x in self.settings.badgetemplate.to_dict().values()
         )
-        secondmax = max(
-            len(str(y)) for x, y in self.settings._badgetemplate.dict().values()
-        )
+        secondmax = max(len(str(x)) for x in self.settings.badgetemplate.to_dict())
         templatestr = "\n".join(
             (
                 truncate_list(
                     [
                         f"{ordinal(int(x)):{firstmax}} requires"
-                        f"{y:{secondmax}} {self.settings.badgelabel}"
-                        for x, y in self.settings._badgetemplate.dict().values()
+                        f" {y:{secondmax}} {self.settings.badgelabel}"
+                        for x, y in self.settings.badgetemplate.to_dict().items()
                     ],
                     5,
+                    "...",
                 )
             )
         )
 
-        classlist = "\n".join(truncate_list(deepcopy(self.settings.classlist), 5))
+        classlist = "\n".join(
+            truncate_list(deepcopy(self.settings.classlist), 5, "...")
+        )
 
         inputdict["main"]["title"] = f"Labyrinthian settings for {self.guild.name}"
         inputdict["main"]["fielditems"].append(
@@ -284,7 +302,7 @@ class BadgelogSettingsView(SettingsMenuBase):
             f" be removed or omitted and if done, it will reset to the default. All data entered"
             f" below is assumed to be in ascending numerical order, starting at level one\n"
         )
-        valuestr = self.settings._badgetemplate.to_str()
+        valuestr = self.settings.badgetemplate.to_str()
         components = [
             disnake.ui.TextInput(
                 style=disnake.TextInputStyle.multi_line,
@@ -332,12 +350,10 @@ class BadgelogSettingsView(SettingsMenuBase):
 
             if modalinter.text_values["settings_badge_template_reset"] == "Confirm":
                 inter.send("Badge template reset to default", ephemeral=True)
-                self.settings._badgetemplate = BadgeConfig.from_dict(
-                    DEFAULT_BADGE_TEMPLATE
-                )
+                self.settings.badgetemplate = None
                 return
             if len(modalinter.text_values["settings_badge_template_set"]) > 0:
-                self.settings._badgetemplate = BadgeConfig.from_str(
+                self.settings.badgetemplate = BadgeConfig.from_str(
                     modalinter.text_values["settings_badge_template_set"]
                 )
             await self.commit_settings()
@@ -372,25 +388,26 @@ class BotSettingsView(SettingsMenuBase):
         await self.refresh_content(inter)
 
     @disnake.ui.button(label="Configure Class List", style=disnake.ButtonStyle.primary)
-    async def select_classes(
-        self, button: disnake.ui.Button, inter: disnake.Interaction
-    ):
+    async def select_classes(self, _: disnake.ui.Button, inter: disnake.Interaction):
         components = [
             disnake.ui.TextInput(
                 style=disnake.TextInputStyle.multi_line,
                 label="Classes to Add",
                 placeholder="A list of class names separated by either commas or new lines.",
-                custom_id="settings_classes_add",
+                value=(
+                    f"Each class must be on a separate line below."
+                    f"Any changes made will be applied to the server class list."
+                ),
+                custom_id="settings_classes_desc",
                 required=False,
-                max_length=200,
             ),
             disnake.ui.TextInput(
                 style=disnake.TextInputStyle.multi_line,
-                label="Classes to Remove",
+                label="Class List Modification",
                 placeholder="A list of class names separated by either commas or new lines.",
-                custom_id="settings_classes_remove",
+                value="\n".join(self.settings.classlist),
+                custom_id="settings_classes_list",
                 required=False,
-                max_length=200,
             ),
             disnake.ui.TextInput(
                 style=disnake.TextInputStyle.single_line,
@@ -416,34 +433,21 @@ class BotSettingsView(SettingsMenuBase):
             )
 
             if modalinter.text_values["settings_classes_reset"] == "Confirm":
-                inter.send("Class list reset to defaults", ephemeral=True)
+                await inter.send("Class list reset to defaults", ephemeral=True)
                 self.settings.classlist = None
+                await self.commit_settings()
+                await self.refresh_content(modalinter)
                 return
-            if len(modalinter.text_values["settings_classes_add"]) > 0:
-                addclasses = modalinter.text_values["settings_classes_add"]
-                addclasses = re.split(",[ ]*|\n", addclasses)
-                for x in addclasses:
-                    x = re.sub(r"[^a-zA-Z0-9 ]", "", x)
-                    x = re.sub(r" +", " ", x).strip()
-                classlist = list(set(self.settings.classlist) | set(addclasses))
-                classlist.sort()
-                self.settings.classlist = classlist
-            if len(modalinter.text_values["settings_classes_remove"]) > 0:
-                removeclasses = modalinter.text_values["settings_classes_remove"]
-                removeclasses = re.split(",[ ]*|\n", addclasses)
-                for x in removeclasses:
-                    x = re.sub(r"[^a-zA-Z0-9 ]", "", x)
-                    x = re.sub(r" +", " ", x).strip()
-                    if x in self.settings.classlist:
-                        self.settings.classlist.remove(x)
+            if len(modalinter.text_values["settings_classes_list"]) > 0:
+                addclasses = modalinter.text_values[
+                    "settings_classes_list"
+                ].splitlines()
+                addclasses.sort()
+                self.settings.classlist = addclasses
             await self.commit_settings()
             await self.refresh_content(modalinter)
         except asyncio.TimeoutError:
-            inter.send(
-                "It seems your form timed out, if you see this message, it is most likely because you took too long to fill out the form.\n\nPlease try again.",
-                ephemeral=True,
-            )
-            return
+            raise FormTimeoutError
 
     @disnake.ui.button(label="Back", style=disnake.ButtonStyle.grey, row=4)
     async def back(self, _: disnake.ui.Button, inter: disnake.Interaction):
@@ -531,7 +535,10 @@ class BotSettingsView(SettingsMenuBase):
 
     async def get_content(self):
         inputdict = deepcopy(inputtemplate)
-        classlist = natural_join([_class for _class in self.settings.classlist], "and")
+        # classlist = natural_join([_class for _class in self.settings.classlist], "and")
+        classlist = simple_tabulate_str(
+            [_class for _class in self.settings.classlist], 3
+        )
         if not self.settings.dmroles:
             dmroles = f"**Dungeon Master, DM, Game Master, or GM**\n"
             dmrolesdesc = (
@@ -565,15 +572,28 @@ class BotSettingsView(SettingsMenuBase):
                 "desc": f"{dmrolesdesc}",
             }
         )
-        inputdict["main"]["descitems"].append(
+        # inputdict["main"]["descitems"].append(
+        #     {
+        #         "header": f"\n__**Server Class List:**__",
+        #         "setting": f"```ansi\n\u001b[1;40;32m{classlist}```",
+        #         "desc": (
+        #             f"*This is a list of classes that are allowed for play in this server."
+        #             f"Any class listed here will be selectable when creating a character"
+        #             f"log.*"
+        #         ),
+        #         "inline": True,
+        #     }
+        # )
+        inputdict["main"]["fielditems"].append(
             {
-                "header": f"\n__**Server Class List:**__",
-                "setting": f"```ansi\n\u001b[1;40;32m{classlist}```",
-                "desc": (
+                "name": f"\n__Server Class List:__",
+                "value": (
+                    f"```ansi\n\u001b[1;40;32m{classlist}```\n"
                     f"*This is a list of classes that are allowed for play in this server."
                     f"Any class listed here will be selectable when creating a character"
                     f"log.*"
                 ),
+                "inline": True,
             }
         )
         embeds = self.format_settings_overflow(inputdict)

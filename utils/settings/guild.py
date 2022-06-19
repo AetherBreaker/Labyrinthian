@@ -3,58 +3,11 @@ from typing import Any, Dict, List, Optional, Set, Tuple, Type, TypeVar, Union
 
 import disnake
 import inflect
-from pydantic import BaseModel, Field, create_model
+from pydantic import BaseModel, Field, create_model, validator
 from utils.models.errors import IntegerConversionError
 from utils.settings import SettingsBaseModel
 
 Model = TypeVar("Model", bound="BaseModel")
-
-
-# {
-#     "1": 0,
-#     "2": 1,
-#     "3": 3,
-#     "4": 6,
-#     "5": 10,
-#     "6": 14,
-#     "7": 20,
-#     "8": 26,
-#     "9": 34,
-#     "10": 42,
-#     "11": 50,
-#     "12": 58,
-#     "13": 66,
-#     "14": 76,
-#     "15": 86,
-#     "16": 96,
-#     "17": 108,
-#     "18": 120,
-#     "19": 135,
-#     "20": 150,
-# }
-# [
-#     BadgeField(name="1", value=0),
-#     BadgeField(name="2", value=1),
-#     BadgeField(name="3", value=3),
-#     BadgeField(name="4", value=6),
-#     BadgeField(name="5", value=10),
-#     BadgeField(name="6", value=14),
-#     BadgeField(name="7", value=20),
-#     BadgeField(name="8", value=26),
-#     BadgeField(name="9", value=34),
-#     BadgeField(name="10", value=42),
-#     BadgeField(name="11", value=50),
-#     BadgeField(name="12", value=58),
-#     BadgeField(name="13", value=66),
-#     BadgeField(name="14", value=76),
-#     BadgeField(name="15", value=86),
-#     BadgeField(name="16", value=96),
-#     BadgeField(name="17", value=108),
-#     BadgeField(name="18", value=120),
-#     BadgeField(name="19", value=135),
-#     BadgeField(name="20", value=150),
-# ]
-
 
 DEFAULT_DM_ROLE_NAMES = {"dm", "gm", "dungeon master", "game master"}
 DEFAULT_BADGE_TEMPLATE = {
@@ -95,7 +48,7 @@ DEFAULT_RARITIES = {
     "Artifact": 400,
     "Unknown": 0,
 }
-DEFAULT_CLASS_LIST = (
+DEFAULT_CLASS_LIST = [
     "Artificer",
     "Barbarian",
     "Bard",
@@ -110,7 +63,7 @@ DEFAULT_CLASS_LIST = (
     "Sorcerer",
     "Warlock",
     "Wizard",
-)
+]
 
 
 class BadgeField(int):
@@ -168,7 +121,7 @@ class BadgeConfig:
                     continue
 
             # clean any potential whitespace off of value
-            value = value.strip()
+            value = value.strip()  # type: ignore
 
             # Normally BadgeField handles type casting, however here we want to check
             # if type casting is safe and throw an error to present to the user if it isn't
@@ -202,23 +155,28 @@ class BadgeConfig:
 
 class ServerSettings(SettingsBaseModel):
     guild: str
-    dmroles: Optional[List[str]] = None
+    dmroles: Optional[List[str]] = []
     classlist: Optional[List[str]] = DEFAULT_CLASS_LIST
     # lookup_dm_required: bool = True
     # lookup_pm_dm: bool = False
     # lookup_pm_result: bool = False
     badgetemplate: BadgeConfig = BadgeConfig.from_dict(DEFAULT_BADGE_TEMPLATE)
-    listingdurs: Optional[Dict[str, int]] = DEFAULT_LISTING_DURS
-    rarities: Optional[Dict[str, int]] = DEFAULT_RARITIES
-    outbidthreshold: Optional[int] = 50
+    listingdurs: Dict[str, int] = DEFAULT_LISTING_DURS
+    rarities: Dict[str, int] = DEFAULT_RARITIES
+    outbidthreshold: int = 50
     ahfront: Optional[str] = None
     ahback: Optional[str] = None
     ahinternal: Optional[str] = None
-    badgelabel: Optional[str] = "badges"
+    badgelabel: str = "badges"
+
+    # ==== validators ====
+    # @validator("classlist")
+    # def default_classlist(cls, v):
+    #     return v or DEFAULT_CLASS_LIST
 
     # ==== lifecycle ====
     @classmethod
-    async def for_guild(cls, mdb, guild: int):
+    async def for_guild(cls, mdb, guild: str):
         """Returns the server settings for a given guild."""
         existing = await mdb.find_one("srvconf", {"guild": guild})
         if existing is not None:
@@ -227,8 +185,10 @@ class ServerSettings(SettingsBaseModel):
 
     async def commit(self, db):
         """Commits the settings to the database."""
+        data = self.dict()
+        data["badgetemplate"] = self.badgetemplate.to_dict()
         await db.update_one(
-            "srvconf", {"guild": self.guild}, {"$set": self.dict()}, upsert=True
+            "srvconf", {"guild": self.guild}, {"$set": data}, upsert=True
         )
 
     # ==== helpers ====
