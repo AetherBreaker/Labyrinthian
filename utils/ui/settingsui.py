@@ -5,6 +5,7 @@ from copy import deepcopy
 from random import randint
 from typing import TYPE_CHECKING, Any, Dict, List, Mapping, Optional, TypeVar
 import disnake
+from utils import settings
 from utils.functions import (
     natural_join,
     simple_tabulate_str,
@@ -148,7 +149,7 @@ class SettingsNav(SettingsMenuBase):
         return inst
 
     @disnake.ui.button(
-        style=disnake.ButtonStyle.primary, label="Auction House Settings"
+        style=disnake.ButtonStyle.primary, label="Auction House Settings", disabled=True
     )
     async def auction_house_settings(
         self, _: disnake.ui.Button, inter: disnake.MessageInteraction
@@ -156,7 +157,9 @@ class SettingsNav(SettingsMenuBase):
         return
         await self.defer_to(AuctionSettingsView, inter)
 
-    @disnake.ui.button(style=disnake.ButtonStyle.primary, label="Badgelog Settings")
+    @disnake.ui.button(
+        style=disnake.ButtonStyle.primary, label="Character Log Settings"
+    )
     async def badgelog_settings(
         self, _: disnake.ui.Button, inter: disnake.MessageInteraction
     ):
@@ -186,7 +189,7 @@ class SettingsNav(SettingsMenuBase):
             truncate_list(
                 [
                     f"{str(timedeltaplus(seconds=int(x))):{firstmax}}"
-                    f"- {y:{secondmax}} gp fee"
+                    f" - {y:{secondmax}} gp fee"
                     for x, y in self.settings.listingdurs.items()
                 ],
                 5,
@@ -261,7 +264,7 @@ class SettingsNav(SettingsMenuBase):
         inputdict["main"]["fielditems"].append(
             {
                 "name": "__Character Log Settings__",
-                "value": f"**Badge Template**: \n```{templatestr}```\n",
+                "value": f"**{self.settings.badgelabel} Requirements**: \n```{templatestr}```\n",
                 "inline": True,
             }
         )
@@ -284,36 +287,91 @@ class AuctionSettingsView(SettingsMenuBase):
 
     # ==== content ====
     async def get_content(self):
-        pass
+        return await super().get_content()
 
 
 class BadgelogSettingsView(SettingsMenuBase):
 
     # ==== ui ====
+    @disnake.ui.button(label="Set XP Label", style=disnake.ButtonStyle.primary)
+    async def xp_label_modal(
+        self, _: disnake.ui.Button, inter: disnake.MessageInteraction
+    ):
+        components = [
+            disnake.ui.TextInput(
+                style=disnake.TextInputStyle.multi_line,
+                label="Set XP Label",
+                placeholder="badges",
+                custom_id="settings_badge_label_set",
+                value=self.settings.badgelabel,
+                required=False,
+            ),
+            disnake.ui.TextInput(
+                style=disnake.TextInputStyle.single_line,
+                label="Reset to Default",
+                placeholder='Type "Confirm" here to reset the XP label to the default',
+                custom_id="settings_badge_label_reset",
+                required=False,
+                max_length=7,
+            ),
+        ]
+        rand = randint(111111, 999999)
+        await inter.response.send_modal(
+            custom_id=f"{rand}settings_badge_label_modal",
+            title='"Units of XP" Label:',
+            components=components,
+        )
+        try:
+            modalinter: disnake.ModalInteraction = await self.bot.wait_for(
+                "modal_submit",
+                check=lambda i: i.custom_id == f"{rand}settings_badge_label_modal"
+                and i.author.id == inter.author.id,
+                timeout=180,
+            )
+
+            if modalinter.text_values["settings_badge_label_reset"] == "Confirm":
+                await inter.send(
+                    f"{self.settings.badgelabel} requirements reset to default",
+                    ephemeral=True,
+                )
+                self.settings.badgelabel = self.settings.__fields__[
+                    "badgelabel"
+                ].get_default()
+                await self.commit_settings()
+                await self.refresh_content(modalinter)
+                return
+            if len(modalinter.text_values["settings_badge_label_set"]) > 0:
+                self.settings.badgelabel = modalinter.text_values[
+                    "settings_badge_label_set"
+                ]
+            await self.commit_settings()
+            await self.refresh_content(modalinter)
+        except asyncio.TimeoutError:
+            raise FormTimeoutError
+
     @disnake.ui.button(
-        label="Configure Badge Template", style=disnake.ButtonStyle.primary
+        label="Configure XP requirements", style=disnake.ButtonStyle.primary
     )
     async def badge_template_modal(
         self, _: disnake.ui.Button, inter: disnake.MessageInteraction
     ):
-        descstr = (
-            f"Edit the badge template shown below. The template is shown as a line separated "
-            f"list of [level name]:<{self.settings.badgelabel} threshold>. The level name may"
-            f" be removed or omitted and if done, it will reset to the default. All data entered"
-            f" below is assumed to be in ascending numerical order, starting at level one\n"
-        )
         valuestr = self.settings.badgetemplate.to_str()
         components = [
             disnake.ui.TextInput(
                 style=disnake.TextInputStyle.multi_line,
                 label="Description",
                 custom_id="settings_badge_template_desc",
-                value=descstr,
+                value=(
+                    f"Edit the {self.settings.badgelabel} requirements shown below. The template is shown as a line separated "
+                    f"list of [level name]:<{self.settings.badgelabel} threshold>. The level name may"
+                    f" be removed or omitted and if done, it will reset to the default. All data entered"
+                    f" below is assumed to be in ascending numerical order, starting at level one\n"
+                ),
                 required=False,
             ),
             disnake.ui.TextInput(
                 style=disnake.TextInputStyle.multi_line,
-                label="Server Badge Template",
+                label=f"Server {self.settings.badgelabel} requirements",
                 placeholder=(
                     f"Line separated list of values"
                     f"You can also provide a key to name each level\n"
@@ -328,7 +386,7 @@ class BadgelogSettingsView(SettingsMenuBase):
             disnake.ui.TextInput(
                 style=disnake.TextInputStyle.single_line,
                 label="Reset to Default",
-                placeholder='Type "Confirm" here to reset the badge template to the default',
+                placeholder=f'Type "Confirm" here to reset the {self.settings.badgelabel} requirements to the default',
                 custom_id="settings_badge_template_reset",
                 required=False,
                 max_length=7,
@@ -337,7 +395,7 @@ class BadgelogSettingsView(SettingsMenuBase):
         rand = randint(111111, 999999)
         await inter.response.send_modal(
             custom_id=f"{rand}settings_badge_template_modal",
-            title="Add/Remove Server Classes",
+            title=f"Edit {self.settings.badgelabel} Requirements",
             components=components,
         )
         try:
@@ -349,8 +407,12 @@ class BadgelogSettingsView(SettingsMenuBase):
             )
 
             if modalinter.text_values["settings_badge_template_reset"] == "Confirm":
-                inter.send("Badge template reset to default", ephemeral=True)
-                self.settings.badgetemplate = None
+                await inter.send("Badge template reset to default", ephemeral=True)
+                self.settings.badgetemplate = self.settings.__fields__[
+                    "badgetemplate"
+                ].get_default()
+                await self.commit_settings()
+                await self.refresh_content(modalinter)
                 return
             if len(modalinter.text_values["settings_badge_template_set"]) > 0:
                 self.settings.badgetemplate = BadgeConfig.from_str(
@@ -367,11 +429,56 @@ class BadgelogSettingsView(SettingsMenuBase):
 
     # ==== content ====
     async def get_content(self) -> Mapping:
-        return await super().get_content()
+        inputdict = deepcopy(inputtemplate)
+        maxes = [
+            max(
+                len(str(x + 1))
+                for x, y in enumerate(self.settings.badgetemplate.to_dict())
+            ),
+            max(len(str(x)) for x in self.settings.badgetemplate.to_dict()),
+            max(len(str(x)) for x in self.settings.badgetemplate.to_dict().values()),
+        ]
+        badgetemplate = "Level : Level Name : Requirement\n"
+        badgetemplate += simple_tabulate_str(
+            [
+                f"{x+1:{maxes[0]}} : {y:^{maxes[1]}} : {z:<{maxes[2]}}"
+                for x, (y, z) in enumerate(
+                    self.settings.badgetemplate.to_dict().items()
+                )
+            ],
+            2,
+        )
+        inputdict["main"][
+            "title"
+        ] = f"Server Settings ({self.guild.name}) / Character Log Settings"
+        inputdict["main"]["descitems"].append(
+            {
+                "header": f'__**"Units of XP" Label:**__',
+                "setting": f'"{self.settings.badgelabel}"',
+                "desc": (
+                    f"*This setting will replace all uses of the word {self.settings.badgelabel} "
+                    f"with whatever this is set to.*"
+                ),
+            }
+        )
+        inputdict["main"]["fielditems"].append(
+            {
+                "name": f"__{self.settings.badgelabel} Requirements:__",
+                "value": (
+                    f"```ansi\n\u001b[1;40;32m{badgetemplate}```"
+                    f"*This setting determines how much/many {self.settings.badgelabel}(es) "
+                    f"are required for each level.*"
+                ),
+                "inline": True,
+            }
+        )
+        embeds = self.format_settings_overflow(inputdict)
+        embeds = [disnake.Embed.from_dict(x) for x in embeds]
+        return {"embeds": embeds}
 
 
 class BotSettingsView(SettingsMenuBase):
-    select_dm_roles: disnake.ui.Select  # make the type checker happy
+    select_dm_roles: disnake.ui.Select  # type: ignore # make the type checker happy
 
     # ==== ui ====
     @disnake.ui.select(placeholder="Select DM Roles", min_values=0)
@@ -382,7 +489,7 @@ class BotSettingsView(SettingsMenuBase):
             role_ids = await self._text_select_dm_roles(inter)
         else:
             role_ids = list(map(int, select.values))
-        self.settings.dmroles = role_ids or None
+        self.settings.dmroles = role_ids or None  # type: ignore
         self._refresh_dm_role_select()
         await self.commit_settings()
         await self.refresh_content(inter)
@@ -434,7 +541,9 @@ class BotSettingsView(SettingsMenuBase):
 
             if modalinter.text_values["settings_classes_reset"] == "Confirm":
                 await inter.send("Class list reset to defaults", ephemeral=True)
-                self.settings.classlist = None
+                self.settings.classlist = self.settings.__fields__[
+                    "classlist"
+                ].get_default()
                 await self.commit_settings()
                 await self.refresh_content(modalinter)
                 return
@@ -501,13 +610,13 @@ class BotSettingsView(SettingsMenuBase):
                 "No valid roles found. Use the select menu to try again.",
                 ephemeral=True,
             )
-            return self.settings.dmroles
+            return self.settings.dmroles  # type: ignore
         except asyncio.TimeoutError:
             await inter.send(
                 "No valid roles found. Use the select menu to try again.",
                 ephemeral=True,
             )
-            return self.settings.dmroles
+            return self.settings.dmroles  # type: ignore
         finally:
             self.select_dm_roles.disabled = False
 
@@ -543,7 +652,7 @@ class BotSettingsView(SettingsMenuBase):
             dmroles = f"**Dungeon Master, DM, Game Master, or GM**\n"
             dmrolesdesc = (
                 f"*Any user with a role named one of these will be considered a DM. This lets them adjust players "
-                f"badge counts.*"
+                f"{self.settings.badgelabel} counts.*"
             )
         else:
             dmroles = natural_join(
@@ -551,12 +660,11 @@ class BotSettingsView(SettingsMenuBase):
             )
             dmrolesdesc = (
                 f"*Any user with at least one of these roles will be considered a DM. This lets them adjust players "
-                f"badge counts.*"
+                f"{self.settings.badgelabel} counts.*"
             )
         inputdict["main"][
             "title"
         ] = f"Server Settings ({self.guild.name}) / General Bot Settings"
-        inputdict["main"]["color"] = disnake.Colour.blurple()
         inputdict["main"]["descitems"].append(
             {
                 "this is a description": (
@@ -572,18 +680,6 @@ class BotSettingsView(SettingsMenuBase):
                 "desc": f"{dmrolesdesc}",
             }
         )
-        # inputdict["main"]["descitems"].append(
-        #     {
-        #         "header": f"\n__**Server Class List:**__",
-        #         "setting": f"```ansi\n\u001b[1;40;32m{classlist}```",
-        #         "desc": (
-        #             f"*This is a list of classes that are allowed for play in this server."
-        #             f"Any class listed here will be selectable when creating a character"
-        #             f"log.*"
-        #         ),
-        #         "inline": True,
-        #     }
-        # )
         inputdict["main"]["fielditems"].append(
             {
                 "name": f"\n__Server Class List:__",
