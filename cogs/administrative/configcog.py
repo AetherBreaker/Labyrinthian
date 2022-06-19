@@ -19,41 +19,6 @@ if TYPE_CHECKING:
 class Configs(commands.Cog):
     def __init__(self, bot: _LabyrinthianT) -> None:
         self.bot = bot
-        self.valid = [
-            "Artificer",
-            "Barbarian",
-            "Bard",
-            "Blood Hunter",
-            "Cleric",
-            "Druid",
-            "Fighter",
-            "Monk",
-            "Paladin",
-            "Ranger",
-            "Rogue",
-            "Sorcerer",
-            "Warlock",
-            "Wizard",
-        ]
-
-    validClass = commands.option_enum(
-        [
-            "Artificer",
-            "Barbarian",
-            "Bard",
-            "Blood Hunter",
-            "Cleric",
-            "Druid",
-            "Fighter",
-            "Monk",
-            "Paladin",
-            "Ranger",
-            "Rogue",
-            "Sorcerer",
-            "Warlock",
-            "Wizard",
-        ]
-    )
 
     @commands.slash_command()
     async def staff(self, inter: disnake.ApplicationCommandInteraction):
