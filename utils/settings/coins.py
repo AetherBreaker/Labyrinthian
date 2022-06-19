@@ -14,9 +14,6 @@ class BaseCoin:
     def to_dict(self):
         return {"name": self.name, "prefix": self.prefix}
 
-    def __deepcopy__(self, _):
-        return BaseCoin(self.name, self.prefix)
-
 
 class CoinType:
     def __init__(self, name: str, prefix: str, value: Union[float, int]) -> None:
@@ -30,9 +27,6 @@ class CoinType:
 
     def to_dict(self):
         return {"name": self.name, "prefix": self.prefix, "value": self.value}
-
-    def __deepcopy__(self, _):
-        return CoinType(self.name, self.prefix, self.value)
 
 
 class Coins:
@@ -50,7 +44,7 @@ class Coins:
     @property
     def coinlist(self):
         templist = sorted(
-            [self.base, *self.types], key=lambda i: (i["value"], i["name"], i["prefix"])
+            [self.base, *self.types], key=lambda i: (i.value, i.name, i.prefix)
         )
         return templist
 
