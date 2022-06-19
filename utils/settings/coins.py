@@ -14,6 +14,9 @@ class BaseCoin:
     def to_dict(self):
         return {"name": self.name, "prefix": self.prefix}
 
+    def __repr__(self) ->str:
+        return f"BaseCoin(name={self.name!r}, prefix={self.prefix!r}, value={self.value!d})"
+
 
 class CoinType:
     def __init__(self, name: str, prefix: str, value: Union[float, int]) -> None:
@@ -27,6 +30,9 @@ class CoinType:
 
     def to_dict(self):
         return {"name": self.name, "prefix": self.prefix, "value": self.value}
+
+    def __repr__(self) -> str:
+        return f"CoinType(name={self.name!r}, prefix={self.prefix!r}, value={self.value:d})"
 
 
 class Coins:
@@ -67,3 +73,6 @@ class Coins:
     @classmethod
     def __get_validators__(cls):
         yield cls.from_dict
+
+    def __repr__(self) -> str:
+        return f"Coins(base={self.base!r}, types={self.types!r})"
