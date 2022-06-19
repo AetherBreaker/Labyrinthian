@@ -1,11 +1,11 @@
-from enum import auto
-from typing import Any, Dict, List, Optional, Set, Tuple, Type, TypeVar, Union
+from typing import Any, Dict, List, Optional, TypeVar, Union
 
 import disnake
 import inflect
-from pydantic import BaseModel, Field, create_model, validator
+from pydantic import BaseModel
 from utils.models.errors import IntegerConversionError
 from utils.settings import SettingsBaseModel
+from utils.settings.coins import Coins
 
 Model = TypeVar("Model", bound="BaseModel")
 
@@ -64,6 +64,15 @@ DEFAULT_CLASS_LIST = [
     "Warlock",
     "Wizard",
 ]
+DEFAULT_COINS = {
+    "basecoin": {"name": "Gold Piece", "prefix": "gp"},
+    "cointypes": [
+        {"name": "Copper Piece", "prefix": "cp", "value": 100.0},
+        {"name": "Silver Piece", "prefix": "sp", "value": 10.0},
+        {"name": "Electrum Piece", "prefix": "ep", "value": 2.0},
+        {"name": "Platinum Piece", "prefix": "pp", "value": 0.1},
+    ],
+}
 
 
 class BadgeField(int):
@@ -153,10 +162,32 @@ class BadgeConfig:
         yield cls.from_dict
 
 
+class BadgeLabel(str):
+    def __new__(cls, name: str):
+        return super().__new__(BadgeLabel, name)
+
+    @property
+    def plural(self):
+        return inflect.engine().plural(self)
+
+    # def conditional_plural(self)
+
+    def __deepcopy__(self, _):
+        return BadgeLabel(self)
+
+
+class Duration(int):
+    def __new__(cls, durstr: str, duration: int, fee: int, currency: str):
+        return super().__new__(Duration, duration)
+
+
+# class ListingDurations:
+
+
 class ServerSettings(SettingsBaseModel):
     guild: str
-    dmroles: Optional[List[str]] = []
-    classlist: Optional[List[str]] = DEFAULT_CLASS_LIST
+    dmroles: Optional[List[Union[str, int]]] = []
+    classlist: List[str] = DEFAULT_CLASS_LIST
     # lookup_dm_required: bool = True
     # lookup_pm_dm: bool = False
     # lookup_pm_result: bool = False
@@ -167,12 +198,10 @@ class ServerSettings(SettingsBaseModel):
     ahfront: Optional[str] = None
     ahback: Optional[str] = None
     ahinternal: Optional[str] = None
-    badgelabel: str = "badges"
+    badgelabel: str = BadgeLabel("Badges")
+    coins: Coins = Coins.from_dict(DEFAULT_COINS)
 
     # ==== validators ====
-    # @validator("classlist")
-    # def default_classlist(cls, v):
-    #     return v or DEFAULT_CLASS_LIST
 
     # ==== lifecycle ====
     @classmethod
@@ -186,6 +215,7 @@ class ServerSettings(SettingsBaseModel):
     async def commit(self, db):
         """Commits the settings to the database."""
         data = self.dict()
+        print(data)
         data["badgetemplate"] = self.badgetemplate.to_dict()
         await db.update_one(
             "srvconf", {"guild": self.guild}, {"$set": data}, upsert=True
