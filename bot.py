@@ -43,7 +43,7 @@ extensions = (
 
 class Labyrinthian(commands.Bot):
     def __init__(
-        self, prefix: str, help_command=None, description=None, **options
+        self, prefix: str, help_command: commands.HelpCommand = None, description: str = None, **options  # type: ignore
     ) -> None:
         super().__init__(
             prefix,
@@ -102,8 +102,10 @@ async def on_ready():
                     channel, message = x["constid"]
                     channel: Union[
                         disnake.abc.GuildChannel, disnake.abc.Messageable
-                    ] = await bot.fetch_channel(int(channel))
-                    message = await channel.fetch_message(int(message))
+                    ] = await bot.fetch_channel(
+                        int(channel)  # type: ignore
+                    )  # type: ignore
+                    message = await channel.fetch_message(int(message))  # type: ignore
                     bot.add_view(ConstSender(), message_id=message.id)
                 except (InvalidData, HTTPException, NotFound, Forbidden) as e:
                     print(f"{e} trying again")
@@ -111,8 +113,10 @@ async def on_ready():
                         channel, message = x["constid"]
                         channel: Union[
                             disnake.abc.GuildChannel, disnake.abc.Messageable
-                        ] = await bot.fetch_channel(int(channel))
-                        message = await channel.fetch_message(int(message))
+                        ] = await bot.fetch_channel(
+                            int(channel)
+                        )  # type: ignore
+                        message = await channel.fetch_message(int(message))  # type: ignore
                         bot.add_view(ConstSender(), message_id=message.id)
                     except (InvalidData, HTTPException, NotFound, Forbidden) as e:
                         print(f"{e} deleting view IDs")
@@ -135,8 +139,8 @@ async def on_slash_command_error(inter: disnake.Interaction, error):
         error, (commands.UserInputError, commands.NoPrivateMessage, ValueError)
     ):
         return await inter.send(
-            f"Error: {str(error)}\nUse `{inter.prefix}help "
-            + inter.command.qualified_name
+            f"Error: {str(error)}\nUse `{inter.prefix}help "  # type: ignore
+            + inter.application_command.qualified_name  # type: ignore
             + "` for help."
         )
 

@@ -5,7 +5,7 @@ Created on Oct 29, 2016
 import asyncio
 import math
 import re
-from typing import Any, Callable, List, TypeVar, Optional
+from typing import Any, Callable, List, TypeVar, Optional, Union
 from disnake.ext import commands
 import disnake
 
@@ -172,7 +172,7 @@ async def confirm(
     :type response_check: (str) -> bool
     :return: Whether the user confirmed or not. None if no reply was recieved
     """
-    msg: disnake.Message = await ctx.channel.send(message)
+    msg: disnake.Message = await ctx.channel.send(message)  # type: ignore
     try:
         reply: disnake.Message = await ctx.bot.wait_for(
             "message", timeout=30, check=auth_and_chan(ctx)
@@ -230,7 +230,7 @@ async def confirmInter(
 
 
 # ==== misc helpers ====
-def auth_and_chan(ctx: commands.Context):
+def auth_and_chan(ctx: Union[commands.Context, disnake.Interaction]):
     """Message check: same author and channel"""
 
     def chk(msg: disnake.Message):

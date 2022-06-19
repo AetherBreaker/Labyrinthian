@@ -22,7 +22,7 @@ from typing import (
 import cachetools
 import disnake
 import yaml
-from bson import ObjectId
+from bson.objectid import ObjectId
 from bson.raw_bson import RawBSONDocument
 from pymongo.results import DeleteResult, InsertOneResult, UpdateResult
 from pymongo.typings import _DocumentType
@@ -88,7 +88,7 @@ class MongoCache(cachetools.TTLCache):
         self, key: str, value: Union[MutableMapping[str, Any], RawBSONDocument]
     ):
         collectionkey = deepcopy(value["collectionkey"])
-        value.pop("collectionkey")
+        value.pop("collectionkey")  # type: ignore
         result: UpdateResult = await self.bot.sdb[collectionkey].replace_one(
             {"_id": value["_id"]}, value, True
         )
@@ -148,7 +148,7 @@ class MongoCache(cachetools.TTLCache):
         # and store the contents in a variable
         # we then close the file
         LITdat = open(self.path, "r")
-        data = LITdat.read(size=-1)
+        data = LITdat.read(-1)
         LITdat.close()
 
         # next we run split on the file contents to create a list separated by newlines
@@ -203,17 +203,17 @@ class MongoCache(cachetools.TTLCache):
         )
         data = document
         if "_id" not in data:
-            data["_id"] = result.inserted_id
+            data["_id"] = result.inserted_id  # type: ignore
         if "collectionkey" not in data:
-            data["collectionkey"] = collectionkey
+            data["collectionkey"] = collectionkey  # type: ignore
         self[str(result.inserted_id)] = data
         # print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
         return result
 
     async def find_one(
         self, collectionkey: str, filter: Mapping[str, Any], *args: Any, **kwargs: Any
-    ) -> Optional[_DocumentType]:
-        data = None
+    ):
+        data = None  # type: ignore
         cachematches = deepcopy(self.find_matches_in_self(filter))
         if cachematches:
             cachematches[0].pop("collectionkey")
@@ -242,14 +242,14 @@ class MongoCache(cachetools.TTLCache):
         **kwargs,
     ) -> UpdateResult:
         if "collectionkey" not in replacement:
-            replacement["collectionkey"] = collectionkey
+            replacement["collectionkey"] = collectionkey  # type: ignore
         if str(replacement["_id"]) in self.keys():
             self[str(replacement["_id"])] = replacement
         else:
             cachematches = self.find_matches_in_self(filter)
             idkey = str(cachematches[0]["_id"])
             self[idkey] = replacement
-        replacement.pop("collectionkey")
+        replacement.pop("collectionkey")  # type: ignore
         result: UpdateResult = await self.bot.sdb[collectionkey].replace_one(
             filter, replacement, upsert, *args, **kwargs
         )
@@ -280,7 +280,7 @@ class MongoCache(cachetools.TTLCache):
 
     async def delete_one(
         self, collectionkey: str, filter: Mapping[str, Any], *args, **kwargs
-    ) -> DeleteResult:
+    ) -> DeleteResult:  # type: ignore
         pass
 
     """note to self, store items in LIT file
