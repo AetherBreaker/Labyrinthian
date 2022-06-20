@@ -4,7 +4,6 @@ from pydantic import BaseModel
 class SettingsBaseModel(BaseModel):
     class Config:
         validate_assignment = True
-        validate_all = True
         smart_union = False
 
     @classmethod
