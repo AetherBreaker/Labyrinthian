@@ -5,7 +5,6 @@ from copy import deepcopy
 from random import randint
 from typing import TYPE_CHECKING, Any, Dict, List, Mapping, Optional, TypeVar
 import disnake
-from utils import settings
 from utils.functions import (
     natural_join,
     simple_tabulate_str,
@@ -13,7 +12,7 @@ from utils.functions import (
     truncate_list,
 )
 from utils.models.errors import FormTimeoutError
-from utils.settings.guild import BadgeConfig, ServerSettings
+from utils.models.settings.guild import XPConfig, ServerSettings
 
 from utils.ui.menu import MenuBase
 
@@ -160,10 +159,10 @@ class SettingsNav(SettingsMenuBase):
     @disnake.ui.button(
         style=disnake.ButtonStyle.primary, label="Character Log Settings"
     )
-    async def badgelog_settings(
+    async def xplog_settings(
         self, _: disnake.ui.Button, inter: disnake.MessageInteraction
     ):
-        await self.defer_to(BadgelogSettingsView, inter)
+        await self.defer_to(XPlogSettingsView, inter)
 
     @disnake.ui.button(style=disnake.ButtonStyle.primary, label="Bot Settings")
     async def bot_settings(
@@ -215,16 +214,16 @@ class SettingsNav(SettingsMenuBase):
             "tsnrhtdd"[(n // 10 % 10 != 1) * (n % 10 < 4) * n % 10 :: 4],
         )
         firstmax = max(
-            len(ordinal(int(x))) for x in self.settings.badgetemplate.to_dict().values()
+            len(ordinal(int(x))) for x in self.settings.xptemplate.to_dict().values()
         )
-        secondmax = max(len(str(x)) for x in self.settings.badgetemplate.to_dict())
+        secondmax = max(len(str(x)) for x in self.settings.xptemplate.to_dict())
         templatestr = "\n".join(
             (
                 truncate_list(
                     [
                         f"{ordinal(int(x)):{firstmax}} requires"
-                        f" {y:{secondmax}} {self.settings.badgelabel}"
-                        for x, y in self.settings.badgetemplate.to_dict().items()
+                        f" {y:{secondmax}} {self.settings.xplabel}"
+                        for x, y in self.settings.xptemplate.to_dict().items()
                     ],
                     5,
                     "...",
@@ -264,7 +263,7 @@ class SettingsNav(SettingsMenuBase):
         inputdict["main"]["fielditems"].append(
             {
                 "name": "__Character Log Settings__",
-                "value": f"**{self.settings.badgelabel} Requirements**: \n```{templatestr}```\n",
+                "value": f"**{self.settings.xplabel} Requirements**: \n```{templatestr}```\n",
                 "inline": True,
             }
         )
@@ -290,7 +289,7 @@ class AuctionSettingsView(SettingsMenuBase):
         return await super().get_content()
 
 
-class BadgelogSettingsView(SettingsMenuBase):
+class XPlogSettingsView(SettingsMenuBase):
 
     # ==== ui ====
     @disnake.ui.button(label="Set XP Label", style=disnake.ButtonStyle.primary)
@@ -302,48 +301,46 @@ class BadgelogSettingsView(SettingsMenuBase):
                 style=disnake.TextInputStyle.multi_line,
                 label="Set XP Label",
                 placeholder="badges",
-                custom_id="settings_badge_label_set",
-                value=self.settings.badgelabel,
+                custom_id="settings_xp_label_set",
+                value=self.settings.xplabel,
                 required=False,
             ),
             disnake.ui.TextInput(
                 style=disnake.TextInputStyle.single_line,
                 label="Reset to Default",
                 placeholder='Type "Confirm" here to reset the XP label to the default',
-                custom_id="settings_badge_label_reset",
+                custom_id="settings_xp_label_reset",
                 required=False,
                 max_length=7,
             ),
         ]
         rand = randint(111111, 999999)
         await inter.response.send_modal(
-            custom_id=f"{rand}settings_badge_label_modal",
+            custom_id=f"{rand}settings_xp_label_modal",
             title='"Units of XP" Label:',
             components=components,
         )
         try:
             modalinter: disnake.ModalInteraction = await self.bot.wait_for(
                 "modal_submit",
-                check=lambda i: i.custom_id == f"{rand}settings_badge_label_modal"
+                check=lambda i: i.custom_id == f"{rand}settings_xp_label_modal"
                 and i.author.id == inter.author.id,
                 timeout=180,
             )
 
-            if modalinter.text_values["settings_badge_label_reset"] == "Confirm":
+            if modalinter.text_values["settings_xp_label_reset"] == "Confirm":
                 await inter.send(
-                    f"{self.settings.badgelabel} requirements reset to default",
+                    f"{self.settings.xplabel} requirements reset to default",
                     ephemeral=True,
                 )
-                self.settings.badgelabel = self.settings.__fields__[
-                    "badgelabel"
+                self.settings.xplabel = self.settings.__fields__[
+                    "xplabel"
                 ].get_default()
                 await self.commit_settings()
                 await self.refresh_content(modalinter)
                 return
-            if len(modalinter.text_values["settings_badge_label_set"]) > 0:
-                self.settings.badgelabel = modalinter.text_values[
-                    "settings_badge_label_set"
-                ]
+            if len(modalinter.text_values["settings_xp_label_set"]) > 0:
+                self.settings.xplabel = modalinter.text_values["settings_xp_label_set"]
             await self.commit_settings()
             await self.refresh_content(modalinter)
         except asyncio.TimeoutError:
@@ -352,18 +349,18 @@ class BadgelogSettingsView(SettingsMenuBase):
     @disnake.ui.button(
         label="Configure XP requirements", style=disnake.ButtonStyle.primary
     )
-    async def badge_template_modal(
+    async def xp_template_modal(
         self, _: disnake.ui.Button, inter: disnake.MessageInteraction
     ):
-        valuestr = self.settings.badgetemplate.to_str()
+        valuestr = self.settings.xptemplate.to_str()
         components = [
             disnake.ui.TextInput(
                 style=disnake.TextInputStyle.multi_line,
                 label="Description",
-                custom_id="settings_badge_template_desc",
+                custom_id="settings_xp_template_desc",
                 value=(
-                    f"Edit the {self.settings.badgelabel} requirements shown below. The template is shown as a line separated "
-                    f"list of [level name]:<{self.settings.badgelabel} threshold>. The level name may"
+                    f"Edit the {self.settings.xplabel} requirements shown below. The template is shown as a line separated "
+                    f"list of [level name]:<{self.settings.xplabel} threshold>. The level name may"
                     f" be removed or omitted and if done, it will reset to the default. All data entered"
                     f" below is assumed to be in ascending numerical order, starting at level one\n"
                 ),
@@ -371,7 +368,7 @@ class BadgelogSettingsView(SettingsMenuBase):
             ),
             disnake.ui.TextInput(
                 style=disnake.TextInputStyle.multi_line,
-                label=f"Server {self.settings.badgelabel} requirements",
+                label=f"Server {self.settings.xplabel} requirements",
                 placeholder=(
                     f"Line separated list of values"
                     f"You can also provide a key to name each level\n"
@@ -379,44 +376,44 @@ class BadgelogSettingsView(SettingsMenuBase):
                     f":value\n"
                     f"value"
                 ),
-                custom_id="settings_badge_template_set",
+                custom_id="settings_xp_template_set",
                 value=valuestr,
                 required=False,
             ),
             disnake.ui.TextInput(
                 style=disnake.TextInputStyle.single_line,
                 label="Reset to Default",
-                placeholder=f'Type "Confirm" here to reset the {self.settings.badgelabel} requirements to the default',
-                custom_id="settings_badge_template_reset",
+                placeholder=f'Type "Confirm" here to reset the {self.settings.xplabel} requirements to the default',
+                custom_id="settings_xp_template_reset",
                 required=False,
                 max_length=7,
             ),
         ]
         rand = randint(111111, 999999)
         await inter.response.send_modal(
-            custom_id=f"{rand}settings_badge_template_modal",
-            title=f"Edit {self.settings.badgelabel} Requirements",
+            custom_id=f"{rand}settings_xp_template_modal",
+            title=f"Edit {self.settings.xplabel} Requirements",
             components=components,
         )
         try:
             modalinter: disnake.ModalInteraction = await self.bot.wait_for(
                 "modal_submit",
-                check=lambda i: i.custom_id == f"{rand}settings_badge_template_modal"
+                check=lambda i: i.custom_id == f"{rand}settings_xp_template_modal"
                 and i.author.id == inter.author.id,
                 timeout=180,
             )
 
-            if modalinter.text_values["settings_badge_template_reset"] == "Confirm":
-                await inter.send("Badge template reset to default", ephemeral=True)
-                self.settings.badgetemplate = self.settings.__fields__[
-                    "badgetemplate"
+            if modalinter.text_values["settings_xp_template_reset"] == "Confirm":
+                await inter.send("XP template reset to default", ephemeral=True)
+                self.settings.xptemplate = self.settings.__fields__[
+                    "xptemplate"
                 ].get_default()
                 await self.commit_settings()
                 await self.refresh_content(modalinter)
                 return
-            if len(modalinter.text_values["settings_badge_template_set"]) > 0:
-                self.settings.badgetemplate = BadgeConfig.from_str(
-                    modalinter.text_values["settings_badge_template_set"]
+            if len(modalinter.text_values["settings_xp_template_set"]) > 0:
+                self.settings.xptemplate = XPConfig.from_str(
+                    modalinter.text_values["settings_xp_template_set"]
                 )
             await self.commit_settings()
             await self.refresh_content(modalinter)
@@ -433,18 +430,16 @@ class BadgelogSettingsView(SettingsMenuBase):
         maxes = [
             max(
                 len(str(x + 1))
-                for x, y in enumerate(self.settings.badgetemplate.to_dict())
+                for x, y in enumerate(self.settings.xptemplate.to_dict())
             ),
-            max(len(str(x)) for x in self.settings.badgetemplate.to_dict()),
-            max(len(str(x)) for x in self.settings.badgetemplate.to_dict().values()),
+            max(len(str(x)) for x in self.settings.xptemplate.to_dict()),
+            max(len(str(x)) for x in self.settings.xptemplate.to_dict().values()),
         ]
-        badgetemplate = "Level : Level Name : Requirement\n"
-        badgetemplate += simple_tabulate_str(
+        xptemplate = "Level : Level Name : Requirement\n"
+        xptemplate += simple_tabulate_str(
             [
                 f"{x+1:{maxes[0]}} : {y:^{maxes[1]}} : {z:<{maxes[2]}}"
-                for x, (y, z) in enumerate(
-                    self.settings.badgetemplate.to_dict().items()
-                )
+                for x, (y, z) in enumerate(self.settings.xptemplate.to_dict().items())
             ],
             2,
         )
@@ -454,19 +449,19 @@ class BadgelogSettingsView(SettingsMenuBase):
         inputdict["main"]["descitems"].append(
             {
                 "header": f'__**"Units of XP" Label:**__',
-                "setting": f'"{self.settings.badgelabel}"',
+                "setting": f'"{self.settings.xplabel}"',
                 "desc": (
-                    f"*This setting will replace all uses of the word {self.settings.badgelabel} "
+                    f"*This setting will replace all uses of the word {self.settings.xplabel} "
                     f"with whatever this is set to.*"
                 ),
             }
         )
         inputdict["main"]["fielditems"].append(
             {
-                "name": f"__{self.settings.badgelabel} Requirements:__",
+                "name": f"__{self.settings.xplabel} Requirements:__",
                 "value": (
-                    f"```ansi\n\u001b[1;40;32m{badgetemplate}```"
-                    f"*This setting determines how much/many {self.settings.badgelabel}(es) "
+                    f"```ansi\n\u001b[1;40;32m{xptemplate}```"
+                    f"*This setting determines how much/many {self.settings.xplabel}(es) "
                     f"are required for each level.*"
                 ),
                 "inline": True,
@@ -652,7 +647,7 @@ class BotSettingsView(SettingsMenuBase):
             dmroles = f"**Dungeon Master, DM, Game Master, or GM**\n"
             dmrolesdesc = (
                 f"*Any user with a role named one of these will be considered a DM. This lets them adjust players "
-                f"{self.settings.badgelabel} counts.*"
+                f"{self.settings.xplabel} counts.*"
             )
         else:
             dmroles = natural_join(
@@ -660,7 +655,7 @@ class BotSettingsView(SettingsMenuBase):
             )
             dmrolesdesc = (
                 f"*Any user with at least one of these roles will be considered a DM. This lets them adjust players "
-                f"{self.settings.badgelabel} counts.*"
+                f"{self.settings.xplabel} counts.*"
             )
         inputdict["main"][
             "title"
