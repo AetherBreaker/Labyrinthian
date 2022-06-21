@@ -14,7 +14,7 @@ from disnake.ext.commands.errors import CommandInvokeError
 from cogs.auction.auction_constructor import ConstSender
 from utils import MongoCache, config
 from utils.models.errors import LabyrinthianException
-from utils.settings.guild import ServerSettings
+from utils.models.settings.guild import ServerSettings
 
 if config.TESTING_VAR == "True":
     import sys
