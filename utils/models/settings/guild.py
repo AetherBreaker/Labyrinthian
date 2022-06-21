@@ -5,6 +5,7 @@ import inflect
 from pydantic import BaseModel
 from utils.models.errors import IntegerConversionError
 from utils.models.settings import SettingsBaseModel
+from utils.models.settings.auction_docs import ListingDurationsConfig
 from utils.models.settings.charlog_docs import XPConfig, XPLabel
 from utils.models.settings.coin_docs import CoinConfig
 
@@ -34,11 +35,36 @@ DEFAULT_XP_TEMPLATE = {
     "20": 150,
 }
 DEFAULT_LISTING_DURS = {
-    "86400": 75,
-    "259200": 150,
-    "604800": 275,
-    "1209600": 450,
-    "2630000": 750,
+    "86400": {
+        "count": "75",
+        "base": {"name": "Gold Piece", "prefix": "gp"},
+        "type": {"name": "Gold Piece", "prefix": "gp"},
+        "isbase": True,
+    },
+    "259200": {
+        "count": "150",
+        "base": {"name": "Gold Piece", "prefix": "gp"},
+        "type": {"name": "Gold Piece", "prefix": "gp"},
+        "isbase": True,
+    },
+    "604800": {
+        "count": "275",
+        "base": {"name": "Gold Piece", "prefix": "gp"},
+        "type": {"name": "Gold Piece", "prefix": "gp"},
+        "isbase": True,
+    },
+    "1209600": {
+        "count": "450",
+        "base": {"name": "Gold Piece", "prefix": "gp"},
+        "type": {"name": "Gold Piece", "prefix": "gp"},
+        "isbase": True,
+    },
+    "2630000": {
+        "count": "750",
+        "base": {"name": "Gold Piece", "prefix": "gp"},
+        "type": {"name": "Gold Piece", "prefix": "gp"},
+        "isbase": True,
+    },
 }
 DEFAULT_RARITIES = {
     "Common": 20,
@@ -84,7 +110,9 @@ class ServerSettings(SettingsBaseModel):
     # lookup_pm_dm: bool = False
     # lookup_pm_result: bool = False
     xptemplate: XPConfig = XPConfig.from_dict(DEFAULT_XP_TEMPLATE)
-    listingdurs: Dict[str, int] = DEFAULT_LISTING_DURS
+    listingdurs: ListingDurationsConfig = ListingDurationsConfig.from_dict(
+        DEFAULT_LISTING_DURS
+    )
     rarities: Dict[str, int] = DEFAULT_RARITIES
     outbidthreshold: int = 50
     ahfront: Optional[str] = None
