@@ -1,16 +1,8 @@
 from copy import deepcopy
 from typing import Any, Dict, List, Optional, Union
+import motor.motor_asyncio
 
-
-DEFAULT_COINS = {
-    "basecoin": {"name": "Gold Piece", "prefix": "gp"},
-    "cointypes": [
-        {"name": "Copper Piece", "prefix": "cp", "rate": 100.0},
-        {"name": "Silver Piece", "prefix": "sp", "rate": 10.0},
-        {"name": "Electrum Piece", "prefix": "ep", "rate": 2.0},
-        {"name": "Platinum Piece", "prefix": "pp", "rate": 0.1},
-    ],
-}
+from utils import config
 
 
 # ==== Settings Classes ====
@@ -105,6 +97,11 @@ class Coin(int):
         self.base = base
         self.type = base if type is None else type
         self.isbase = True if type is None or isinstance(type, BaseCoin) else False
+        dbclient: motor.motor_asyncio.AsyncIOMotorDatabase = (
+            motor.motor_asyncio.AsyncIOMotorClient(config.MONGO_URL)[
+                config.MONGODB_SERVERDB_NAME
+            ]
+        )
 
     def __iadd__(self, other):
         res = super(Coin, self).__add__(other)
