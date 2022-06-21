@@ -32,9 +32,7 @@ class XPConfig:
     @classmethod
     def from_dict(cls, data: Dict[str, int]):
         """Used to initialize a config from the database."""
-        fields: List[XPField] = []
-        for name, value in data.items():
-            fields.append(XPField(name, value))
+        fields: List[XPField] = [XPField(name, value) for name, value in data.items()]
         return cls(fields)
 
     @classmethod
