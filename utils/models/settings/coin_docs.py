@@ -96,35 +96,38 @@ class CoinConfig:
 
 # ==== Coin Instance ====
 class Coin(int):
-    def __new__(cls, count: int, base: BaseCoin, type: Optional[CoinType] = None):
+    def __new__(
+        cls, count: Union[int, str], base: BaseCoin, type: Optional[CoinType] = None
+    ):
         return super().__new__(cls, count)
 
     def __init__(self, count: int, base: BaseCoin, type: Optional[CoinType] = None):
         self.base = base
         self.type = base if type is None else type
-        self.isbase = True if type is None else False
+        self.isbase = True if type is None or isinstance(type, BaseCoin) else False
 
-    def __add__(self, other):
+    def __iadd__(self, other):
         res = super(Coin, self).__add__(other)
-        return self.__class__(max(res, 0))
+        return self.__class__(max(res, 0), self.base, self.type)
 
-    def __sub__(self, other):
+    def __isub__(self, other):
         res = super(Coin, self).__sub__(other)
-        return self.__class__(max(res, 0))
+        return self.__class__(max(res, 0), self.base, self.type)
 
-    def __mul__(self, other):
+    def __imul__(self, other):
         res = super(Coin, self).__mul__(other)
-        return self.__class__(max(res, 0))
+        return self.__class__(max(res, 0), self.base, self.type)
 
-    def __div__(self, other):
+    def __idiv__(self, other):
         res = super(Coin, self).__div__(other)
-        return self.__class__(max(res, 0))
+        return self.__class__(max(res, 0), self.base, self.type)
 
-    def __str__(self):
-        return "%d" % int(self)
+    def __ifloordiv__(self, other):
+        res = super(Coin, self).__floordiv__(other)
+        return self.__class__(max(res, 0), self.base, self.type)
 
     def __str__(self) -> str:
-        return "%d %s" % (int(self), self.type.prefix)
+        return "%d" % int(self)
 
     def __repr__(self):
         return f"Coin(count={self:d}, base={repr(self.base)}, type={repr(self.type)}, isbase={self.isbase})"
@@ -211,37 +214,31 @@ class Coin(int):
         if type.rate == self.type.rate:
             self.type = deepcopy(type)
             return
-        count = max(
-            [round(self.value * type.rate), round(round(self.value) * type.rate)]
+        self.__class__(
+            max(
+                [round(self.value * type.rate), round(round(self.value) * type.rate), 0]
+            ),
+            self.base,
+            deepcopy(type),
         )
-        self.__new__(count=count, base=self.base, type=deepcopy(type))
 
     @classmethod
-    def from_dict(cls, input: Dict):
+    def from_dict(cls, input: Dict[str, Union[int, str, Dict]]):
         type = (
             BaseCoin.from_dict(input["type"])
             if input["isbase"]
             else CoinType.from_dict(input["type"])
         )
-        return cls(input["count"], input["base"], input)
+        return cls(input["count"], BaseCoin.from_dict(input["base"]), type)
 
     def to_dict(self):
         return {
-            "count": self,
+            "count": str(self),
             "base": self.base.to_dict(),
             "type": self.type.to_dict(),
             "isbase": self.isbase,
         }
 
 
-# # ==== CoinPurse ====
+# ==== CoinPurse ====
 # class CoinPurse:
-
-
-# conf = CoinConfig.from_dict(DEFAULT_COINS)
-
-
-# coin = Coin(count=20, base=conf.base, type=conf.types[3])
-
-# print(coin)
-# print(repr(coin))
