@@ -1,12 +1,10 @@
-from typing import Any, Dict, List, Optional, TypeVar, Union
+from typing import List, Optional, TypeVar, Union
 
 import disnake
-import inflect
 from pydantic import BaseModel
-from utils.models.errors import IntegerConversionError
 from utils.models.settings import SettingsBaseModel
-from utils.models.settings.auction_docs import ListingDurationsConfig
-from utils.models.settings.charlog_docs import XPConfig, XPLabel
+from utils.models.settings.auction_docs import ListingDurationsConfig, RaritiesConfig
+from utils.models.settings.charlog_docs import XPConfig
 from utils.models.settings.coin_docs import CoinConfig
 
 Model = TypeVar("Model", bound="BaseModel")
@@ -67,13 +65,48 @@ DEFAULT_LISTING_DURS = {
     },
 }
 DEFAULT_RARITIES = {
-    "Common": 20,
-    "Uncommon": 40,
-    "Rare": 60,
-    "Very Rare": 80,
-    "Legendary": 200,
-    "Artifact": 400,
-    "Unknown": 0,
+    "Common": {
+        "count": "20",
+        "base": {"name": "Gold Piece", "prefix": "gp"},
+        "type": {"name": "Gold Piece", "prefix": "gp"},
+        "isbase": True,
+    },
+    "Uncommon": {
+        "count": "40",
+        "base": {"name": "Gold Piece", "prefix": "gp"},
+        "type": {"name": "Gold Piece", "prefix": "gp"},
+        "isbase": True,
+    },
+    "Rare": {
+        "count": "60",
+        "base": {"name": "Gold Piece", "prefix": "gp"},
+        "type": {"name": "Gold Piece", "prefix": "gp"},
+        "isbase": True,
+    },
+    "Very Rare": {
+        "count": "80",
+        "base": {"name": "Gold Piece", "prefix": "gp"},
+        "type": {"name": "Gold Piece", "prefix": "gp"},
+        "isbase": True,
+    },
+    "Legendary": {
+        "count": "200",
+        "base": {"name": "Gold Piece", "prefix": "gp"},
+        "type": {"name": "Gold Piece", "prefix": "gp"},
+        "isbase": True,
+    },
+    "Artifact": {
+        "count": "400",
+        "base": {"name": "Gold Piece", "prefix": "gp"},
+        "type": {"name": "Gold Piece", "prefix": "gp"},
+        "isbase": True,
+    },
+    "Unknown": {
+        "count": "0",
+        "base": {"name": "Gold Piece", "prefix": "gp"},
+        "type": {"name": "Gold Piece", "prefix": "gp"},
+        "isbase": True,
+    },
 }
 DEFAULT_CLASS_LIST = [
     "Artificer",
@@ -113,13 +146,28 @@ class ServerSettings(SettingsBaseModel):
     listingdurs: ListingDurationsConfig = ListingDurationsConfig.from_dict(
         DEFAULT_LISTING_DURS
     )
-    rarities: Dict[str, int] = DEFAULT_RARITIES
+    rarities: RaritiesConfig = RaritiesConfig.from_dict(DEFAULT_RARITIES)
     outbidthreshold: int = 50
     ahfront: Optional[str] = None
     ahback: Optional[str] = None
     ahinternal: Optional[str] = None
-    xplabel: str = XPLabel("Badges")
+    xplabel: str = "Badge"
     coinconf: CoinConfig = CoinConfig.from_dict(DEFAULT_COINS)
+
+    # ==== magic methods ====
+    def __iter__(self):
+        yield self.guild
+        yield self.dmroles
+        yield self.classlist
+        yield self.xptemplate
+        yield self.listingdurs
+        yield self.rarities
+        yield self.outbidthreshold
+        yield self.ahfront
+        yield self.ahback
+        yield self.ahinternal
+        yield self.xplabel
+        yield self.coinconf
 
     # ==== validators ====
 
@@ -129,8 +177,26 @@ class ServerSettings(SettingsBaseModel):
         """Returns the server settings for a given guild."""
         existing = await mdb.find_one("srvconf", {"guild": guild})
         if existing is not None:
-            return cls.parse_obj(existing)
-        return cls(guild=guild)
+            outp = cls.parse_obj(existing)
+        else:
+            outp = cls(guild=guild)
+        outp.setup_selfref()
+        outp.run_updates()
+        return outp
+
+    def setup_selfref(self):
+        for x in self:
+            try:
+                x.supersettings = self
+            except AttributeError:
+                continue
+            if hasattr(x, "cascade_supersettings"):
+                x.cascade_supersettings()
+
+    def run_updates(self):
+        for x in self:
+            if hasattr(x, "run_updates"):
+                x.run_updates()
 
     async def commit(self, db):
         """Commits the settings to the database."""
