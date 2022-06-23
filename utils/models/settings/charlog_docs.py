@@ -4,7 +4,28 @@ import inflect
 from pyparsing import Optional
 from utils.models.errors import IntegerConversionError
 
-from utils.models.settings.guild import DEFAULT_XP_TEMPLATE
+DEFAULT_XP_TEMPLATE = {
+    "1": 0,
+    "2": 1,
+    "3": 3,
+    "4": 6,
+    "5": 10,
+    "6": 14,
+    "7": 20,
+    "8": 26,
+    "9": 34,
+    "10": 42,
+    "11": 50,
+    "12": 58,
+    "13": 66,
+    "14": 76,
+    "15": 86,
+    "16": 96,
+    "17": 108,
+    "18": 120,
+    "19": 135,
+    "20": 150,
+}
 
 
 class XPField(int):
@@ -19,7 +40,7 @@ class XPField(int):
         return int(self)
 
     def __repr__(self) -> str:
-        return f"XPField(name={self.name!r}, value={int(self.value)})"
+        return f"XPField(name={self.name!r}, value={self.value})"
 
     def __deepcopy__(self, _):
         return XPField(self.name, self.value)
@@ -28,6 +49,10 @@ class XPField(int):
 class XPConfig:
     def __init__(self, fields: List[XPField]):
         self.fields = fields
+
+    def __iter__(self):
+        for x in self.fields:
+            yield (x.name, x)
 
     @classmethod
     def from_dict(cls, data: Dict[str, int]):
@@ -90,15 +115,3 @@ class XPConfig:
     @classmethod
     def __get_validators__(cls):
         yield cls.from_dict
-
-
-class XPLabel(str):
-    def __new__(cls, name: str):
-        return super().__new__(XPLabel, name)
-
-    @property
-    def plural(self, count: str | int | None = None):
-        return inflect.engine().plural(text=self, count=count)
-
-    def __deepcopy__(self, _):
-        return XPLabel(self)
