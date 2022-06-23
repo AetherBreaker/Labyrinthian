@@ -1,8 +1,14 @@
 from copy import deepcopy
-from typing import Any, Dict, List, Optional, Union
-import motor.motor_asyncio
+from typing import TYPE_CHECKING, Dict, List, Optional, TypeVar, Union
+import inflect
 
-from utils import config
+from utils.models.settings import SettingsBaseModel
+
+_ServerSettingsT = TypeVar("_ServerSettingsT", bound=SettingsBaseModel)
+if TYPE_CHECKING:
+    from .guild import ServerSettings
+
+    _ServerSettingsT = ServerSettings
 
 
 # ==== Settings Classes ====
@@ -93,15 +99,25 @@ class Coin(int):
     ):
         return super().__new__(cls, count)
 
-    def __init__(self, count: int, base: BaseCoin, type: Optional[CoinType] = None):
+    def __init__(
+        self,
+        count: int,
+        base: BaseCoin,
+        type: Optional[CoinType] = None,
+        supersettings: Optional[_ServerSettingsT] = None,
+    ):
         self.base = base
         self.type = base if type is None else type
         self.isbase = True if type is None or isinstance(type, BaseCoin) else False
-        dbclient: motor.motor_asyncio.AsyncIOMotorDatabase = (
-            motor.motor_asyncio.AsyncIOMotorClient(config.MONGO_URL)[
-                config.MONGODB_SERVERDB_NAME
-            ]
-        )
+        self.supersettings = supersettings
+
+    @property
+    def supersettings(self):
+        return self.supersettings
+
+    @supersettings.setter
+    def supersettings(self, value):
+        self.supersettings: _ServerSettingsT = value
 
     def __iadd__(self, other):
         res = super(Coin, self).__add__(other)
@@ -133,6 +149,16 @@ class Coin(int):
         return Coin(self, self.type, self.base)
 
     @property
+    def prefixed_count(self):
+        p = inflect.engine()
+        return f"{self} {self.type.prefix}"
+
+    @property
+    def named_count(self):
+        p = inflect.engine()
+        return f"{self} {p.plural(self.type.name, self)}"
+
+    @property
     def value(self) -> float:
         return self / self.type.rate
 
@@ -140,7 +166,7 @@ class Coin(int):
     def valuestr(self) -> str:
         return f"{self / self.type.rate} {self.base.prefix}"
 
-    def update_types(self, coinconf: CoinConfig) -> bool:
+    def update_types(self, coinconf: CoinConfig = None) -> bool:
         """Check if these coins types are outdated, if so, update them.
         Converts itself to a BaseCoin type if its original type cannot be found.
 
@@ -152,6 +178,8 @@ class Coin(int):
         Returns:
             bool: True if coin count or type name was changed, else False.
         """
+        if coinconf is None and isinstance(self.supersettings, _ServerSettingsT):
+            coinconf = self.supersettings.coinconf
         skiptype = False
         basecoin = False
 
