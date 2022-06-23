@@ -12,3 +12,8 @@ class SettingsBaseModel(BaseModel):
 
     def to_dict(self, *args, **kwargs):
         return self.dict(*args, **kwargs)
+
+
+from .guild import ServerSettings  # noqa: E402
+
+__all__ = ("ServerSettings", "CharacterSettings")
