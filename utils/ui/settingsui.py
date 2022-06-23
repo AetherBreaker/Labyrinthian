@@ -5,6 +5,7 @@ from copy import deepcopy
 from random import randint
 from typing import TYPE_CHECKING, Any, Dict, List, Mapping, Optional, TypeVar
 import disnake
+import inflect
 from utils.functions import (
     natural_join,
     simple_tabulate_str,
@@ -153,7 +154,6 @@ class SettingsNav(SettingsMenuBase):
     async def auction_house_settings(
         self, _: disnake.ui.Button, inter: disnake.MessageInteraction
     ):
-        return
         await self.defer_to(AuctionSettingsView, inter)
 
     @disnake.ui.button(
@@ -175,11 +175,16 @@ class SettingsNav(SettingsMenuBase):
         await self.on_timeout()
 
     async def get_content(self) -> Mapping:
+        p = inflect.engine()
         inputdict = deepcopy(inputtemplate)
+
+        # prepping dmroles string
         if self.settings.dmroles:
             dmroles = "".join([f"<@&{role_id}>\n" for role_id in self.settings.dmroles])
         else:
             dmroles = "Dungeon Master, DM, Game Master, or GM"
+
+        # constructing list for listing durations
         firstmax = max(
             len(str(timedeltaplus(seconds=int(x)))) for x in self.settings.listingdurs
         )
@@ -187,28 +192,29 @@ class SettingsNav(SettingsMenuBase):
         listingdurstr = "\n".join(
             truncate_list(
                 [
-                    f"{str(timedeltaplus(seconds=int(x))):{firstmax}}"
-                    f" - {y:{secondmax}} gp fee"
-                    for x, y in self.settings.listingdurs.items()
+                    f"{x.durstr:{firstmax}} - {y.prefixed_count:{secondmax}} fee"
+                    for x, y in self.settings.listingdurs
                 ],
                 5,
                 "...",
             )
         )
 
+        # constructing list for item rarities
         firstmax = max(len(x) for x in self.settings.rarities)
         secondmax = max(len(str(x)) for x in self.settings.rarities.values())
         raritiesstr = "\n".join(
             truncate_list(
                 [
-                    f"{x:{firstmax}} - {y:{secondmax}} gp fee"
-                    for x, y in self.settings.rarities.items()
+                    f"{x:{firstmax}} - {y.prefixed_count:{secondmax}} fee"
+                    for x, y in self.settings.rarities
                 ],
                 5,
                 "...",
             )
         )
 
+        # constructing list for xp template
         ordinal = lambda n: "%d%s" % (
             n,
             "tsnrhtdd"[(n // 10 % 10 != 1) * (n % 10 < 4) * n % 10 :: 4],
@@ -217,24 +223,31 @@ class SettingsNav(SettingsMenuBase):
             len(ordinal(int(x))) for x in self.settings.xptemplate.to_dict().values()
         )
         secondmax = max(len(str(x)) for x in self.settings.xptemplate.to_dict())
+        xplist = []
+        for x, (y, z) in enumerate(self.settings.xptemplate):
+            if y.isnumeric():
+                temp = f"{ordinal(x):{firstmax}} level"
+            else:
+                temp = f"{y}"
+            xplist.append(
+                f"{temp} requires {z:{secondmax}} {p.plural_noun(self.settings.xplabel, z)}"
+            )
         templatestr = "\n".join(
             (
                 truncate_list(
-                    [
-                        f"{ordinal(int(x)):{firstmax}} requires"
-                        f" {y:{secondmax}} {self.settings.xplabel}"
-                        for x, y in self.settings.xptemplate.to_dict().items()
-                    ],
+                    [xplist],
                     5,
                     "...",
                 )
             )
         )
 
+        # creating classlist str
         classlist = "\n".join(
             truncate_list(deepcopy(self.settings.classlist), 5, "...")
         )
 
+        # filling out embed form for processing into embed
         inputdict["main"]["title"] = f"Labyrinthian settings for {self.guild.name}"
         inputdict["main"]["fielditems"].append(
             {
