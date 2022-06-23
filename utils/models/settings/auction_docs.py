@@ -1,11 +1,17 @@
 import re
-from typing import Dict, List, Pattern, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Pattern, TypeVar, Union
 
 import inflect
 from utils.functions import timedeltaplus
 from utils.models.errors import IntegerConversionError
+from utils.models.settings import SettingsBaseModel
 from utils.models.settings.coin_docs import Coin, CoinConfig
-from utils.models.settings.guild import DEFAULT_LISTING_DURS
+
+_ServerSettingsT = TypeVar("_ServerSettingsT", bound=SettingsBaseModel)
+if TYPE_CHECKING:
+    from .guild import ServerSettings
+
+    _ServerSettingsT = ServerSettings
 
 
 class Duration(int):
@@ -15,6 +21,9 @@ class Duration(int):
     def __init__(self, duration: int, fee: Coin):
         self.fee = fee
 
+    def __repr__(self):
+        return f"Duration(duration={super().__repr__(self)}, fee={self.fee!r})"
+
     def __deepcopy__(self):
         return Duration(self, self.fee)
 
@@ -22,24 +31,50 @@ class Duration(int):
     def durstr(self):
         return str(timedeltaplus(seconds=self))
 
-    @classmethod
-    def from_dict(cls, input: Dict):
-        return cls(input["duration"], Coin.from_dict(input["fee"]))
-
-    def to_dict(self):
-        return {"duration": self, "fee": self.fee.to_dict()}
-
 
 class ListingDurationsConfig:
-    def __init__(self, durlist: List[Duration]) -> None:
+    def __init__(
+        self, durlist: List[Duration], supersettings: Optional[_ServerSettingsT] = None
+    ) -> None:
         self.durlist = durlist
+        self.supersettings = supersettings
+
+    def __repr__(self):
+        joinstr = "\n".join(repr(x) for x in self.durlist)
+        return f"""ListingdurationsConfig(
+                    durlist=[
+                        {joinstr}
+                    ],
+                    supersettings={self.supersettings!r}
+                )"""
+
+    def __iter__(self):
+        for x in self.durlist:
+            yield (x, x.fee)
+
+    @property
+    def supersettings(self):
+        return self.supersettings
+
+    @supersettings.setter
+    def supersettings(self, value):
+        self.supersettings: _ServerSettingsT = value
+
+    def cascade_supersettings(self):
+        for x in self.durlist:
+            x.fee.supersettings = self.supersettings
+
+    def run_updates(self):
+        for x in self.durlist:
+            x.fee.update_types()
 
     @classmethod
     def from_dict(cls, data: Dict[str, int]):
         """Used to initialize a config from the database."""
-        durlist: List[Duration] = [
-            Duration(duration, Coin.from_dict(fee)) for duration, fee in data.items()
-        ]
+        durlist: List[Duration] = []
+        for duration, fee in data.items():
+            durlist.append(Duration(duration, Coin.from_dict(fee)))
+
         return cls(durlist)
 
     @classmethod
@@ -103,13 +138,137 @@ class ListingDurationsConfig:
 
     def to_str(self):
         p = inflect.engine()
-        p.plural()
         return "\n".join(
             [
-                f"{duration.durstr} # {duration} : {duration.fee} "
-                f"{p.plural(duration.fee.type.name, duration.fee)}"
+                f"{duration.durstr} # {duration} : {duration.fee.named_count}"
                 for duration in self.durlist
             ]
+        )
+
+    @classmethod
+    def __get_validators__(cls):
+        yield cls.from_dict
+
+
+class Rarity(str):
+    def __new__(cls, rarity: Union[int, str], fee: Coin):
+        super().__new__(cls, rarity)
+
+    def __init__(self, rarity: int, fee: Coin):
+        self.fee = fee
+
+    def __repr__(self):
+        return f"Rarity(rarity={super().__repr__(self)}, fee={self.fee!r})"
+
+    def __deepcopy__(self):
+        return Rarity(self, self.fee)
+
+
+class RaritiesConfig:
+    def __init__(
+        self, rarlist: List[Rarity], supersettings: Optional[_ServerSettingsT] = None
+    ) -> None:
+        self.rarlist = rarlist
+        self.supersettings = supersettings
+
+    def __repr__(self):
+        joinstr = "\n".join(repr(x) for x in self.rarlist)
+        return f"""RaritiesConfig(
+                    rarlist=[
+                        {joinstr}
+                    ],
+                    supersettings={self.supersettings!r}
+                )"""
+
+    def __iter__(self):
+        for x in self.rarlist:
+            yield (x, x.fee)
+
+    @property
+    def supersettings(self):
+        return self.supersettings
+
+    @supersettings.setter
+    def supersettings(self, value):
+        self.supersettings: _ServerSettingsT = value
+
+    def cascade_supersettings(self):
+        for x in self.rarlist:
+            x.fee.supersettings = self.supersettings
+
+    def run_updates(self):
+        for x in self.rarlist:
+            x.fee.update_types()
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, int]):
+        """Used to initialize a config from the database."""
+        rarlist: List[Rarity] = []
+        for rarity, fee in data.items():
+            rarlist.append(Rarity(rarity, Coin.from_dict(fee)))
+
+        return cls(rarlist)
+
+    @classmethod
+    def from_str(cls, string: str, coinconf: CoinConfig):
+        """Used to initialize a config from user input."""
+
+        rarlist: List[Rarity] = []
+
+        for line in string.splitlines():
+            if not line or line.isspace():
+                continue  # skip whitespace lines
+
+            rarity, fee = line.rpartition(":")[::2]
+
+            # If fee is empty, we ignore this line
+            if not fee or fee.isspace():
+                continue
+
+            # clean any potential whitespace off of fee
+            fee = fee.strip()  # type: ignore
+
+            # Check for an integer in fee
+            match = re.search(r"[\d,\.]+", fee)
+            # Skip line if there is none
+            if not match:
+                continue
+
+            # Normally Rarity handles type casting, however here we want to check
+            # if type casting is safe and throw an error to present to the user if it isn't
+            try:
+                count = int(re.sub(r",", "", match.group(0)))
+            except:
+                raise IntegerConversionError(
+                    f"Error: could not convert {fee} to an integer"
+                )
+
+            p = inflect.engine()
+            # Check for a currency type match
+            for x in coinconf:
+                if any(
+                    re.search(pat, fee)
+                    for pat in [x.name, x.prefix, p.plural(x.name, count)]
+                ):
+                    fee = Coin(count=count, base=coinconf.base, type=x)
+
+            if not rarity or rarity.isspace():
+                # rarity not provided: we skip line
+                continue
+
+            # done parsing, append to rarlist
+            rarlist.append(Rarity(rarity, fee))
+
+        return cls(rarlist)
+
+    def to_dict(self):
+        """Serialize the RaritiesConfig to a dict to store it in the db."""
+        return {rarity: rarity.fee.to_dict() for rarity in self.rarlist}
+
+    def to_str(self):
+        p = inflect.engine()
+        return "\n".join(
+            [f"{rarity} : {rarity.fee.named_count}" for rarity in self.rarlist]
         )
 
     @classmethod
