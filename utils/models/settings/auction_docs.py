@@ -1,13 +1,11 @@
 import re
-from typing import TYPE_CHECKING, Dict, List, Optional, Pattern, TypeVar, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 import inflect
 from utils.functions import timedeltaplus
 from utils.models.errors import IntegerConversionError
-from utils.models.settings import SettingsBaseModel
 from utils.models.settings.coin_docs import Coin, CoinConfig
 
-_ServerSettingsT = TypeVar("_ServerSettingsT", bound=SettingsBaseModel)
 if TYPE_CHECKING:
     from .guild import ServerSettings
 
@@ -16,15 +14,15 @@ if TYPE_CHECKING:
 
 class Duration(int):
     def __new__(cls, duration: Union[int, str], fee: Coin):
-        super().__new__(cls, duration)
+        return super().__new__(cls, duration)
 
     def __init__(self, duration: int, fee: Coin):
         self.fee = fee
 
     def __repr__(self):
-        return f"Duration(duration={super().__repr__(self)}, fee={self.fee!r})"
+        return f"Duration(duration={int(self)}, fee={self.fee!r})"
 
-    def __deepcopy__(self):
+    def __deepcopy__(self, _):
         return Duration(self, self.fee)
 
     @property
@@ -34,19 +32,14 @@ class Duration(int):
 
 class ListingDurationsConfig:
     def __init__(
-        self, durlist: List[Duration], supersettings: Optional[_ServerSettingsT] = None
+        self, durlist: List[Duration], supersettings: Optional["ServerSettings"] = None
     ) -> None:
         self.durlist = durlist
-        self.supersettings = supersettings
+        self._supersettings = supersettings
 
     def __repr__(self):
         joinstr = "\n".join(repr(x) for x in self.durlist)
-        return f"""ListingdurationsConfig(
-                    durlist=[
-                        {joinstr}
-                    ],
-                    supersettings={self.supersettings!r}
-                )"""
+        return f"ListingdurationsConfig(durlist=[{joinstr}], supersettings={self._supersettings!r})"
 
     def __iter__(self):
         for x in self.durlist:
@@ -54,19 +47,21 @@ class ListingDurationsConfig:
 
     @property
     def supersettings(self):
-        return self.supersettings
+        return self._supersettings
 
     @supersettings.setter
     def supersettings(self, value):
-        self.supersettings: _ServerSettingsT = value
+        self._supersettings = value
 
-    def cascade_supersettings(self):
+    def cascade_guildid(self):
         for x in self.durlist:
-            x.fee.supersettings = self.supersettings
+            if hasattr(x, "fee"):
+                x.fee.supersettings = self._supersettings
 
     def run_updates(self):
         for x in self.durlist:
-            x.fee.update_types()
+            if hasattr(x, "fee"):
+                x.fee.update_types()
 
     @classmethod
     def from_dict(cls, data: Dict[str, int]):
@@ -74,7 +69,6 @@ class ListingDurationsConfig:
         durlist: List[Duration] = []
         for duration, fee in data.items():
             durlist.append(Duration(duration, Coin.from_dict(fee)))
-
         return cls(durlist)
 
     @classmethod
@@ -152,7 +146,7 @@ class ListingDurationsConfig:
 
 class Rarity(str):
     def __new__(cls, rarity: Union[int, str], fee: Coin):
-        super().__new__(cls, rarity)
+        return super().__new__(cls, rarity)
 
     def __init__(self, rarity: int, fee: Coin):
         self.fee = fee
@@ -160,16 +154,16 @@ class Rarity(str):
     def __repr__(self):
         return f"Rarity(rarity={super().__repr__(self)}, fee={self.fee!r})"
 
-    def __deepcopy__(self):
+    def __deepcopy__(self, _):
         return Rarity(self, self.fee)
 
 
 class RaritiesConfig:
     def __init__(
-        self, rarlist: List[Rarity], supersettings: Optional[_ServerSettingsT] = None
+        self, rarlist: List[Rarity], supersettings: Optional["ServerSettings"] = None
     ) -> None:
         self.rarlist = rarlist
-        self.supersettings = supersettings
+        self._supersettings = supersettings
 
     def __repr__(self):
         joinstr = "\n".join(repr(x) for x in self.rarlist)
@@ -177,7 +171,7 @@ class RaritiesConfig:
                     rarlist=[
                         {joinstr}
                     ],
-                    supersettings={self.supersettings!r}
+                    supersettings={self._supersettings!r}
                 )"""
 
     def __iter__(self):
@@ -186,19 +180,21 @@ class RaritiesConfig:
 
     @property
     def supersettings(self):
-        return self.supersettings
+        return self._supersettings
 
     @supersettings.setter
     def supersettings(self, value):
-        self.supersettings: _ServerSettingsT = value
+        self._supersettings = value
 
-    def cascade_supersettings(self):
+    def cascade_guildid(self):
         for x in self.rarlist:
-            x.fee.supersettings = self.supersettings
+            if hasattr(x, "fee"):
+                x.fee.supersettings = self._supersettings
 
     def run_updates(self):
         for x in self.rarlist:
-            x.fee.update_types()
+            if hasattr(x, "fee"):
+                x.fee.update_types()
 
     @classmethod
     def from_dict(cls, data: Dict[str, int]):

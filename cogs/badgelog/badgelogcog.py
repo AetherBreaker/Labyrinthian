@@ -1,4 +1,3 @@
-from http import server
 from string import Template
 from time import time
 from typing import TYPE_CHECKING, Any, Dict, List, TypeVar
@@ -8,7 +7,7 @@ from cogs.badgelog.browser import create_CharSelect
 from disnake.ext import commands
 from pymongo.results import InsertOneResult
 from utils.checks import urlCheck
-from utils.settings.guild import ServerSettings
+from utils.models.settings.guild import ServerSettings
 
 _LabyrinthianT = TypeVar("_LabyrinthianT", bound=disnake.Client)
 if TYPE_CHECKING:
@@ -37,14 +36,14 @@ class Badges(commands.Cog):
             "Wizard",
         ]
 
-    async def validateClass(self, guildID):
+    async def validateClass(self, supersettings):
         """Returns a list of valid classes from classlist in the server config if exists, otherwise the Badges default valid classes.
         Parameters
         ----------
         self: The Badges class. It may be better to move this within the class.
-        guildID: Put inter.guild.id here."""
+        supersettings: Put inter.guild.id here."""
         srvconf: Dict[str, Any] = await self.bot.dbcache.find_one(
-            "srvconf", {"guild": str(guildID)}
+            "srvconf", {"guild": str(supersettings)}
         )
         if "classlist" in srvconf:
             if srvconf["classlist"]:

@@ -582,7 +582,7 @@ class SendListingButton(disnake.ui.Button[ListingConst]):
             "embed": self.view.auction_embed.to_dict(),
             "usertrack": [str(inter.author.id), str(usertrackmsg.id)],
             "originalchan": str(auction_channel.id),
-            "guildid": str(inter.guild.id),
+            "supersettings": str(inter.guild.id),
         }
         listingID: InsertOneResult = await self.bot.sdb["auction_listings"].insert_one(
             dbpackage

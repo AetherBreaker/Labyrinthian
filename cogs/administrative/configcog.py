@@ -104,9 +104,12 @@ class Configs(commands.Cog):
 
     @admin.sub_command()
     async def serversettings(self, inter: disnake.ApplicationCommandInteraction):
-        settings = await self.bot.get_server_settings(str(inter.guild.id))
-        settings_ui = SettingsNav.new(self.bot, inter.author, settings, inter.guild)
-        await settings_ui.send_to(inter, ephemeral=True)
+        try:
+            settings = await self.bot.get_server_settings(str(inter.guild.id))
+            settings_ui = SettingsNav.new(self.bot, inter.author, settings, inter.guild)
+            await settings_ui.send_to(inter, ephemeral=True)
+        except:
+            traceback.print_exc()
 
 
 def setup(bot):

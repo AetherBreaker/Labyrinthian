@@ -1,4 +1,4 @@
-from typing import List, Optional, TypeVar, Union
+from typing import Any, ClassVar, Dict, List, Optional, TypeVar, Union
 
 import disnake
 from pydantic import BaseModel
@@ -136,6 +136,7 @@ DEFAULT_COINS = {
 
 
 class ServerSettings(SettingsBaseModel):
+    # _instances: ClassVar[Dict[str, Optional["ServerSettings"]]] = None
     guild: str
     dmroles: Optional[List[Union[str, int]]] = []
     classlist: List[str] = DEFAULT_CLASS_LIST
@@ -155,6 +156,11 @@ class ServerSettings(SettingsBaseModel):
     coinconf: CoinConfig = CoinConfig.from_dict(DEFAULT_COINS)
 
     # ==== magic methods ====
+    # def __new__(cls, guild, *args, **kwargs):
+    #     if str(guild) not in cls._instances:
+    #         cls._instances[str(guild)] = super().__new__(cls, *args, **kwargs)
+    #     return cls._instances
+
     def __iter__(self):
         yield self.guild
         yield self.dmroles
@@ -181,17 +187,18 @@ class ServerSettings(SettingsBaseModel):
         else:
             outp = cls(guild=guild)
         outp.setup_selfref()
+        print(outp)
         outp.run_updates()
         return outp
 
     def setup_selfref(self):
         for x in self:
-            try:
+            if hasattr(x, "supersettings"):
                 x.supersettings = self
-            except AttributeError:
+            else:
                 continue
-            if hasattr(x, "cascade_supersettings"):
-                x.cascade_supersettings()
+            if hasattr(x, "cascade_guildid"):
+                x.cascade_guildid()
 
     def run_updates(self):
         for x in self:

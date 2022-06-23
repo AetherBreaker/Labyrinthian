@@ -175,7 +175,7 @@ class AuctionHouse(commands.Cog):
     #         {"usertrack": [str(inter.author.id), str(inter.message.id)]},
     #     )
     #     srvconf: Dict[str, Any] = await self.bot.dbcache.find_one(
-    #         "srvconf", {"guild": listingdat["guildid"]}
+    #         "srvconf", {"guild": listingdat["supersettings"]}
     #     )
     #     if str(inter.author.id) != listingdat["userid"]:
     #         return

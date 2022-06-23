@@ -1,10 +1,7 @@
 from copy import deepcopy
-from typing import TYPE_CHECKING, Dict, List, Optional, TypeVar, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Union
 import inflect
 
-from utils.models.settings import SettingsBaseModel
-
-_ServerSettingsT = TypeVar("_ServerSettingsT", bound=SettingsBaseModel)
 if TYPE_CHECKING:
     from .guild import ServerSettings
 
@@ -95,7 +92,11 @@ class CoinConfig:
 # ==== Coin Instance ====
 class Coin(int):
     def __new__(
-        cls, count: Union[int, str], base: BaseCoin, type: Optional[CoinType] = None
+        cls,
+        count: Union[int, str],
+        base: BaseCoin,
+        type: Optional[CoinType] = None,
+        supersettings: Optional["ServerSettings"] = None,
     ):
         return super().__new__(cls, count)
 
@@ -104,20 +105,20 @@ class Coin(int):
         count: int,
         base: BaseCoin,
         type: Optional[CoinType] = None,
-        supersettings: Optional[_ServerSettingsT] = None,
+        supersettings: Optional["ServerSettings"] = None,
     ):
         self.base = base
         self.type = base if type is None else type
         self.isbase = True if type is None or isinstance(type, BaseCoin) else False
-        self.supersettings = supersettings
+        self._supersettings: "ServerSettings" = supersettings
 
     @property
     def supersettings(self):
-        return self.supersettings
+        return self._supersettings
 
     @supersettings.setter
     def supersettings(self, value):
-        self.supersettings: _ServerSettingsT = value
+        self._supersettings = value
 
     def __iadd__(self, other):
         res = super(Coin, self).__add__(other)
@@ -143,7 +144,7 @@ class Coin(int):
         return "%d" % int(self)
 
     def __repr__(self):
-        return f"Coin(count={self:d}, base={repr(self.base)}, type={repr(self.type)}, isbase={self.isbase})"
+        return f"Coin(count={int(self)}, base={self.base!r}, type={self.type!r}, isbase={self.isbase!r}, _supersettings={self.supersettings!r})"
 
     def __deepcopy__(self, _):
         return Coin(self, self.type, self.base)
@@ -178,8 +179,8 @@ class Coin(int):
         Returns:
             bool: True if coin count or type name was changed, else False.
         """
-        if coinconf is None and isinstance(self.supersettings, _ServerSettingsT):
-            coinconf = self.supersettings.coinconf
+        if coinconf is None and isinstance(self._supersettings, str):
+            coinconf = self._supersettings.coinconf
         skiptype = False
         basecoin = False
 
