@@ -1,13 +1,10 @@
-from typing import Any, ClassVar, Dict, List, Optional, TypeVar, Union
+from typing import Any, List, Optional, Union
 
 import disnake
-from pydantic import BaseModel
 from utils.models.settings import SettingsBaseModel
 from utils.models.settings.auction_docs import ListingDurationsConfig, RaritiesConfig
 from utils.models.settings.charlog_docs import XPConfig
 from utils.models.settings.coin_docs import CoinConfig
-
-Model = TypeVar("Model", bound="BaseModel")
 
 DEFAULT_DM_ROLE_NAMES = {"dm", "gm", "dungeon master", "game master"}
 DEFAULT_XP_TEMPLATE = {
@@ -187,7 +184,6 @@ class ServerSettings(SettingsBaseModel):
         else:
             outp = cls(guild=guild)
         outp.setup_selfref()
-        print(outp)
         outp.run_updates()
         return outp
 
@@ -209,6 +205,9 @@ class ServerSettings(SettingsBaseModel):
         """Commits the settings to the database."""
         data = self.dict()
         data["xptemplate"] = self.xptemplate.to_dict()
+        data["coinconf"] = self.coinconf.to_dict()
+        data["listingdurs"] = self.listingdurs.to_dict()
+        data["rarities"] = self.rarities.to_dict()
         data["coinconf"] = self.coinconf.to_dict()
         await db.update_one(
             "srvconf", {"guild": self.guild}, {"$set": data}, upsert=True
