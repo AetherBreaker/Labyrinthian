@@ -16,8 +16,12 @@ class Duration(int):
     def __new__(cls, duration: Union[int, str], fee: Coin):
         return super().__new__(cls, duration)
 
-    def __init__(self, duration: int, fee: Coin):
+    def __init__(self, duration: Union[int, str], fee: Coin):
         self.fee = fee
+        self.name = str(duration)
+
+    def __str__(self):
+        return str(self.name)
 
     def __repr__(self):
         return f"Duration(duration={int(self)}, fee={self.fee!r})"
@@ -39,9 +43,21 @@ class ListingDurationsConfig:
 
     def __repr__(self):
         joinstr = "\n".join(repr(x) for x in self.durlist)
-        return f"ListingdurationsConfig(durlist=[{joinstr}], supersettings={self._supersettings!r})"
+        return f"ListingdurationsConfig(durlist=[{joinstr}])"
 
     def __iter__(self):
+        for x in self.durlist:
+            yield x
+
+    def keys(self):
+        for x in self.durlist:
+            yield x
+
+    def values(self):
+        for x in self.durlist:
+            yield x.fee
+
+    def items(self):
         for x in self.durlist:
             yield (x, x.fee)
 
@@ -128,7 +144,7 @@ class ListingDurationsConfig:
 
     def to_dict(self):
         """Serialize the ListingDurationsConfig to a dict to store it in the db."""
-        return {duration: duration.fee.to_dict() for duration in self.durlist}
+        return {str(duration): duration.fee.to_dict() for duration in self.durlist}
 
     def to_str(self):
         p = inflect.engine()
@@ -152,7 +168,7 @@ class Rarity(str):
         self.fee = fee
 
     def __repr__(self):
-        return f"Rarity(rarity={super().__repr__(self)}, fee={self.fee!r})"
+        return f"Rarity(rarity={str(self)}, fee={self.fee!r})"
 
     def __deepcopy__(self, _):
         return Rarity(self, self.fee)
@@ -167,14 +183,21 @@ class RaritiesConfig:
 
     def __repr__(self):
         joinstr = "\n".join(repr(x) for x in self.rarlist)
-        return f"""RaritiesConfig(
-                    rarlist=[
-                        {joinstr}
-                    ],
-                    supersettings={self._supersettings!r}
-                )"""
+        return f"RaritiesConfig(rarlist=[{joinstr}])"
 
     def __iter__(self):
+        for x in self.rarlist:
+            yield x
+
+    def keys(self):
+        for x in self.rarlist:
+            yield x
+
+    def values(self):
+        for x in self.rarlist:
+            yield x.fee
+
+    def items(self):
         for x in self.rarlist:
             yield (x, x.fee)
 
