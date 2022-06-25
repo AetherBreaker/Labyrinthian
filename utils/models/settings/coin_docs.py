@@ -10,15 +10,27 @@ if TYPE_CHECKING:
 
 # ==== Settings Classes ====
 class CoinType:
-    def __init__(self, name: str, prefix: str, rate: Union[float, int]) -> None:
+    def __init__(
+        self, name: str, prefix: str, rate: Union[float, int], emoji: str = None
+    ) -> None:
         self.name = name
         self.prefix = prefix
         self.rate = rate
+        self.emoji = emoji
 
     def __iter__(self):
         yield self.name
         yield self.prefix
         yield self.rate
+        if self.emoji is not None:
+            yield self.emoji
+
+    def __setattr__(self, name, value):
+        self.__dict__[name] = value
+
+    @property
+    def label(self):
+        return f"Type: {self.name}"
 
     @classmethod
     def from_dict(cls, input: Dict[str, Union[str, float, int]]):
@@ -32,15 +44,25 @@ class CoinType:
 
 
 class BaseCoin:
-    def __init__(self, name: str, prefix: str):
+    def __init__(self, name: str, prefix: str, emoji: str = None):
         self.name = name
         self.prefix = prefix
         self.rate = 1.0
+        self.emoji = emoji
 
     def __iter__(self):
         yield self.name
         yield self.prefix
         yield self.rate
+        if self.emoji is not None:
+            yield self.emoji
+
+    def __setattr__(self, name, value):
+        self.__dict__[name] = value
+
+    @property
+    def label(self):
+        return f"Base: {self.name}"
 
     @classmethod
     def from_dict(cls, input: Dict[str, str]):
@@ -72,7 +94,10 @@ class CoinConfig:
             str, Union[Dict[str, str], List[Dict[str, Union[str, float, int]]]]
         ],
     ):
-        types = [CoinType(**x) for x in input["cointypes"]]
+        types = sorted(
+            [CoinType(**x) for x in input["cointypes"]],
+            key=lambda i: (i.rate, i.name, i.prefix),
+        )
         return cls(BaseCoin(**input["basecoin"]), types)
 
     def to_dict(self):
@@ -83,7 +108,7 @@ class CoinConfig:
 
     @classmethod
     def __get_validators__(cls):
-        yield lambda cls, input: isinstance(input, CoinConfig) or cls.from_dict(input)
+        yield cls.from_dict
 
     def __repr__(self) -> str:
         return f"CoinConfig(base={self.base!r}, types={self.types!r})"
@@ -144,7 +169,7 @@ class Coin(int):
         return "%d" % int(self)
 
     def __repr__(self):
-        return f"Coin(count={int(self)}, base={self.base!r}, type={self.type!r}, isbase={self.isbase!r}, _supersettings={self.supersettings!r})"
+        return f"Coin(count={int(self)}, base={self.base!r}, type={self.type!r}, isbase={self.isbase!r})"
 
     def __deepcopy__(self, _):
         return Coin(self, self.type, self.base)
@@ -179,7 +204,7 @@ class Coin(int):
         Returns:
             bool: True if coin count or type name was changed, else False.
         """
-        if coinconf is None and isinstance(self._supersettings, str):
+        if coinconf is None:
             coinconf = self._supersettings.coinconf
         skiptype = False
         basecoin = False
