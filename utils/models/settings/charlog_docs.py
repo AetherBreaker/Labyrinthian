@@ -38,6 +38,9 @@ class XPField(int):
     def value(self) -> int:
         return int(self)
 
+    def __str__(self) -> str:
+        return "%d" % int(self)
+
     def __repr__(self) -> str:
         return f"XPField(name={self.name!r}, value={self.value})"
 
@@ -51,7 +54,19 @@ class XPConfig:
 
     def __iter__(self):
         for x in self.fields:
-            yield (x.name, x)
+            yield x
+
+    def keys(self):
+        for x in self.fields:
+            yield x
+
+    def values(self):
+        for x in self.fields:
+            yield x.name
+
+    def items(self):
+        for x in self.fields:
+            yield (x, x.name)
 
     @classmethod
     def from_dict(cls, data: Dict[str, int]):
