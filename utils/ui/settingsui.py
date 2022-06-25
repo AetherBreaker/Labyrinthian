@@ -3,16 +3,16 @@ import asyncio
 from contextlib import suppress
 from copy import deepcopy
 from random import randint
-from typing import TYPE_CHECKING, Any, Dict, List, Mapping, Optional, TypeVar
+from typing import TYPE_CHECKING, Any, Dict, List, Mapping, Optional, TypeVar, Union
 import disnake
 import inflect
 from utils.functions import (
     natural_join,
     simple_tabulate_str,
-    timedeltaplus,
     truncate_list,
 )
 from utils.models.errors import FormTimeoutError
+from utils.models.settings.coin_docs import BaseCoin, CoinType
 from utils.models.settings.guild import XPConfig, ServerSettings
 
 from utils.ui.menu import MenuBase
@@ -23,9 +23,10 @@ if TYPE_CHECKING:
     from bot import Labyrinthian
 
     _LabyrinthianT = Labyrinthian
+
+
 TOO_MANY_ROLES_SENTINEL = "__special:too_many_roles"
 
-T = TypeVar("T")
 
 inputtemplate = {"main": {"title": "title", "descitems": [], "fielditems": []}}
 
@@ -162,7 +163,7 @@ class SettingsNav(SettingsMenuBase):
     async def xplog_settings(
         self, _: disnake.ui.Button, inter: disnake.MessageInteraction
     ):
-        await self.defer_to(XPlogSettingsView, inter)
+        await self.defer_to(CharacterLogSettingsView, inter)
 
     @disnake.ui.button(style=disnake.ButtonStyle.primary, label="Bot Settings")
     async def bot_settings(
@@ -186,14 +187,16 @@ class SettingsNav(SettingsMenuBase):
 
         # constructing list for listing durations
         firstmax = max(
-            len(str(timedeltaplus(seconds=int(x)))) for x in self.settings.listingdurs
+            len(x.durstr) for x, y in zip(self.settings.listingdurs, range(0, 5))
         )
-        secondmax = max(len(str(x)) for x in self.settings.listingdurs.values())
+        secondmax = max(
+            len(str(x)) for x, y in zip(self.settings.listingdurs.values(), range(0, 5))
+        )
         listingdurstr = "\n".join(
             truncate_list(
                 [
-                    f"{x.durstr:{firstmax}} - {y.prefixed_count:{secondmax}} fee"
-                    for x, y in self.settings.listingdurs
+                    f"{x.durstr:{firstmax}} - {y:{secondmax}} {y.type.prefix} fee"
+                    for x, y in self.settings.listingdurs.items()
                 ],
                 5,
                 "...",
@@ -201,13 +204,15 @@ class SettingsNav(SettingsMenuBase):
         )
 
         # constructing list for item rarities
-        firstmax = max(len(x) for x in self.settings.rarities)
-        secondmax = max(len(str(x)) for x in self.settings.rarities.values())
+        firstmax = max(len(x) for x, y in zip(self.settings.rarities, range(0, 5)))
+        secondmax = max(
+            len(str(x)) for x, y in zip(self.settings.rarities.values(), range(0, 5))
+        )
         raritiesstr = "\n".join(
             truncate_list(
                 [
-                    f"{x:{firstmax}} - {y.prefixed_count:{secondmax}} fee"
-                    for x, y in self.settings.rarities
+                    f"{x:{firstmax}} - {y:{secondmax}} {y.type.prefix} fee"
+                    for x, y in self.settings.rarities.items()
                 ],
                 5,
                 "...",
@@ -220,25 +225,28 @@ class SettingsNav(SettingsMenuBase):
             "tsnrhtdd"[(n // 10 % 10 != 1) * (n % 10 < 4) * n % 10 :: 4],
         )
         firstmax = max(
-            len(ordinal(int(x))) for x in self.settings.xptemplate.to_dict().values()
+            len(ordinal(x + 1) if y.isnumeric() else y)
+            for x, (y, z) in enumerate(
+                zip(self.settings.xptemplate.values(), range(0, 5))
+            )
         )
-        secondmax = max(len(str(x)) for x in self.settings.xptemplate.to_dict())
+        secondmax = max(
+            len(str(x)) for x, y in zip(self.settings.xptemplate, range(0, 5))
+        )
         xplist = []
-        for x, (y, z) in enumerate(self.settings.xptemplate):
-            if y.isnumeric():
-                temp = f"{ordinal(x):{firstmax}} level"
+        for x, (y, z) in enumerate(self.settings.xptemplate.items()):
+            if str(y).isnumeric():
+                temp = f"{ordinal(x+1):{firstmax}} level"
             else:
                 temp = f"{y}"
             xplist.append(
                 f"{temp} requires {z:{secondmax}} {p.plural_noun(self.settings.xplabel, z)}"
             )
         templatestr = "\n".join(
-            (
-                truncate_list(
-                    [xplist],
-                    5,
-                    "...",
-                )
+            truncate_list(
+                xplist,
+                5,
+                "...",
             )
         )
 
@@ -289,6 +297,108 @@ class SettingsNav(SettingsMenuBase):
         return {"embeds": embeds}
 
 
+class CoinPurseSettingsView(SettingsMenuBase):
+    def __init__(self):
+        self.selected: str = None
+        self.matched: Union[BaseCoin, CoinType] = None
+
+    # ==== ui ====
+    @disnake.ui.select(
+        placeholder="Select Currency Denomination", min_values=1, max_values=1, row=2
+    )
+    async def select_cointype(
+        self, select: disnake.ui.Select, inter: disnake.MessageInteraction
+    ):
+        if select.values[0] != self.selected:
+            self.selected = select.values[0]
+            self.match(select.values[0])
+            self._refresh_cointype_select()
+            await self.refresh_content(inter)
+
+    @disnake.ui.button(label="Back", style=disnake.ButtonStyle.grey, row=4)
+    async def back(self, _: disnake.ui.Button, inter: disnake.Interaction):
+        await self.defer_to(SettingsNav, inter)
+
+    # ==== handlers ====
+    def match(self, input: str):
+        for type in self.settings.coinconf:
+            if type.label == input:
+                self.matched = type
+        self.remove_item(AddCoin)
+        self.remove_item(RemoveCoin)
+        self.remove_item(EditCoin)
+        if isinstance(self.matched, BaseCoin):
+            self.add_item(AddCoin())
+            self.add_item(EditCoin())
+        if len(self.settings.coinconf.types) >= 24:
+            self.remove_item(AddCoin)
+        if isinstance(self.matched, CoinType):
+            self.add_item(AddCoin())
+            self.add_item(EditCoin())
+            self.add_item(RemoveCoin())
+
+    # ==== content ====
+    def _refresh_cointype_select(self):
+        """Update the options in the CoinType select to reflect the currently selected values."""
+        self.select_cointype.options.clear()
+
+        selected = self.selected == self.settings.coinconf.base.label
+
+        self.select_cointype.add_option(
+            label=self.settings.coinconf.base.label,
+            emoji=self.settings.coinconf.base.emoji,
+            default=selected,
+        )
+
+        for coin in self.settings.coinconf.types:  # display highest-first
+            selected = self.selected == coin.label
+            self.select_cointype.add_option(
+                label=coin.label, emoji=coin.emoji, default=selected
+            )
+
+    async def _before_send(self):
+        self.add_item(AddCoin())
+        self._refresh_cointype_select()
+
+    async def get_content(self):
+        return await super().get_content()
+
+
+class AddCoin(disnake.ui.Button[CoinPurseSettingsView]):
+    def __init__(self, bot: "Labyrinthian"):
+        self.bot = bot
+        super().__init__(style=disnake.ButtonStyle.green, label="Add Currency", row=3)
+
+        async def callback(
+            self, _: disnake.ui.Button, inter: disnake.MessageInteraction
+        ):
+            pass
+
+
+class EditCoin(disnake.ui.Button[CoinPurseSettingsView]):
+    def __init__(self, bot: "Labyrinthian", match: Union[BaseCoin, CoinType]):
+        self.bot = bot
+        self.match = match
+        super().__init__(style=disnake.ButtonStyle.grey, label="Edit Currency", row=3)
+
+        async def callback(
+            self, _: disnake.ui.Button, inter: disnake.MessageInteraction
+        ):
+            pass
+
+
+class RemoveCoin(disnake.ui.Button[CoinPurseSettingsView]):
+    def __init__(self, bot: "Labyrinthian", match: Union[BaseCoin, CoinType]):
+        self.bot = bot
+        self.match = match
+        super().__init__(style=disnake.ButtonStyle.red, label="Remove Currency", row=3)
+
+        async def callback(
+            self, _: disnake.ui.Button, inter: disnake.MessageInteraction
+        ):
+            pass
+
+
 class AuctionSettingsView(SettingsMenuBase):
 
     # ==== ui ====
@@ -302,7 +412,7 @@ class AuctionSettingsView(SettingsMenuBase):
         return await super().get_content()
 
 
-class XPlogSettingsView(SettingsMenuBase):
+class CharacterLogSettingsView(SettingsMenuBase):
 
     # ==== ui ====
     @disnake.ui.button(label="Set XP Label", style=disnake.ButtonStyle.primary)
@@ -311,7 +421,7 @@ class XPlogSettingsView(SettingsMenuBase):
     ):
         components = [
             disnake.ui.TextInput(
-                style=disnake.TextInputStyle.multi_line,
+                style=disnake.TextInputStyle.single_line,
                 label="Set XP Label",
                 placeholder="badges",
                 custom_id="settings_xp_label_set",
@@ -327,16 +437,15 @@ class XPlogSettingsView(SettingsMenuBase):
                 max_length=7,
             ),
         ]
-        rand = randint(111111, 999999)
         await inter.response.send_modal(
-            custom_id=f"{rand}settings_xp_label_modal",
+            custom_id=f"{inter.id}settings_xp_label_modal",
             title='"Units of XP" Label:',
             components=components,
         )
         try:
             modalinter: disnake.ModalInteraction = await self.bot.wait_for(
                 "modal_submit",
-                check=lambda i: i.custom_id == f"{rand}settings_xp_label_modal"
+                check=lambda i: i.custom_id == f"{inter.id}settings_xp_label_modal"
                 and i.author.id == inter.author.id,
                 timeout=180,
             )
@@ -402,16 +511,15 @@ class XPlogSettingsView(SettingsMenuBase):
                 max_length=7,
             ),
         ]
-        rand = randint(111111, 999999)
         await inter.response.send_modal(
-            custom_id=f"{rand}settings_xp_template_modal",
+            custom_id=f"{inter.id}settings_xp_template_modal",
             title=f"Edit {self.settings.xplabel} Requirements",
             components=components,
         )
         try:
             modalinter: disnake.ModalInteraction = await self.bot.wait_for(
                 "modal_submit",
-                check=lambda i: i.custom_id == f"{rand}settings_xp_template_modal"
+                check=lambda i: i.custom_id == f"{inter.id}settings_xp_template_modal"
                 and i.author.id == inter.author.id,
                 timeout=180,
             )
@@ -440,19 +548,20 @@ class XPlogSettingsView(SettingsMenuBase):
     # ==== content ====
     async def get_content(self) -> Mapping:
         inputdict = deepcopy(inputtemplate)
+        ordinal = lambda n: "%d%s" % (
+            n,
+            "tsnrhtdd"[(n // 10 % 10 != 1) * (n % 10 < 4) * n % 10 :: 4],
+        )
         maxes = [
-            max(
-                len(str(x + 1))
-                for x, y in enumerate(self.settings.xptemplate.to_dict())
-            ),
-            max(len(str(x)) for x in self.settings.xptemplate.to_dict()),
-            max(len(str(x)) for x in self.settings.xptemplate.to_dict().values()),
+            max(len(ordinal(x + 1)) for x, y in enumerate(self.settings.xptemplate)),
+            max(len(str(x)) for x in self.settings.xptemplate.values()),
+            max(len(str(x)) for x in self.settings.xptemplate),
         ]
         xptemplate = "Level : Level Name : Requirement\n"
         xptemplate += simple_tabulate_str(
             [
-                f"{x+1:{maxes[0]}} : {y:^{maxes[1]}} : {z:<{maxes[2]}}"
-                for x, (y, z) in enumerate(self.settings.xptemplate.to_dict().items())
+                f"{x+1:{maxes[0]}} : {z:^{maxes[1]}} : {y:<{maxes[2]}}"
+                for x, (y, z) in enumerate(self.settings.xptemplate.items())
             ],
             2,
         )
@@ -507,7 +616,7 @@ class BotSettingsView(SettingsMenuBase):
         components = [
             disnake.ui.TextInput(
                 style=disnake.TextInputStyle.multi_line,
-                label="Classes to Add",
+                label="Description",
                 placeholder="A list of class names separated by either commas or new lines.",
                 value=(
                     f"Each class must be on a separate line below."
