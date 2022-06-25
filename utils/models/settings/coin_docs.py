@@ -5,8 +5,6 @@ import inflect
 if TYPE_CHECKING:
     from .guild import ServerSettings
 
-    _ServerSettingsT = ServerSettings
-
 
 # ==== Settings Classes ====
 class CoinType:
