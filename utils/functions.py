@@ -8,6 +8,7 @@ import re
 from typing import Any, Callable, List, TypeVar, Optional, Union
 from disnake.ext import commands
 import disnake
+import emoji
 import inflect
 
 from rapidfuzz import fuzz, process
@@ -294,3 +295,10 @@ def simple_tabulate_str(input: List[str], columnamt: int = 2) -> str:
             columns[columnindex] = column[1:]
         joinlist.append(" | ".join(linejoin))
     return "\n".join(joinlist)
+
+
+def has_unicode_emote(text: str) -> bool:
+    for character in text:
+        if character in emoji.UNICODE_EMOJI_ENGLISH:
+            return True
+    return False
