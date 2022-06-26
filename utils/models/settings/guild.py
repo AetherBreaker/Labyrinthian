@@ -122,12 +122,36 @@ DEFAULT_CLASS_LIST = [
     "Wizard",
 ]
 DEFAULT_COINS = {
-    "basecoin": {"name": "Gold Piece", "prefix": "gp"},
+    "basecoin": {
+        "name": "Gold Piece",
+        "prefix": "gp",
+        "emoji": "<:DDBGold:983191635376623667>",
+    },
     "cointypes": [
-        {"name": "Copper Piece", "prefix": "cp", "rate": 100.0},
-        {"name": "Silver Piece", "prefix": "sp", "rate": 10.0},
-        {"name": "Electrum Piece", "prefix": "ep", "rate": 2.0},
-        {"name": "Platinum Piece", "prefix": "pp", "rate": 0.1},
+        {
+            "name": "Copper Piece",
+            "prefix": "cp",
+            "rate": 100.0,
+            "emoji": "<:DDBCopper:983191632230895668>",
+        },
+        {
+            "name": "Silver Piece",
+            "prefix": "sp",
+            "rate": 10.0,
+            "emoji": "<:DDBSilver:990421042013032488>",
+        },
+        {
+            "name": "Electrum Piece",
+            "prefix": "ep",
+            "rate": 2.0,
+            "emoji": "<:DDBElectrum:983191637813506068>",
+        },
+        {
+            "name": "Platinum Piece",
+            "prefix": "pp",
+            "rate": 0.1,
+            "emoji": "<:DDBPlatinum:983191639042457712>",
+        },
     ],
 }
 
@@ -140,17 +164,15 @@ class ServerSettings(SettingsBaseModel):
     # lookup_dm_required: bool = True
     # lookup_pm_dm: bool = False
     # lookup_pm_result: bool = False
-    xptemplate: XPConfig = XPConfig.from_dict(DEFAULT_XP_TEMPLATE)
-    listingdurs: ListingDurationsConfig = ListingDurationsConfig.from_dict(
-        DEFAULT_LISTING_DURS
-    )
-    rarities: RaritiesConfig = RaritiesConfig.from_dict(DEFAULT_RARITIES)
+    xptemplate: XPConfig = DEFAULT_XP_TEMPLATE
+    listingdurs: ListingDurationsConfig = DEFAULT_LISTING_DURS
+    rarities: RaritiesConfig = DEFAULT_RARITIES
     outbidthreshold: int = 50
     ahfront: Optional[str] = None
     ahback: Optional[str] = None
     ahinternal: Optional[str] = None
     xplabel: str = "Badge"
-    coinconf: CoinConfig = CoinConfig.from_dict(DEFAULT_COINS)
+    coinconf: CoinConfig = DEFAULT_COINS
 
     # ==== magic methods ====
     # def __new__(cls, guild, *args, **kwargs):
