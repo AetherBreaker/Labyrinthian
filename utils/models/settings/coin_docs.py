@@ -35,7 +35,12 @@ class CoinType:
         return cls(**input)
 
     def to_dict(self):
-        return {"name": self.name, "prefix": self.prefix, "rate": self.rate}
+        return {
+            "name": self.name,
+            "prefix": self.prefix,
+            "rate": self.rate,
+            "emoji": self.emoji,
+        }
 
     def __repr__(self) -> str:
         return f"CoinType(name={self.name!r}, prefix={self.prefix!r}, rate={self.rate})"
@@ -64,10 +69,10 @@ class BaseCoin:
 
     @classmethod
     def from_dict(cls, input: Dict[str, str]):
-        return cls(input["name"], input["prefix"])
+        return cls(**input)
 
     def to_dict(self):
-        return {"name": self.name, "prefix": self.prefix}
+        return {"name": self.name, "prefix": self.prefix, "emoji": self.emoji}
 
     def __repr__(self) -> str:
         return f"BaseCoin(name={self.name!r}, prefix={self.prefix!r}, rate={self.rate})"
@@ -107,6 +112,9 @@ class CoinConfig:
     @classmethod
     def __get_validators__(cls):
         yield cls.from_dict
+
+    def __deepcopy__(self, _):
+        return CoinConfig(self.base, self.types)
 
     def __repr__(self) -> str:
         return f"CoinConfig(base={self.base!r}, types={self.types!r})"
