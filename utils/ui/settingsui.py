@@ -3,15 +3,18 @@ import asyncio
 from contextlib import suppress
 from copy import deepcopy
 from random import randint
+import re
 from typing import TYPE_CHECKING, Any, Dict, List, Mapping, Optional, TypeVar, Union
 import disnake
+import emoji
 import inflect
 from utils.functions import (
+    has_unicode_emote,
     natural_join,
     simple_tabulate_str,
     truncate_list,
 )
-from utils.models.errors import FormTimeoutError
+from utils.models.errors import FormInvalidInputError, FormTimeoutError
 from utils.models.settings.coin_docs import BaseCoin, CoinType
 from utils.models.settings.guild import XPConfig, ServerSettings
 
@@ -171,6 +174,12 @@ class SettingsNav(SettingsMenuBase):
     ):
         await self.defer_to(BotSettingsView, inter)
 
+    @disnake.ui.button(style=disnake.ButtonStyle.primary, label="Coin Purse Settings")
+    async def coin_purse_settings(
+        self, _: disnake.ui.Button, inter: disnake.MessageInteraction
+    ):
+        await self.defer_to(CoinPurseSettingsView, inter)
+
     @disnake.ui.button(label="Exit", style=disnake.ButtonStyle.danger, row=4)
     async def exit(self, *_):
         await self.on_timeout()
@@ -255,6 +264,21 @@ class SettingsNav(SettingsMenuBase):
             truncate_list(deepcopy(self.settings.classlist), 5, "...")
         )
 
+        namemax = max(len(x.name) for x in self.settings.coinconf)
+        prefmax = max(len(x.prefix) for x in self.settings.coinconf)
+        ratemax = max(len(str(x.rate)) for x in self.settings.coinconf.types)
+        coinstr = (
+            f"""Base Currency:\n"""
+            f"""> {self.settings.coinconf.base.emoji} `{self.settings.coinconf.base.name:>{namemax}}: prefix={'"'+self.settings.coinconf.base.prefix+'"':{prefmax+2}} | rate={'1.0':>{ratemax}}`\n"""
+            f"""Currency Subtypes:\n"""
+        )
+        joinlist = []
+        for x in self.settings.coinconf.types:
+            joinlist.append(
+                f"""> {x.emoji} `{x.name:>{namemax}}: prefix={'"'+x.prefix+'"':{prefmax+2}} | rate={x.rate:{ratemax}}`"""
+            )
+        coinstr += "\n".join(joinlist)
+
         # filling out embed form for processing into embed
         inputdict["main"]["title"] = f"Labyrinthian settings for {self.guild.name}"
         inputdict["main"]["fielditems"].append(
@@ -290,7 +314,11 @@ class SettingsNav(SettingsMenuBase):
         )
         inputdict["main"]["fielditems"].append({"name": "\u200B", "value": "\u200B"})
         inputdict["main"]["fielditems"].append(
-            {"name": "__Coinpurse Settings__", "value": f"\u200B", "inline": True}
+            {
+                "name": "__Coinpurse Settings__",
+                "value": f"**Currency Types**: \n {coinstr}\n",
+                "inline": True,
+            }
         )
         embeds = self.format_settings_overflow(inputdict)
         embeds = [disnake.Embed.from_dict(x) for x in embeds]
@@ -298,11 +326,47 @@ class SettingsNav(SettingsMenuBase):
 
 
 class CoinPurseSettingsView(SettingsMenuBase):
-    def __init__(self):
+    def __init__(self, owner, timeout):
         self.selected: str = None
         self.matched: Union[BaseCoin, CoinType] = None
+        super().__init__(owner=owner, timeout=timeout)
 
     # ==== ui ====
+    @disnake.ui.button(label="Reset Coin Config", style=disnake.ButtonStyle.red, row=0)
+    async def reset_coinconf(
+        self, _: disnake.ui.Button, inter: disnake.MessageInteraction
+    ):
+        await inter.response.send_modal(
+            title="Confirm Config Reset",
+            custom_id=f"{inter.id}coinconf_reset_modal",
+            components=disnake.ui.TextInput(
+                label="Confirmation:",
+                custom_id="coinconf_reset_modal_confirmation",
+                placeholder="Confirm",
+                min_length=7,
+                max_length=7,
+            ),
+        )
+        try:
+            modalinter: disnake.ModalInteraction = await self.bot.wait_for(
+                "modal_submit",
+                check=lambda i: i.custom_id == f"{inter.id}coinconf_reset_modal"
+                and i.author.id == inter.author.id,
+                timeout=180,
+            )
+        except asyncio.TimeoutError:
+            raise FormTimeoutError
+
+        if modalinter.text_values["coinconf_reset_modal_confirmation"] == "Confirm":
+            self.settings.coinconf = self.settings.__fields__["coinconf"].get_default()
+            await inter.send("Coin configuration reset.", ephemeral=True)
+        else:
+            await inter.send("Config reset canceled", ephemeral=True)
+
+        self._refresh_cointype_select()
+        await self.commit_settings()
+        await self.refresh_content(modalinter)
+
     @disnake.ui.select(
         placeholder="Select Currency Denomination", min_values=1, max_values=1, row=2
     )
@@ -311,7 +375,7 @@ class CoinPurseSettingsView(SettingsMenuBase):
     ):
         if select.values[0] != self.selected:
             self.selected = select.values[0]
-            self.match(select.values[0])
+            self.process_selection(select.values[0])
             self._refresh_cointype_select()
             await self.refresh_content(inter)
 
@@ -320,22 +384,43 @@ class CoinPurseSettingsView(SettingsMenuBase):
         await self.defer_to(SettingsNav, inter)
 
     # ==== handlers ====
-    def match(self, input: str):
+    def process_selection(self, input: str):
         for type in self.settings.coinconf:
+            print(type)
             if type.label == input:
                 self.matched = type
-        self.remove_item(AddCoin)
-        self.remove_item(RemoveCoin)
-        self.remove_item(EditCoin)
+                print(type)
+
+        # Clear all Coin modification buttons before re-adding the appropriate ones
+        self.clear_specific_items(AddCoin, EditCoin, RemoveCoin)
+
+        # Check whether we've reached the CoinType cap
+        # and add AddCoin if not
+        if len(self.settings.coinconf.types) < 24:
+            self.add_item(AddCoin(self.bot))
+        elif len(self.settings.coinconf.types) >= 24:
+            self.clear_specific_items(AddCoin)
+
+        # Check whether we matched with a BaseCoin or a CoinType
+        # if BaseCoin, we only add EditCoin button
+        # if CoinType, we add both EditCoin and RemoveCoin buttons
         if isinstance(self.matched, BaseCoin):
-            self.add_item(AddCoin())
-            self.add_item(EditCoin())
-        if len(self.settings.coinconf.types) >= 24:
-            self.remove_item(AddCoin)
-        if isinstance(self.matched, CoinType):
-            self.add_item(AddCoin())
-            self.add_item(EditCoin())
-            self.add_item(RemoveCoin())
+            self.add_item(EditCoin(self.bot, self.matched))
+        elif isinstance(self.matched, CoinType):
+            self.add_item(EditCoin(self.bot, self.matched))
+            self.add_item(RemoveCoin(self.bot, self.matched))
+
+        # Check whether there are any existing CoinTypes
+        # and remove all RemoveCoin buttons if not
+        # this is a redunant check incase self.matched isn't accurate
+        if len(self.settings.coinconf.types) == 0:
+            self.clear_specific_items(RemoveCoin)
+
+    # ==== helpers ====
+    def clear_specific_items(self, *args):
+        for x in self.children.copy():
+            if isinstance(x, args):
+                self.remove_item(x)
 
     # ==== content ====
     def _refresh_cointype_select(self):
@@ -357,11 +442,47 @@ class CoinPurseSettingsView(SettingsMenuBase):
             )
 
     async def _before_send(self):
-        self.add_item(AddCoin())
+        self.add_item(AddCoin(self.bot))
         self._refresh_cointype_select()
 
     async def get_content(self):
-        return await super().get_content()
+        inputdict = deepcopy(inputtemplate)
+
+        namemax = max(len(x.name) for x in self.settings.coinconf)
+        prefmax = max(len(x.prefix) for x in self.settings.coinconf)
+        ratemax = max(len(str(x.rate)) for x in self.settings.coinconf.types)
+        coinstr = (
+            f"""Base Currency:\n"""
+            f"""> {self.settings.coinconf.base.emoji} `{self.settings.coinconf.base.name:>{namemax}}: prefix={'"'+self.settings.coinconf.base.prefix+'"':{prefmax+2}} | rate={'1.0':>{ratemax}}`\n"""
+            f"""Currency Subtypes:\n"""
+        )
+        joinlist = []
+        for x in self.settings.coinconf.types:
+            joinlist.append(
+                f"""> {x.emoji} `{x.name:>{namemax}}: prefix={'"'+x.prefix+'"':{prefmax+2}} | rate={x.rate:{ratemax}}`"""
+            )
+        coinstr += "\n".join(joinlist)
+
+        inputdict["main"][
+            "title"
+        ] = f"Server Settings ({self.guild.name}) / Coin Purse Settings"
+        inputdict["main"]["descitems"].append(
+            {
+                "header": "__**Currency Types**__",
+                "settings": f"{coinstr}",
+                "desc": (
+                    f"These define what types of currencies are available for players to use.\n"
+                    f"The base currency can never be removed, and always has a rate of 1.0\n"
+                    f"All other currencies value are measured in how many of them is needed to equal"
+                    f" one base currency, so a platinum piece would have a rate of 0.1, while copper "
+                    f"pieces would have a rate of 100."
+                ),
+            }
+        )
+
+        embeds = self.format_settings_overflow(inputdict)
+        embeds = [disnake.Embed.from_dict(x) for x in embeds]
+        return {"embeds": embeds}
 
 
 class AddCoin(disnake.ui.Button[CoinPurseSettingsView]):
@@ -369,43 +490,332 @@ class AddCoin(disnake.ui.Button[CoinPurseSettingsView]):
         self.bot = bot
         super().__init__(style=disnake.ButtonStyle.green, label="Add Currency", row=3)
 
-        async def callback(
-            self, _: disnake.ui.Button, inter: disnake.MessageInteraction
-        ):
-            pass
+    async def callback(self, inter: disnake.MessageInteraction):
+        if len(self.view.settings.coinconf.types) >= 24:
+            return
+        await inter.response.send_modal(
+            title="Add Currency",
+            custom_id=f"{inter.id}add_currency_modal",
+            components=setup_coin_modal_components(),
+        )
+
+        try:
+            modalinter: disnake.ModalInteraction = await self.bot.wait_for(
+                "modal_submit",
+                check=lambda i: i.custom_id == f"{inter.id}add_currency_modal"
+                and i.author.id == inter.author.id,
+                timeout=180,
+            )
+        except asyncio.TimeoutError:
+            raise FormTimeoutError
+        data = {
+            "name": modalinter.text_values["modal_currency_name"],
+            "prefix": modalinter.text_values["modal_currency_prefix"],
+            "rate": modalinter.text_values["modal_currency_rate"],
+            "emoji": modalinter.text_values["modal_currency_emoji"],
+        }
+        for x in self.view.settings.coinconf:
+            if data["name"] == x.name:
+                raise FormInvalidInputError(
+                    f"Multiple currencies cannot share the same name, please provide a unique name"
+                )
+            if data["prefix"] == x.prefix:
+                raise FormInvalidInputError(
+                    f"Multiple currencies cannot share the same prefix, please provide a unique prefix"
+                )
+        try:
+            data["rate"] = re.sub(r"[^\d\.]+", "", data["rate"])
+            data["rate"] = float(data["rate"])
+        except ValueError:
+            raise FormInvalidInputError(
+                f"It seems your inputted rate couldn't be converted to a number, please ensure your "
+                f"input only contains numbers, and up to a maximum of one decimal point."
+            )
+        if len(data["emoji"]) > 0:
+            if disnake.PartialEmoji.from_str(data["emoji"]).is_unicode_emoji():
+                if not has_unicode_emote(data["emoji"]):
+                    raise FormInvalidInputError(
+                        f"Your inputted icon couldn't be converted to a valid emoji.\n"
+                        f"Please ensure it matches one of the following formats:\n"
+                        f"Animated:\n"
+                        f"> <a:name:id>\n"
+                        f"> a:name:id\n"
+                        f"Static:\n"
+                        f"> <name:id>\n"
+                        f"> name:id\n"
+                        f"Or you can provide a valid Unicode emoji."
+                    )
+        self.view.settings.coinconf.types.append(CoinType.from_dict(data))
+        await self.view.commit_settings()
+        self.view._refresh_cointype_select()
+        await self.view.refresh_content(modalinter)
 
 
 class EditCoin(disnake.ui.Button[CoinPurseSettingsView]):
-    def __init__(self, bot: "Labyrinthian", match: Union[BaseCoin, CoinType]):
+    def __init__(
+        self, bot: "Labyrinthian", match: Union[BaseCoin, CoinType], emoji: str = None
+    ):
         self.bot = bot
-        self.match = match
-        super().__init__(style=disnake.ButtonStyle.grey, label="Edit Currency", row=3)
+        self.matched = match
+        emoji = None if emoji is None else disnake.PartialEmoji.from_str(emoji)
+        super().__init__(
+            style=disnake.ButtonStyle.grey, label="Edit Currency", emoji=emoji, row=3
+        )
 
-        async def callback(
-            self, _: disnake.ui.Button, inter: disnake.MessageInteraction
-        ):
-            pass
+    async def callback(self, inter: disnake.MessageInteraction):
+        components = setup_coin_modal_components(
+            self.matched.to_dict(), isinstance(self.matched, BaseCoin)
+        )
+        await inter.response.send_modal(
+            title="Edit Currency",
+            custom_id=f"{inter.id}edit_currency_modal",
+            components=components,
+        )
+        try:
+            modalinter: disnake.ModalInteraction = await self.bot.wait_for(
+                "modal_submit",
+                check=lambda i: i.custom_id == f"{inter.id}edit_currency_modal"
+                and i.author.id == inter.author.id,
+                timeout=180,
+            )
+        except asyncio.TimeoutError:
+            raise FormTimeoutError
+        is_base = isinstance(self.matched, BaseCoin)
+        data = {
+            "name": modalinter.text_values["modal_currency_name"],
+            "prefix": modalinter.text_values["modal_currency_prefix"],
+            "emoji": modalinter.text_values["modal_currency_emoji"],
+        }
+        for x in self.view.settings.coinconf:
+            if data["name"] == x.name:
+                raise FormInvalidInputError(
+                    f"Multiple currencies cannot share the same name, please provide a unique name"
+                )
+            if data["prefix"] == x.prefix:
+                raise FormInvalidInputError(
+                    f"Multiple currencies cannot share the same prefix, please provide a unique prefix"
+                )
+        if is_base:
+            data["rate"] = (modalinter.text_values["modal_currency_rate"],)
+            try:
+                data["rate"] = re.sub(r"[^\d\.]+", "", data["rate"])
+                data["rate"] = float(data["rate"])
+            except ValueError:
+                raise FormInvalidInputError(
+                    f"It seems your inputted rate couldn't be converted to a number, please ensure your "
+                    f"input only contains numbers, and up to a maximum of one decimal point."
+                )
+        if len(data["emoji"]) > 0:
+            if disnake.PartialEmoji.from_str(data["emoji"]).is_unicode_emoji():
+                if not has_unicode_emote(data["emoji"]):
+                    raise FormInvalidInputError(
+                        f"Your inputted icon couldn't be converted to a valid emoji.\n"
+                        f"Please ensure it matches one of the following formats:\n"
+                        f"Animated:\n"
+                        f"> <a:name:id>\n"
+                        f"> a:name:id\n"
+                        f"Static:\n"
+                        f"> <name:id>\n"
+                        f"> name:id\n"
+                        f"Or you can provide a valid Unicode emoji."
+                    )
+        self.view.settings.coinconf.types.append(CoinType.from_dict(data))
+        await self.view.commit_settings()
+        await self.view.refresh_content(modalinter)
 
 
 class RemoveCoin(disnake.ui.Button[CoinPurseSettingsView]):
-    def __init__(self, bot: "Labyrinthian", match: Union[BaseCoin, CoinType]):
+    def __init__(
+        self, bot: "Labyrinthian", match: Union[BaseCoin, CoinType], emoji: str = None
+    ):
         self.bot = bot
-        self.match = match
-        super().__init__(style=disnake.ButtonStyle.red, label="Remove Currency", row=3)
+        self.matched = match
+        emoji = None if emoji is None else disnake.PartialEmoji.from_str(emoji)
+        super().__init__(
+            style=disnake.ButtonStyle.red, label="Remove Currency", emoji=emoji, row=3
+        )
 
-        async def callback(
-            self, _: disnake.ui.Button, inter: disnake.MessageInteraction
-        ):
-            pass
+    async def callback(self, inter: disnake.MessageInteraction):
+        if not isinstance(self.matched, CoinType):
+            return
+        await inter.response.send_modal(
+            title="Confirmation",
+            custom_id=f"{inter.id}currency_removal_confirm",
+            components=disnake.ui.TextInput(
+                label="Confirm Currency Removal",
+                custom_id="removal_confirm",
+                style=disnake.TextInputStyle.single_line,
+                placeholder="Confirm",
+                required=True,
+                min_length=7,
+                max_length=7,
+            ),
+        )
+        try:
+            modalinter: disnake.ModalInteraction = await self.bot.wait_for(
+                "modal_submit",
+                check=lambda i: i.custom_id == f"{inter.id}currency_removal_confirm"
+                and i.author.id == inter.author.id,
+                timeout=180,
+            )
+        except asyncio.TimeoutError:
+            raise FormTimeoutError
+        if modalinter.text_values["removal_confirm"] == "Confirm":
+            self.view.settings.coinconf.types.remove(self.matched)
+            await inter.send("Removal confirmed", ephemeral=True)
+        else:
+            await inter.send("Removal canceled", ephemeral=True)
+        await self.view.commit_settings()
+        self.view._refresh_cointype_select()
+        await self.view.refresh_content(modalinter)
+
+
+def setup_coin_modal_components(
+    values: Optional[Dict[str, str]] = {
+        "name": "",
+        "prefix": "",
+        "rate": "",
+        "emoji": "",
+    },
+    is_base: bool = False,
+) -> List[disnake.ui.WrappedComponent]:
+    print(values)
+    components = [
+        disnake.ui.TextInput(
+            label="Currency Name:",
+            custom_id="modal_currency_name",
+            style=disnake.TextInputStyle.single_line,
+            placeholder="Gold Piece",
+            value=values["name"],
+            min_length=2,
+            max_length=100,
+        ),
+        disnake.ui.TextInput(
+            label="Currency Prefix:",
+            custom_id="modal_currency_prefix",
+            style=disnake.TextInputStyle.single_line,
+            placeholder="gp",
+            value=values["prefix"],
+            min_length=1,
+            max_length=10,
+        ),
+        disnake.ui.TextInput(
+            label="*Optional* Currency Icon/Emoji:",
+            custom_id="modal_currency_emoji",
+            style=disnake.TextInputStyle.multi_line,
+            placeholder=(
+                f"Accepted inputs:\n"
+                f"a:name:id\n"
+                f"<a:name:id>\n"
+                f"name:id\n"
+                f"<:name:id>\n"
+                f'Example: "<a:badge1:971600879868313602>"'
+            ),
+            value=values["emoji"],
+            required=False,
+            max_length=50,
+        ),
+    ]
+    if "rate" in values or not is_base:
+        components.insert(
+            2,
+            disnake.ui.TextInput(
+                label="Rate Description:",
+                custom_id="modal_rate_description",
+                style=disnake.TextInputStyle.multi_line,
+                placeholder="0.5",
+                value=(
+                    f"Rate is a number that defines how much base currency this currency is worth.\n"
+                    f"For example assuming a Gold piece has a rate of 1 as a base currency, "
+                    f"since a Platinum piece is worth 10 Gold pieces, Platinum would have a rate "
+                    f" of 0.1, as it is worth 0.1 Gold pieces.\n"
+                    f"As another example, since 10 Silver pieces is equal to 1 Gold piece, it would have "
+                    f"a rate of 10."
+                ),
+                required=False,
+            ),
+        )
+        components.insert(
+            3,
+            disnake.ui.TextInput(
+                label="Currency Rate:",
+                custom_id="modal_currency_rate",
+                style=disnake.TextInputStyle.single_line,
+                placeholder="0.5",
+                value=str(values["rate"]),
+                min_length=1,
+                max_length=20,
+            ),
+        )
+    return components
 
 
 class AuctionSettingsView(SettingsMenuBase):
 
     # ==== ui ====
+    @disnake.ui.button(
+        label="Listing Durations Config", style=disnake.ButtonStyle.primary, row=0
+    )
+    async def durations_config(
+        self, _: disnake.ui.Button, inter: disnake.MessageInteraction
+    ):
+        await self.defer_to(AuctionDurationsView, inter)
+
+    @disnake.ui.button(
+        label="Rarities Config", style=disnake.ButtonStyle.primary, row=0
+    )
+    async def rarities_config(
+        self, _: disnake.ui.Button, inter: disnake.MessageInteraction
+    ):
+        await self.defer_to(AuctionRaritiesView, inter)
+
+    @disnake.ui.button(label="Auction Setup Channel", style=disnake.ButtonStyle.green)
+    async def auction_setup_chan(
+        self, _: disnake.ui.Button, inter: disnake.MessageInteraction
+    ):
+        pass
+
+    @disnake.ui.button(label="Auction Logging Channel", style=disnake.ButtonStyle.green)
+    async def auction_logging_chan(
+        self, _: disnake.ui.Button, inter: disnake.MessageInteraction
+    ):
+        pass
+
+    @disnake.ui.button(label="Auction Listing Channel", style=disnake.ButtonStyle.green)
+    async def auction_listing_chan(
+        self, _: disnake.ui.Button, inter: disnake.MessageInteraction
+    ):
+        pass
 
     @disnake.ui.button(label="Back", style=disnake.ButtonStyle.grey, row=4)
-    async def back(self, _: disnake.ui.Button, inter: disnake.Interaction):
+    async def back(self, _: disnake.ui.Button, inter: disnake.MessageInteraction):
         await self.defer_to(SettingsNav, inter)
+
+    # ==== content ====
+    async def get_content(self):
+        return await super().get_content()
+
+
+class AuctionDurationsView(SettingsMenuBase):
+
+    # ==== ui ====
+
+    @disnake.ui.button(label="Back", style=disnake.ButtonStyle.grey, row=4)
+    async def back(self, _: disnake.ui.Button, inter: disnake.MessageInteraction):
+        await self.defer_to(AuctionSettingsView, inter)
+
+    # ==== content ====
+    async def get_content(self):
+        return await super().get_content()
+
+
+class AuctionRaritiesView(SettingsMenuBase):
+
+    # ==== ui ====
+
+    @disnake.ui.button(label="Back", style=disnake.ButtonStyle.grey, row=4)
+    async def back(self, _: disnake.ui.Button, inter: disnake.MessageInteraction):
+        await self.defer_to(AuctionSettingsView, inter)
 
     # ==== content ====
     async def get_content(self):
@@ -542,7 +952,7 @@ class CharacterLogSettingsView(SettingsMenuBase):
             raise FormTimeoutError
 
     @disnake.ui.button(label="Back", style=disnake.ButtonStyle.grey, row=4)
-    async def back(self, _: disnake.ui.Button, inter: disnake.Interaction):
+    async def back(self, _: disnake.ui.Button, inter: disnake.MessageInteraction):
         await self.defer_to(SettingsNav, inter)
 
     # ==== content ====
@@ -600,7 +1010,7 @@ class BotSettingsView(SettingsMenuBase):
     # ==== ui ====
     @disnake.ui.select(placeholder="Select DM Roles", min_values=0)
     async def select_dm_roles(
-        self, select: disnake.ui.Select, inter: disnake.Interaction
+        self, select: disnake.ui.Select, inter: disnake.MessageInteraction
     ):
         if len(select.values) == 1 and select.values[0] == TOO_MANY_ROLES_SENTINEL:
             role_ids = await self._text_select_dm_roles(inter)
@@ -612,14 +1022,16 @@ class BotSettingsView(SettingsMenuBase):
         await self.refresh_content(inter)
 
     @disnake.ui.button(label="Configure Class List", style=disnake.ButtonStyle.primary)
-    async def select_classes(self, _: disnake.ui.Button, inter: disnake.Interaction):
+    async def select_classes(
+        self, _: disnake.ui.Button, inter: disnake.MessageInteraction
+    ):
         components = [
             disnake.ui.TextInput(
                 style=disnake.TextInputStyle.multi_line,
                 label="Description",
                 placeholder="A list of class names separated by either commas or new lines.",
                 value=(
-                    f"Each class must be on a separate line below."
+                    f"Each class must be on a separate line below. "
                     f"Any changes made will be applied to the server class list."
                 ),
                 custom_id="settings_classes_desc",
@@ -676,12 +1088,12 @@ class BotSettingsView(SettingsMenuBase):
             raise FormTimeoutError
 
     @disnake.ui.button(label="Back", style=disnake.ButtonStyle.grey, row=4)
-    async def back(self, _: disnake.ui.Button, inter: disnake.Interaction):
+    async def back(self, _: disnake.ui.Button, inter: disnake.MessageInteraction):
         await self.defer_to(SettingsNav, inter)
 
     # ==== handlers ====
     async def _text_select_dm_roles(
-        self, inter: disnake.Interaction
+        self, inter: disnake.MessageInteraction
     ) -> Optional[List[int]]:
         self.select_dm_roles.disabled = True
         await self.refresh_content(inter)
