@@ -787,6 +787,12 @@ class AuctionSettingsView(SettingsMenuBase):
     ):
         pass
 
+    @disnake.ui.button(label="Set Outbid Threshold", style=disnake.ButtonStyle.green)
+    async def set_outbid_threshold(
+        self, _: disnake.ui.Button, inter: disnake.MessageInteraction
+    ):
+        pass
+
     @disnake.ui.button(label="Back", style=disnake.ButtonStyle.grey, row=4)
     async def back(self, _: disnake.ui.Button, inter: disnake.MessageInteraction):
         await self.defer_to(SettingsNav, inter)
