@@ -15,11 +15,16 @@ class FormTimeoutError(LabyrinthianException):
         )
 
 
+class FormInvalidInputError(LabyrinthianException):
+    def __init__(self, msg):
+        super().__init__(msg)
+
+
 class IntegerConversionError(LabyrinthianException):
     def __init__(self, msg):
         super().__init__(msg)
-        
-        
+
+
 class PriceTooLowError(LabyrinthianException):
     def __init__(self, msg):
         super().__init__(msg)
