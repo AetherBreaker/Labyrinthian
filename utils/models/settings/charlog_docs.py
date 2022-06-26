@@ -1,6 +1,6 @@
 from typing import Dict, List, Union
 
-from utils.models.errors import IntegerConversionError
+from utils.models.errors import IntegerConversionError, LabyrinthianException
 
 
 DEFAULT_XP_TEMPLATE = {
@@ -125,6 +125,9 @@ class XPConfig:
 
     def to_str(self):
         return "\n".join([f"{field.name} : {field.value}" for field in self.fields])
+
+    def __repr__(self):
+        return f"XPConfig(fields={self.fields!r})"
 
     @classmethod
     def __get_validators__(cls):
