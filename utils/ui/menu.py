@@ -7,7 +7,9 @@ class UIBase(disnake.ui.View):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    async def on_error(error, item: disnake.ui.Item, inter: disnake.MessageInteraction):
+    async def on_error(
+        self, error, item: disnake.ui.Item, inter: disnake.MessageInteraction
+    ):
         await inter.author.send(
             f"Error in {item}\n" f"{error}\n```py\n{traceback.format_exc()}```"
         )
@@ -17,8 +19,8 @@ class MenuBase(UIBase):
     __menu_copy_attrs__ = ()
 
     def __init__(self, owner: disnake.User, *args, **kwargs):
-        super().__init__(*args, **kwargs)
         self.owner = owner
+        super().__init__(*args, **kwargs)
         self.message = None  # type: Optional[disnake.Message]
 
     @classmethod
@@ -84,9 +86,20 @@ class MenuBase(UIBase):
         await view._before_send()
         await view.refresh_content(interaction)
 
-    async def refresh_content(self, interaction: disnake.Interaction, **kwargs):
+    async def refresh_content(
+        self, interaction: disnake.Interaction, forceedit: bool = False, **kwargs
+    ):
         """Refresh the interaction's message with the current state of the menu."""
         content_kwargs = await self.get_content()
+        # try:
+        #     originalmsg: disnake.InteractionMessage = (
+        #         await interaction.original_message()
+        #     )
+        #     if forceedit or originalmsg.id != self.message.id:
+        #         await self.message.edit(view=self, **content_kwargs, **kwargs)
+        #         return
+        # except disnake.HTTPException:
+        #     pass
         if interaction.response.is_done():
             # using interaction feels cleaner, but we could probably do self.message.edit too
             await interaction.edit_original_message(
