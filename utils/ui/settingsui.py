@@ -15,6 +15,7 @@ from utils.functions import (
     truncate_list,
 )
 from utils.models.errors import FormInvalidInputError, FormTimeoutError
+from utils.models.settings.auction_docs import Duration
 from utils.models.settings.coin_docs import BaseCoin, CoinType
 from utils.models.settings.guild import XPConfig, ServerSettings
 
@@ -153,7 +154,9 @@ class SettingsNav(SettingsMenuBase):
         return inst
 
     @disnake.ui.button(
-        style=disnake.ButtonStyle.primary, label="Auction House Settings", disabled=True
+        style=disnake.ButtonStyle.primary,
+        label="Auction House Settings",
+        disabled=False,
     )
     async def auction_house_settings(
         self, _: disnake.ui.Button, inter: disnake.MessageInteraction
@@ -329,6 +332,7 @@ class CoinPurseSettingsView(SettingsMenuBase):
     def __init__(self, owner, timeout):
         self.selected: str = None
         self.matched: Union[BaseCoin, CoinType] = None
+        self.matchindex: int = None
         super().__init__(owner=owner, timeout=timeout)
 
     # ==== ui ====
@@ -385,11 +389,12 @@ class CoinPurseSettingsView(SettingsMenuBase):
 
     # ==== handlers ====
     def process_selection(self, input: str):
-        for type in self.settings.coinconf:
-            print(type)
+        matched = False
+        for enum, type in enumerate(self.settings.coinconf):
             if type.label == input:
                 self.matched = type
-                print(type)
+                self.matchindex = enum
+                matched = True
 
         # Clear all Coin modification buttons before re-adding the appropriate ones
         self.clear_specific_items(AddCoin, EditCoin, RemoveCoin)
@@ -401,20 +406,26 @@ class CoinPurseSettingsView(SettingsMenuBase):
         elif len(self.settings.coinconf.types) >= 24:
             self.clear_specific_items(AddCoin)
 
-        # Check whether we matched with a BaseCoin or a CoinType
-        # if BaseCoin, we only add EditCoin button
-        # if CoinType, we add both EditCoin and RemoveCoin buttons
-        if isinstance(self.matched, BaseCoin):
-            self.add_item(EditCoin(self.bot, self.matched))
-        elif isinstance(self.matched, CoinType):
-            self.add_item(EditCoin(self.bot, self.matched))
-            self.add_item(RemoveCoin(self.bot, self.matched))
+        if self.matched is not None or matched == True:
+            # Check whether we matched with a BaseCoin or a CoinType
+            # if BaseCoin, we only add EditCoin button
+            # if CoinType, we add both EditCoin and RemoveCoin buttons
+            if isinstance(self.matched, BaseCoin):
+                self.add_item(EditCoin(self.bot, self.matched))
+            elif isinstance(self.matched, CoinType):
+                self.add_item(EditCoin(self.bot, self.matched))
+                self.add_item(RemoveCoin(self.bot, self.matched))
 
-        # Check whether there are any existing CoinTypes
-        # and remove all RemoveCoin buttons if not
-        # this is a redunant check incase self.matched isn't accurate
-        if len(self.settings.coinconf.types) == 0:
-            self.clear_specific_items(RemoveCoin)
+            # Check whether there are any existing CoinTypes
+            # and remove all RemoveCoin buttons if not
+            # this is a redunant check incase self.matched isn't accurate
+            if len(self.settings.coinconf.types) == 0:
+                self.clear_specific_items(RemoveCoin)
+
+            # Check whether an item is selected
+            # we remove the "remove" button if not
+            if self.matched not in self.settings.listingdurs.durlist:
+                self.clear_specific_items(RemoveCoin)
 
     # ==== helpers ====
     def clear_specific_items(self, *args):
@@ -619,8 +630,11 @@ class EditCoin(disnake.ui.Button[CoinPurseSettingsView]):
                         f"> name:id\n"
                         f"Or you can provide a valid Unicode emoji."
                     )
-        self.view.settings.coinconf.types.append(CoinType.from_dict(data))
+        self.view.settings.coinconf.types[self.view.matchindex] = CoinType.from_dict(
+            data
+        )
         await self.view.commit_settings()
+        self.view.process_selection(self.view.selected)
         await self.view.refresh_content(modalinter)
 
 
@@ -667,6 +681,7 @@ class RemoveCoin(disnake.ui.Button[CoinPurseSettingsView]):
             await inter.send("Removal canceled", ephemeral=True)
         await self.view.commit_settings()
         self.view._refresh_cointype_select()
+        self.view.process_selection(self.view.selected)
         await self.view.refresh_content(modalinter)
 
 
@@ -679,7 +694,6 @@ def setup_coin_modal_components(
     },
     is_base: bool = False,
 ) -> List[disnake.ui.WrappedComponent]:
-    print(values)
     components = [
         disnake.ui.TextInput(
             label="Currency Name:",
@@ -769,25 +783,33 @@ class AuctionSettingsView(SettingsMenuBase):
     ):
         await self.defer_to(AuctionRaritiesView, inter)
 
-    @disnake.ui.button(label="Auction Setup Channel", style=disnake.ButtonStyle.green)
+    @disnake.ui.button(
+        label="Auction Setup Channel", style=disnake.ButtonStyle.green, row=1
+    )
     async def auction_setup_chan(
         self, _: disnake.ui.Button, inter: disnake.MessageInteraction
     ):
         pass
 
-    @disnake.ui.button(label="Auction Logging Channel", style=disnake.ButtonStyle.green)
+    @disnake.ui.button(
+        label="Auction Logging Channel", style=disnake.ButtonStyle.green, row=1
+    )
     async def auction_logging_chan(
         self, _: disnake.ui.Button, inter: disnake.MessageInteraction
     ):
         pass
 
-    @disnake.ui.button(label="Auction Listing Channel", style=disnake.ButtonStyle.green)
+    @disnake.ui.button(
+        label="Auction Listing Channel", style=disnake.ButtonStyle.green, row=1
+    )
     async def auction_listing_chan(
         self, _: disnake.ui.Button, inter: disnake.MessageInteraction
     ):
         pass
 
-    @disnake.ui.button(label="Set Outbid Threshold", style=disnake.ButtonStyle.green)
+    @disnake.ui.button(
+        label="Set Outbid Threshold", style=disnake.ButtonStyle.green, row=1
+    )
     async def set_outbid_threshold(
         self, _: disnake.ui.Button, inter: disnake.MessageInteraction
     ):
@@ -803,16 +825,383 @@ class AuctionSettingsView(SettingsMenuBase):
 
 
 class AuctionDurationsView(SettingsMenuBase):
+    def __init__(self, owner, timeout):
+        self.selected: str = None
+        self.matched: Duration = None
+        self.matchindex: int = None
+        super().__init__(owner=owner, timeout=timeout)
 
     # ==== ui ====
+    @disnake.ui.button(
+        label="Reset Listing Durations", style=disnake.ButtonStyle.red, row=0
+    )
+    async def reset_coinconf(
+        self, _: disnake.ui.Button, inter: disnake.MessageInteraction
+    ):
+        await inter.response.send_modal(
+            title="Confirm Config Reset",
+            custom_id=f"{inter.id}duration_reset_modal",
+            components=disnake.ui.TextInput(
+                label="Confirmation:",
+                custom_id="duration_reset_modal_confirmation",
+                placeholder="Confirm",
+                min_length=7,
+                max_length=7,
+            ),
+        )
+        try:
+            modalinter: disnake.ModalInteraction = await self.bot.wait_for(
+                "modal_submit",
+                check=lambda i: i.custom_id == f"{inter.id}duration_reset_modal"
+                and i.author.id == inter.author.id,
+                timeout=180,
+            )
+        except asyncio.TimeoutError:
+            raise FormTimeoutError
+
+        if modalinter.text_values["duration_reset_modal_confirmation"] == "Confirm":
+            self.settings.listingdurs = self.settings.__fields__[
+                "listingdurs"
+            ].get_default()
+            await inter.send("Listing duration configuration reset.", ephemeral=True)
+        else:
+            await inter.send("Config reset canceled", ephemeral=True)
+
+        self._refresh_duration_select()
+        await self.commit_settings()
+        await self.refresh_content(modalinter)
+
+    @disnake.ui.select(
+        placeholder="Select Duration Template", min_values=1, max_values=1, row=2
+    )
+    async def select_duration(
+        self, select: disnake.ui.Select, inter: disnake.MessageInteraction
+    ):
+        if select.values[0] != self.selected:
+            self.selected = select.values[0]
+            self.process_selection(select.values[0])
+            self._refresh_duration_select()
+            await self.refresh_content(inter)
 
     @disnake.ui.button(label="Back", style=disnake.ButtonStyle.grey, row=4)
-    async def back(self, _: disnake.ui.Button, inter: disnake.MessageInteraction):
+    async def back(self, _: disnake.ui.Button, inter: disnake.Interaction):
         await self.defer_to(AuctionSettingsView, inter)
 
+    # ==== handlers ====
+    def process_selection(self, input: str):
+        matched = False
+        for enum, item in enumerate(self.settings.listingdurs.durlist):
+            if item.label == input:
+                self.matched = item
+                self.matchindex = enum
+                matched = True
+
+        # Clear all modification buttons before re-adding the appropriate ones
+        self.clear_specific_items(AddDuration, EditDuration, RemoveDuration)
+
+        # Check whether we've reached the item cap
+        # and add "Add" button if not
+        if len(self.settings.listingdurs.durlist) < 25:
+            self.add_item(AddDuration(self.bot))
+        elif len(self.settings.listingdurs.durlist) >= 25:
+            self.clear_specific_items(AddDuration)
+
+        if self.matched is not None or matched == True:
+            # Check whether self.matched is None
+            # we only add "Edit" or "Remove" if not
+            if self.matched is not None:
+                self.add_item(EditDuration(self.bot, self.matched))
+                self.add_item(RemoveDuration(self.bot, self.matched))
+
+            # Check whether there is only one item
+            # if so, remove all "Remove" buttons
+            if len(self.settings.listingdurs.durlist) == 1:
+                self.clear_specific_items(RemoveDuration)
+
+            # Check whether an item is selected
+            # we remove the "remove" button if not
+            if self.matched not in self.settings.listingdurs.durlist:
+                self.clear_specific_items(RemoveDuration)
+
+    # ==== helpers ====
+    def clear_specific_items(self, *args):
+        for x in self.children.copy():
+            if isinstance(x, args):
+                self.remove_item(x)
+
     # ==== content ====
+    def _refresh_duration_select(self):
+        """Update the options in the Duration select to reflect the currently selected values."""
+        self.select_duration.options.clear()
+
+        for item in self.settings.listingdurs.durlist:  # display highest-first
+            selected = self.matched is item
+            self.select_duration.add_option(label=item.label, default=selected)
+
+    async def _before_send(self):
+        self.add_item(AddDuration(self.bot))
+        self._refresh_duration_select()
+
     async def get_content(self):
-        return await super().get_content()
+        inputdict = deepcopy(inputtemplate)
+
+        firstmax = max(len(x.durstr) for x in self.settings.listingdurs)
+        secondmax = max(len(str(x)) for x in self.settings.listingdurs.values())
+        listingdurstr = "\n".join(
+            [
+                f"{x.durstr:{firstmax}} - {y:{secondmax}} {y.type.prefix} fee"
+                for x, y in self.settings.listingdurs.items()
+            ]
+        )
+
+        inputdict["main"][
+            "title"
+        ] = f"Server Settings ({self.guild.name}) / Auction Listing Duration Settings"
+        inputdict["main"]["descitems"].append(
+            {
+                "header": "__**Listing Duration Options**__",
+                "settings": f"{listingdurstr}",
+                "desc": (
+                    f"These define what lengths of time players can list their items for "
+                    f"on the auction house. You must have atleast one duration defined."
+                ),
+            }
+        )
+
+        embeds = self.format_settings_overflow(inputdict)
+        embeds = [disnake.Embed.from_dict(x) for x in embeds]
+        return {"embeds": embeds}
+
+
+class AddDuration(disnake.ui.Button[AuctionDurationsView]):
+    def __init__(self, bot: "Labyrinthian"):
+        self.bot = bot
+        super().__init__(style=disnake.ButtonStyle.green, label="Add Duration", row=3)
+
+    async def callback(self, inter: disnake.MessageInteraction):
+        if len(self.view.settings.listingdurs.durlist) >= 25:
+            return
+        await inter.response.send_modal(
+            title="Add Duration",
+            custom_id=f"{inter.id}add_duration_modal",
+            components=setup_duration_modal_components(self.view.settings),
+        )
+
+        try:
+            modalinter: disnake.ModalInteraction = await self.bot.wait_for(
+                "modal_submit",
+                check=lambda i: i.custom_id == f"{inter.id}add_duration_modal"
+                and i.author.id == inter.author.id,
+                timeout=180,
+            )
+        except asyncio.TimeoutError:
+            raise FormTimeoutError
+
+        data = {
+            "duration": modalinter.text_values["modal_dur_input"],
+            "fee": {"count": modalinter.text_values["modal_dur_fee_count_input"]},
+        }
+
+        for x in self.view.settings.coinconf:
+            if (
+                f"{x.label} Rate: {x.rate}"
+                == modalinter.data["components"][2]["components"][0]["values"][0]
+            ):
+                data["fee"]["type"] = x.to_dict()
+                data["fee"]["base"] = self.view.settings.coinconf.base.to_dict()
+                data["fee"]["isbase"] = x is self.view.settings.coinconf.base
+        try:
+            data["duration"] = re.sub(r"[^\d]+", "", data["duration"])
+            data["duration"] = int(data["duration"])
+
+        except ValueError:
+            raise FormInvalidInputError(
+                f"It seems your inputted duration couldn't be converted to an integer, please ensure your "
+                f"input only contains numbers."
+            )
+        try:
+            data["fee"]["count"] = re.sub(r"[^\d]+", "", data["fee"]["count"])
+            data["fee"]["count"] = int(data["fee"]["count"])
+        except ValueError:
+            raise FormInvalidInputError(
+                f"It seems your inputted fee count couldn't be converted to an integer, please ensure your "
+                f"input only contains numbers."
+            )
+        self.view.settings.listingdurs.durlist.append(Duration.from_dict(data))
+        self.view.settings.listingdurs.sort_items()
+        await self.view.commit_settings()
+        self.view._refresh_duration_select()
+        await self.view.refresh_content(modalinter)
+
+
+class EditDuration(disnake.ui.Button[AuctionDurationsView]):
+    def __init__(self, bot: "Labyrinthian", match: Union[BaseCoin, CoinType]):
+        self.bot = bot
+        self.matched = match
+        super().__init__(style=disnake.ButtonStyle.grey, label="Edit Duration", row=3)
+
+    async def callback(self, inter: disnake.MessageInteraction):
+        if len(self.view.settings.listingdurs.durlist) >= 25:
+            return
+        await inter.response.send_modal(
+            title="Edit Duration",
+            custom_id=f"{inter.id}edit_duration_modal",
+            components=setup_duration_modal_components(
+                self.view.settings, self.matched.to_dict()
+            ),
+        )
+
+        try:
+            modalinter: disnake.ModalInteraction = await self.bot.wait_for(
+                "modal_submit",
+                check=lambda i: i.custom_id == f"{inter.id}edit_duration_modal"
+                and i.author.id == inter.author.id,
+                timeout=180,
+            )
+        except asyncio.TimeoutError:
+            raise FormTimeoutError
+
+        data = {
+            "duration": modalinter.text_values["modal_dur_input"],
+            "fee": {"count": modalinter.text_values["modal_dur_fee_count_input"]},
+        }
+
+        for x in self.view.settings.coinconf:
+            if (
+                f"{x.label} Rate: {x.rate}"
+                == modalinter.data["components"][2]["components"][0]["values"][0]
+            ):
+                data["fee"]["type"] = x.to_dict()
+                data["fee"]["base"] = self.view.settings.coinconf.base.to_dict()
+                data["fee"]["isbase"] = x is self.view.settings.coinconf.base
+        try:
+            data["duration"] = re.sub(r"[^\d]+", "", data["duration"])
+            data["duration"] = int(data["duration"])
+
+        except ValueError:
+            raise FormInvalidInputError(
+                f"It seems your inputted duration couldn't be converted to an integer, please ensure your "
+                f"input only contains numbers."
+            )
+        try:
+            data["fee"]["count"] = re.sub(r"[^\d]+", "", data["fee"]["count"])
+            data["fee"]["count"] = int(data["fee"]["count"])
+        except ValueError:
+            raise FormInvalidInputError(
+                f"It seems your inputted fee count couldn't be converted to an integer, please ensure your "
+                f"input only contains numbers."
+            )
+        self.view.settings.listingdurs.durlist[
+            self.view.matchindex
+        ] = Duration.from_dict(data)
+        self.view.settings.listingdurs.sort_items()
+        await self.view.commit_settings()
+        self.view._refresh_duration_select()
+        self.view.process_selection(self.view.selected)
+        await self.view.refresh_content(modalinter)
+
+
+class RemoveDuration(disnake.ui.Button[AuctionDurationsView]):
+    def __init__(self, bot: "Labyrinthian", match: Union[BaseCoin, CoinType]):
+        self.bot = bot
+        self.matched = match
+        super().__init__(style=disnake.ButtonStyle.red, label="Remove Duration", row=3)
+
+    async def callback(self, inter: disnake.MessageInteraction):
+        await inter.response.send_modal(
+            title="Confirmation",
+            custom_id=f"{inter.id}duration_removal_confirm",
+            components=disnake.ui.TextInput(
+                label="Confirm Duration Removal",
+                custom_id="removal_confirm",
+                style=disnake.TextInputStyle.single_line,
+                placeholder="Confirm",
+                required=True,
+                min_length=7,
+                max_length=7,
+            ),
+        )
+        try:
+            modalinter: disnake.ModalInteraction = await self.bot.wait_for(
+                "modal_submit",
+                check=lambda i: i.custom_id == f"{inter.id}duration_removal_confirm"
+                and i.author.id == inter.author.id,
+                timeout=180,
+            )
+        except asyncio.TimeoutError:
+            raise FormTimeoutError
+        if modalinter.text_values["removal_confirm"] == "Confirm":
+            self.view.settings.listingdurs.durlist.remove(self.matched)
+            await inter.send("Removal confirmed", ephemeral=True)
+        else:
+            await inter.send("Removal canceled", ephemeral=True)
+        self.view.settings.listingdurs.sort_items()
+        await self.view.commit_settings()
+        self.view._refresh_duration_select()
+        self.view.process_selection(self.view.selected)
+        await self.view.refresh_content(modalinter)
+
+
+def setup_duration_modal_components(
+    settings: ServerSettings,
+    input: Optional[Dict[str, Any]] = {"duration": "", "fee": {"count": ""}},
+) -> List[Union[disnake.ui.TextInput, disnake.ui.Select]]:
+    options = []
+    for x in settings.coinconf:
+        selected = (
+            x.name == input["fee"]["type"]["name"]
+            if "type" in input["fee"]
+            else x is settings.coinconf.base
+        )
+        options.append(
+            disnake.SelectOption(
+                label=f"{x.label} Rate: {x.rate}", emoji=x.emoji, default=selected
+            )
+        )
+    return [
+        disnake.ui.TextInput(
+            label="Duration Description",
+            custom_id="modal_dur_desc",
+            style=disnake.TextInputStyle.multi_line,
+            value=(
+                f"Durations are stored as seconds, if you are unsure how many seconds are "
+                f"in the length of time you wish to set, use google to get a rough estimate "
+                f"then submit this form, the settings menu will show you your exact measured duration "
+                f"in text for you to confirm, and tweak to be just right."
+            ),
+            required=False,
+        ),
+        disnake.ui.TextInput(
+            label="Duration (In seconds)",
+            custom_id="modal_dur_input",
+            style=disnake.TextInputStyle.single_line,
+            placeholder="2628000",
+            value=input["duration"],
+        ),
+        disnake.ui.Select(
+            custom_id="modal_dur_cointype_select",
+            placeholder="Select Currency Type",
+            options=options,
+        ),
+        disnake.ui.TextInput(
+            label="Coin Count Description",
+            custom_id="modal_dur_fee_count_desc",
+            style=disnake.TextInputStyle.multi_line,
+            value=(
+                f"This is the amount of currency for the auction fee to be tied to this duration "
+                f"option."
+            ),
+            required=False,
+        ),
+        disnake.ui.TextInput(
+            label="Coin Count",
+            custom_id="modal_dur_fee_count_input",
+            style=disnake.TextInputStyle.single_line,
+            placeholder="750",
+            value=input["fee"]["count"],
+            max_length=7,
+        ),
+    ]
 
 
 class AuctionRaritiesView(SettingsMenuBase):
