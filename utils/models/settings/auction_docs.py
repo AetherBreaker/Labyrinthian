@@ -21,13 +21,29 @@ class Duration(int):
         self.name = str(duration)
 
     def __str__(self):
-        return str(self.name)
+        return self.name
 
     def __repr__(self):
         return f"Duration(duration={int(self)}, fee={self.fee!r})"
 
     def __deepcopy__(self, _):
         return Duration(self, self.fee)
+
+    @property
+    def label(self):
+        return f"{self.durstr} - {self.fee} {self.fee.type.name} fee"
+
+    @classmethod
+    def from_dict(cls, input: Dict[str, Union[str, Coin]]):
+        fee = (
+            input["fee"]
+            if isinstance(input["fee"], Coin)
+            else Coin.from_dict(input["fee"])
+        )
+        return cls(input["duration"], fee)
+
+    def to_dict(self):
+        return {"duration": self.name, "fee": self.fee.to_dict()}
 
     @property
     def durstr(self):
@@ -79,12 +95,16 @@ class ListingDurationsConfig:
             if hasattr(x, "fee"):
                 x.fee.update_types()
 
+    def sort_items(self):
+        self.durlist = sorted(self.durlist, key=lambda i: (i, i.fee))
+
     @classmethod
     def from_dict(cls, data: Dict[str, int]):
         """Used to initialize a config from the database."""
-        durlist: List[Duration] = []
-        for duration, fee in data.items():
-            durlist.append(Duration(duration, Coin.from_dict(fee)))
+        durlist: List[Duration] = sorted(
+            [Duration(duration, Coin.from_dict(fee)) for duration, fee in data.items()],
+            key=lambda i: (i, i.fee),
+        )
         return cls(durlist)
 
     @classmethod
