@@ -81,7 +81,7 @@ class BaseCoin:
 class CoinConfig:
     def __init__(self, base: BaseCoin, types: List[CoinType]) -> None:
         self.base = base
-        self.types = types
+        self.types = sorted(types, key=lambda i: (i.rate, i.name, i.prefix))
 
     def __iter__(self):
         templist = sorted(
@@ -90,6 +90,9 @@ class CoinConfig:
         for x in templist:
             yield x
 
+    def sort_items(self):
+        self.types = sorted(self.types, key=lambda i: (i.rate, i.name, i.prefix))
+
     @classmethod
     def from_dict(
         cls,
@@ -97,10 +100,7 @@ class CoinConfig:
             str, Union[Dict[str, str], List[Dict[str, Union[str, float, int]]]]
         ],
     ):
-        types = sorted(
-            [CoinType(**x) for x in input["cointypes"]],
-            key=lambda i: (i.rate, i.name, i.prefix),
-        )
+        types = [CoinType(**x) for x in input["cointypes"]]
         return cls(BaseCoin(**input["basecoin"]), types)
 
     def to_dict(self):
@@ -111,7 +111,11 @@ class CoinConfig:
 
     @classmethod
     def __get_validators__(cls):
-        yield cls.from_dict
+        yield lambda cls, input: input if isinstance(input, CoinConfig) else (
+            CoinConfig.from_dict(input)
+            if not isinstance(cls, CoinConfig)
+            else cls.from_dict(input)
+        )
 
     def __deepcopy__(self, _):
         return CoinConfig(self.base, self.types)
@@ -295,6 +299,12 @@ class Coin(int):
             "type": self.type.to_dict(),
             "isbase": self.isbase,
         }
+
+    @classmethod
+    def __get_validators__(cls):
+        yield lambda cls, input: input if isinstance(input, Coin) else (
+            Coin.from_dict(input) if not isinstance(cls, Coin) else cls.from_dict(input)
+        )
 
 
 # ==== CoinPurse ====
