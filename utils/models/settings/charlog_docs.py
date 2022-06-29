@@ -131,4 +131,8 @@ class XPConfig:
 
     @classmethod
     def __get_validators__(cls):
-        yield cls.from_dict
+        yield lambda cls, input: input if isinstance(input, XPConfig) else (
+            XPConfig.from_dict(input)
+            if not isinstance(cls, XPConfig)
+            else cls.from_dict(input)
+        )
