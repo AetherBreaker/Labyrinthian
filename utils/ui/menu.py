@@ -91,17 +91,7 @@ class MenuBase(UIBase):
     ):
         """Refresh the interaction's message with the current state of the menu."""
         content_kwargs = await self.get_content()
-        # try:
-        #     originalmsg: disnake.InteractionMessage = (
-        #         await interaction.original_message()
-        #     )
-        #     if forceedit or originalmsg.id != self.message.id:
-        #         await self.message.edit(view=self, **content_kwargs, **kwargs)
-        #         return
-        # except disnake.HTTPException:
-        #     pass
         if interaction.response.is_done():
-            # using interaction feels cleaner, but we could probably do self.message.edit too
             await interaction.edit_original_message(
                 view=self, **content_kwargs, **kwargs
             )
