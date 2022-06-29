@@ -2,19 +2,22 @@ import asyncio
 import logging
 import os
 import traceback
-from typing import Union
+from types import ModuleType
+from typing import Optional, Union
 
 import disnake
 import motor.motor_asyncio
 from aiohttp import ClientOSError, ClientResponseError
 from disnake.errors import Forbidden, HTTPException, InvalidData, NotFound
 from disnake.ext import commands
+from disnake.ext.commands.common_bot_base import _is_submodule
 from disnake.ext.commands.errors import CommandInvokeError
 
 from cogs.auction.auction_constructor import ConstSender
 from utils import MongoCache, config
 from utils.models.errors import LabyrinthianException
 from utils.models.settings.guild import ServerSettings
+from utils.reload import reload_child_modules
 
 if config.TESTING_VAR == "True":
     import sys
@@ -70,18 +73,76 @@ class Labyrinthian(commands.Bot):
         server_settings = await ServerSettings.for_guild(self.dbcache, guild_id)
         return server_settings
 
-    # async def get_guild_prefix(self, guild: disnake.Guild) -> str:
-    #     guild_id = str(guild.id)
-    #     if guild_id in self.prefixes:
-    #         return self.prefixes.get(guild_id, config.DEFAULT_PREFIX)
-    #     # load from db and cache
-    #     gp_obj = await self.sdb['srvconf'].find_one({"guild_id": guild_id})
-    #     if gp_obj.has_key("prefix"):
-    #         gp = config.DEFAULT_PREFIX
-    #     else:
-    #         gp = gp_obj['prefix']
-    #     self.prefixes[guild_id] = gp
-    #     return gp
+    # # literally just a copy-paste from dpy, except for the `reload_submodules`` check w/ call
+    # def reload_extension(
+    #     self, name: str, *, package: Optional[str] = None, reload_submodules: bool = False
+    # ) -> None:
+    #     """Atomically reloads an extension.
+    #     This replaces the extension with the same extension, only refreshed. This is
+    #     equivalent to a :meth:`unload_extension` followed by a :meth:`load_extension`
+    #     except done in an atomic way. That is, if an operation fails mid-reload then
+    #     the bot will roll-back to the prior working state.
+    #     Parameters
+    #     ------------
+    #     name: :class:`str`
+    #         The extension name to reload. It must be dot separated like
+    #         regular Python imports if accessing a sub-module. e.g.
+    #         ``foo.test`` if you want to import ``foo/test.py``.
+    #     package: Optional[:class:`str`]
+    #         The package name to resolve relative imports with.
+    #         This is required when reloading an extension using a relative path, e.g ``.foo.test``.
+    #         Defaults to ``None``.
+    #         .. versionadded:: 1.7
+    #     reload_submodules: :class:`bool`
+    #         Whether to reload the submodules loaded in the cog's module. For example,
+    #         when set to `True`, reloading an extension `foo` that imports `bar` will
+    #         also reload module `bar`. This makes it so that any changes made to bar.py
+    #         will propagate to foo.py when foo.py is reloaded.
+    #     Raises
+    #     -------
+    #     ExtensionNotLoaded
+    #         The extension was not loaded.
+    #     ExtensionNotFound
+    #         The extension could not be imported.
+    #         This is also raised if the name of the extension could not
+    #         be resolved using the provided ``package`` parameter.
+    #     NoEntryPointError
+    #         The extension does not have a setup function.
+    #     ExtensionFailed
+    #         The extension setup function had an execution error.
+    #     """
+
+    #     name = self._resolve_name(name, package)
+    #     lib: ModuleType = self._CommonBotBase__extensions.get(name)  # why is this mangled :/
+    #     if lib is None:
+    #         raise commands.ExtensionNotLoaded(name)
+
+    #     if reload_submodules:
+    #         reload_child_modules(lib)
+    #         # TODO: redo `init_beanie` when db models are reloaded
+
+    #     # get the previous module states from sys modules
+    #     modules = {
+    #         name: module
+    #         for name, module in sys.modules.items()
+    #         if _is_submodule(lib.__name__, name)
+    #     }
+
+    #     try:
+    #         # Unload and then load the module...
+    #         self._remove_module_references(lib.__name__)
+    #         self._call_module_finalizers(lib, name)
+    #         self.load_extension(name)
+    #     except Exception:
+    #         # if the load failed, the remnants should have been
+    #         # cleaned from the load_extension function call
+    #         # so let's load it from our old compiled library.
+    #         lib.setup(self)  # type: ignore
+    #         self._CommonBotBase__extensions[name] = lib
+
+    #         # revert sys.modules back to normal and raise back to caller
+    #         sys.modules.update(modules)
+    #         raise
 
 
 bot = Labyrinthian(
