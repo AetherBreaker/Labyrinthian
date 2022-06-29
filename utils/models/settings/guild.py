@@ -4,7 +4,7 @@ import disnake
 from utils.models.settings import SettingsBaseModel
 from utils.models.settings.auction_docs import ListingDurationsConfig, RaritiesConfig
 from utils.models.settings.charlog_docs import XPConfig
-from utils.models.settings.coin_docs import CoinConfig
+from utils.models.settings.coin_docs import Coin, CoinConfig
 
 DEFAULT_DM_ROLE_NAMES = {"dm", "gm", "dungeon master", "game master"}
 DEFAULT_XP_TEMPLATE = {
@@ -32,76 +32,172 @@ DEFAULT_XP_TEMPLATE = {
 DEFAULT_LISTING_DURS = {
     "86400": {
         "count": "75",
-        "base": {"name": "Gold Piece", "prefix": "gp"},
-        "type": {"name": "Gold Piece", "prefix": "gp"},
+        "base": {
+            "name": "Gold Piece",
+            "prefix": "gp",
+            "emoji": "<:DDBGold:983191635376623667>",
+        },
+        "type": {
+            "name": "Gold Piece",
+            "prefix": "gp",
+            "emoji": "<:DDBGold:983191635376623667>",
+        },
         "isbase": True,
     },
     "259200": {
         "count": "150",
-        "base": {"name": "Gold Piece", "prefix": "gp"},
-        "type": {"name": "Gold Piece", "prefix": "gp"},
+        "base": {
+            "name": "Gold Piece",
+            "prefix": "gp",
+            "emoji": "<:DDBGold:983191635376623667>",
+        },
+        "type": {
+            "name": "Gold Piece",
+            "prefix": "gp",
+            "emoji": "<:DDBGold:983191635376623667>",
+        },
         "isbase": True,
     },
     "604800": {
         "count": "275",
-        "base": {"name": "Gold Piece", "prefix": "gp"},
-        "type": {"name": "Gold Piece", "prefix": "gp"},
+        "base": {
+            "name": "Gold Piece",
+            "prefix": "gp",
+            "emoji": "<:DDBGold:983191635376623667>",
+        },
+        "type": {
+            "name": "Gold Piece",
+            "prefix": "gp",
+            "emoji": "<:DDBGold:983191635376623667>",
+        },
         "isbase": True,
     },
     "1209600": {
         "count": "450",
-        "base": {"name": "Gold Piece", "prefix": "gp"},
-        "type": {"name": "Gold Piece", "prefix": "gp"},
+        "base": {
+            "name": "Gold Piece",
+            "prefix": "gp",
+            "emoji": "<:DDBGold:983191635376623667>",
+        },
+        "type": {
+            "name": "Gold Piece",
+            "prefix": "gp",
+            "emoji": "<:DDBGold:983191635376623667>",
+        },
         "isbase": True,
     },
     "2630000": {
         "count": "750",
-        "base": {"name": "Gold Piece", "prefix": "gp"},
-        "type": {"name": "Gold Piece", "prefix": "gp"},
+        "base": {
+            "name": "Gold Piece",
+            "prefix": "gp",
+            "emoji": "<:DDBGold:983191635376623667>",
+        },
+        "type": {
+            "name": "Gold Piece",
+            "prefix": "gp",
+            "emoji": "<:DDBGold:983191635376623667>",
+        },
         "isbase": True,
     },
 }
 DEFAULT_RARITIES = {
     "Common": {
         "count": "20",
-        "base": {"name": "Gold Piece", "prefix": "gp"},
-        "type": {"name": "Gold Piece", "prefix": "gp"},
+        "base": {
+            "name": "Gold Piece",
+            "prefix": "gp",
+            "emoji": "<:DDBGold:983191635376623667>",
+        },
+        "type": {
+            "name": "Gold Piece",
+            "prefix": "gp",
+            "emoji": "<:DDBGold:983191635376623667>",
+        },
         "isbase": True,
     },
     "Uncommon": {
         "count": "40",
-        "base": {"name": "Gold Piece", "prefix": "gp"},
-        "type": {"name": "Gold Piece", "prefix": "gp"},
+        "base": {
+            "name": "Gold Piece",
+            "prefix": "gp",
+            "emoji": "<:DDBGold:983191635376623667>",
+        },
+        "type": {
+            "name": "Gold Piece",
+            "prefix": "gp",
+            "emoji": "<:DDBGold:983191635376623667>",
+        },
         "isbase": True,
     },
     "Rare": {
         "count": "60",
-        "base": {"name": "Gold Piece", "prefix": "gp"},
-        "type": {"name": "Gold Piece", "prefix": "gp"},
+        "base": {
+            "name": "Gold Piece",
+            "prefix": "gp",
+            "emoji": "<:DDBGold:983191635376623667>",
+        },
+        "type": {
+            "name": "Gold Piece",
+            "prefix": "gp",
+            "emoji": "<:DDBGold:983191635376623667>",
+        },
         "isbase": True,
     },
     "Very Rare": {
         "count": "80",
-        "base": {"name": "Gold Piece", "prefix": "gp"},
-        "type": {"name": "Gold Piece", "prefix": "gp"},
+        "base": {
+            "name": "Gold Piece",
+            "prefix": "gp",
+            "emoji": "<:DDBGold:983191635376623667>",
+        },
+        "type": {
+            "name": "Gold Piece",
+            "prefix": "gp",
+            "emoji": "<:DDBGold:983191635376623667>",
+        },
         "isbase": True,
     },
     "Legendary": {
         "count": "200",
-        "base": {"name": "Gold Piece", "prefix": "gp"},
-        "type": {"name": "Gold Piece", "prefix": "gp"},
+        "base": {
+            "name": "Gold Piece",
+            "prefix": "gp",
+            "emoji": "<:DDBGold:983191635376623667>",
+        },
+        "type": {
+            "name": "Gold Piece",
+            "prefix": "gp",
+            "emoji": "<:DDBGold:983191635376623667>",
+        },
         "isbase": True,
     },
     "Artifact": {
         "count": "400",
-        "base": {"name": "Gold Piece", "prefix": "gp"},
-        "type": {"name": "Gold Piece", "prefix": "gp"},
+        "base": {
+            "name": "Gold Piece",
+            "prefix": "gp",
+            "emoji": "<:DDBGold:983191635376623667>",
+        },
+        "type": {
+            "name": "Gold Piece",
+            "prefix": "gp",
+            "emoji": "<:DDBGold:983191635376623667>",
+        },
         "isbase": True,
     },
     "Unknown": {
         "count": "0",
-        "base": {"name": "Gold Piece", "prefix": "gp"},
-        "type": {"name": "Gold Piece", "prefix": "gp"},
+        "base": {
+            "name": "Gold Piece",
+            "prefix": "gp",
+            "emoji": "<:DDBGold:983191635376623667>",
+        },
+        "type": {
+            "name": "Gold Piece",
+            "prefix": "gp",
+            "emoji": "<:DDBGold:983191635376623667>",
+        },
         "isbase": True,
     },
 }
@@ -154,31 +250,40 @@ DEFAULT_COINS = {
         },
     ],
 }
+DEFAULT_THRESHOLD = {
+    "count": "50",
+    "base": {
+        "name": "Gold Piece",
+        "prefix": "gp",
+        "emoji": "<:DDBGold:983191635376623667>",
+    },
+    "type": {
+        "name": "Gold Piece",
+        "prefix": "gp",
+        "emoji": "<:DDBGold:983191635376623667>",
+    },
+    "isbase": True,
+}
 
 
 class ServerSettings(SettingsBaseModel):
-    # _instances: ClassVar[Dict[str, Optional["ServerSettings"]]] = None
     guild: str
     dmroles: Optional[List[Union[str, int]]] = []
     classlist: List[str] = DEFAULT_CLASS_LIST
     # lookup_dm_required: bool = True
     # lookup_pm_dm: bool = False
     # lookup_pm_result: bool = False
-    xptemplate: XPConfig = DEFAULT_XP_TEMPLATE
-    listingdurs: ListingDurationsConfig = DEFAULT_LISTING_DURS
-    rarities: RaritiesConfig = DEFAULT_RARITIES
-    outbidthreshold: int = 50
+    xptemplate: XPConfig = XPConfig.from_dict(DEFAULT_XP_TEMPLATE)
+    listingdurs: ListingDurationsConfig = ListingDurationsConfig.from_dict(
+        DEFAULT_LISTING_DURS
+    )
+    rarities: RaritiesConfig = RaritiesConfig.from_dict(DEFAULT_RARITIES)
+    outbidthreshold: Coin = Coin.from_dict(DEFAULT_THRESHOLD)
     ahfront: Optional[str] = None
     ahback: Optional[str] = None
     ahinternal: Optional[str] = None
     xplabel: str = "Badge"
-    coinconf: CoinConfig = DEFAULT_COINS
-
-    # ==== magic methods ====
-    # def __new__(cls, guild, *args, **kwargs):
-    #     if str(guild) not in cls._instances:
-    #         cls._instances[str(guild)] = super().__new__(cls, *args, **kwargs)
-    #     return cls._instances
+    coinconf: CoinConfig = CoinConfig.from_dict(DEFAULT_COINS)
 
     def __iter__(self):
         yield self.guild
@@ -222,6 +327,8 @@ class ServerSettings(SettingsBaseModel):
         for x in self:
             if hasattr(x, "run_updates"):
                 x.run_updates()
+            elif hasattr(x, "update_types"):
+                x.update_types()
 
     async def commit(self, db):
         """Commits the settings to the database."""
@@ -230,7 +337,7 @@ class ServerSettings(SettingsBaseModel):
         data["coinconf"] = self.coinconf.to_dict()
         data["listingdurs"] = self.listingdurs.to_dict()
         data["rarities"] = self.rarities.to_dict()
-        data["coinconf"] = self.coinconf.to_dict()
+        data["outbidthreshold"] = self.outbidthreshold.to_dict()
         await db.update_one(
             "srvconf", {"guild": self.guild}, {"$set": data}, upsert=True
         )
