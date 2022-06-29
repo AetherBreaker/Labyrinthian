@@ -18,10 +18,9 @@ class Duration(int):
 
     def __init__(self, duration: Union[int, str], fee: Coin):
         self.fee = fee
-        self.name = str(duration)
 
-    def __str__(self):
-        return self.name
+    def __str__(self) -> str:
+        return "%d" % int(self)
 
     def __repr__(self):
         return f"Duration(duration={int(self)}, fee={self.fee!r})"
@@ -43,7 +42,7 @@ class Duration(int):
         return cls(input["duration"], fee)
 
     def to_dict(self):
-        return {"duration": self.name, "fee": self.fee.to_dict()}
+        return {"duration": str(self), "fee": self.fee.to_dict()}
 
     @property
     def durstr(self):
@@ -54,7 +53,7 @@ class ListingDurationsConfig:
     def __init__(
         self, durlist: List[Duration], supersettings: Optional["ServerSettings"] = None
     ) -> None:
-        self.durlist = durlist
+        self.durlist = sorted(durlist, key=lambda i: (i.fee.value, i))
         self._supersettings = supersettings
 
     def __repr__(self):
@@ -96,7 +95,7 @@ class ListingDurationsConfig:
                 x.fee.update_types()
 
     def sort_items(self):
-        self.durlist = sorted(self.durlist, key=lambda i: (i, i.fee))
+        self.durlist = sorted(self.durlist, key=lambda i: (i.fee.value, i))
 
     @classmethod
     def from_dict(cls, data: Dict[str, int]):
@@ -177,14 +176,20 @@ class ListingDurationsConfig:
 
     @classmethod
     def __get_validators__(cls):
-        yield cls.from_dict
+        yield lambda cls, input: input if isinstance(
+            input, ListingDurationsConfig
+        ) else (
+            ListingDurationsConfig.from_dict(input)
+            if not isinstance(cls, ListingDurationsConfig)
+            else cls.from_dict(input)
+        )
 
 
 class Rarity(str):
-    def __new__(cls, rarity: Union[int, str], fee: Coin):
+    def __new__(cls, rarity: str, fee: Coin):
         return super().__new__(cls, rarity)
 
-    def __init__(self, rarity: int, fee: Coin):
+    def __init__(self, rarity: str, fee: Coin):
         self.fee = fee
 
     def __repr__(self):
@@ -193,12 +198,28 @@ class Rarity(str):
     def __deepcopy__(self, _):
         return Rarity(self, self.fee)
 
+    @property
+    def label(self):
+        return f"{str(self)} - {self.fee} {self.fee.type.name} fee"
+
+    @classmethod
+    def from_dict(cls, input: Dict[str, Union[str, Coin]]):
+        fee = (
+            input["fee"]
+            if isinstance(input["fee"], Coin)
+            else Coin.from_dict(input["fee"])
+        )
+        return cls(input["rarity"], fee)
+
+    def to_dict(self):
+        return {"rarity": str(self), "fee": self.fee.to_dict()}
+
 
 class RaritiesConfig:
     def __init__(
         self, rarlist: List[Rarity], supersettings: Optional["ServerSettings"] = None
     ) -> None:
-        self.rarlist = rarlist
+        self.rarlist = sorted(rarlist, key=lambda i: (i.fee.value, i))
         self._supersettings = supersettings
 
     def __repr__(self):
@@ -238,6 +259,9 @@ class RaritiesConfig:
         for x in self.rarlist:
             if hasattr(x, "fee"):
                 x.fee.update_types()
+
+    def sort_items(self):
+        self.rarlist = sorted(self.rarlist, key=lambda i: (i.fee.value, i))
 
     @classmethod
     def from_dict(cls, data: Dict[str, int]):
@@ -312,4 +336,8 @@ class RaritiesConfig:
 
     @classmethod
     def __get_validators__(cls):
-        yield cls.from_dict
+        yield lambda cls, input: input if isinstance(input, RaritiesConfig) else (
+            RaritiesConfig.from_dict(input)
+            if not isinstance(cls, RaritiesConfig)
+            else cls.from_dict(input)
+        )
