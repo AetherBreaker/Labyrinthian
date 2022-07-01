@@ -1,10 +1,11 @@
 from typing import Any, List, Optional, Union
 
 import disnake
+from utils.models.coinpurse import Coin
 from utils.models.settings import SettingsBaseModel
 from utils.models.settings.auction_docs import ListingDurationsConfig, RaritiesConfig
 from utils.models.settings.charlog_docs import XPConfig
-from utils.models.settings.coin_docs import Coin, CoinConfig
+from utils.models.settings.coin_docs import CoinConfig
 
 DEFAULT_DM_ROLE_NAMES = {"dm", "gm", "dungeon master", "game master"}
 DEFAULT_XP_TEMPLATE = {

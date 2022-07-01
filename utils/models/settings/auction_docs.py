@@ -3,8 +3,9 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 import inflect
 from utils.functions import timedeltaplus
+from utils.models.coinpurse import Coin
 from utils.models.errors import IntegerConversionError
-from utils.models.settings.coin_docs import Coin, CoinConfig
+from utils.models.settings.coin_docs import CoinConfig
 
 if TYPE_CHECKING:
     from .guild import ServerSettings
