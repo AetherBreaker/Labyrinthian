@@ -3,7 +3,9 @@ Created on Oct 29, 2016
 @author: andrew
 """
 import asyncio
+from contextlib import suppress
 import math
+import random
 import re
 from typing import Any, Callable, List, TypeVar, Optional, Union
 from disnake.ext import commands
@@ -13,7 +15,11 @@ import inflect
 
 from rapidfuzz import fuzz, process
 
-from utils.models.errors import ExternalImportError
+from utils.models.errors import (
+    ExternalImportError,
+    NoSelectionElements,
+    SelectionCancelled,
+)
 
 
 class timedeltaplus:
@@ -301,3 +307,185 @@ def has_unicode_emote(text: str) -> bool:
         if character in emoji.UNICODE_EMOJI_ENGLISH:
             return True
     return False
+
+
+def paginate(choices: list[_HaystackT], per_page: int) -> list[list[_HaystackT]]:
+    out = []
+    for start_idx in range(0, len(choices), per_page):
+        out.append(choices[start_idx : start_idx + per_page])
+    return out
+
+
+async def try_delete(message):
+    try:
+        await message.delete()
+    except disnake.HTTPException:
+        pass
+
+
+async def get_selection(
+    inter: disnake.Interaction,
+    choices: list[_HaystackT],
+    key: Callable[[_HaystackT], str],
+    delete=True,
+    pm=False,
+    message=None,
+    force_select=False,
+):
+    """Returns the selected choice, or raises an error.
+    If delete is True, will delete the selection message and the response.
+    If length of choices is 1, will return the only choice unless force_select is True.
+    :raises NoSelectionElements: if len(choices) is 0.
+    :raises SelectionCancelled: if selection is cancelled."""
+    if len(choices) == 0:
+        raise NoSelectionElements()
+    elif len(choices) == 1 and not force_select:
+        return choices[0]
+
+    page = 0
+    pages = paginate(choices, 10)
+    m = None
+    select_msg = None
+
+    def chk(msg: disnake.Message):
+        content = msg.content.lower()
+        valid = content in ("c", "n", "p")
+        try:
+            valid = valid or (1 <= int(content) <= len(choices))
+        except ValueError:
+            pass
+        return msg.author == inter.author and msg.channel == inter.channel and valid
+
+    for n in range(200):
+        _choices = pages[page]
+        names = [key(o) for o in _choices]
+        embed = disnake.Embed()
+        embed.title = "Multiple Matches Found"
+        select_str = (
+            "Which one were you looking for? (Type the number or `c` to cancel)\n"
+        )
+        if len(pages) > 1:
+            select_str += "`n` to go to the next page, or `p` for previous\n"
+            embed.set_footer(text=f"Page {page + 1}/{len(pages)}")
+        for i, r in enumerate(names):
+            select_str += f"**[{i + 1 + page * 10}]** - {r}\n"
+        embed.description = select_str
+        embed.colour = random.randint(0, 0xFFFFFF)
+        if message:
+            embed.add_field(name="Note", value=message, inline=False)
+        if select_msg:
+            await try_delete(select_msg)
+        if not pm:
+            select_msg = await inter.channel.send(embed=embed)
+        else:
+            embed.add_field(
+                name="Instructions",
+                value=(
+                    "Type your response in the channel you called the command. This message was PMed to "
+                    "you to hide the monster name."
+                ),
+                inline=False,
+            )
+            select_msg = await inter.author.send(embed=embed)
+
+        try:
+            m: disnake.Message = await inter.bot.wait_for(
+                "message", timeout=30, check=chk
+            )
+        except asyncio.TimeoutError:
+            m = None
+
+        if m is None:
+            break
+        if m.content.lower() == "n":
+            if page + 1 < len(pages):
+                page += 1
+            else:
+                await inter.channel.send("You are already on the last page.")
+        elif m.content.lower() == "p":
+            if page - 1 >= 0:
+                page -= 1
+            else:
+                await inter.channel.send("You are already on the first page.")
+        else:
+            break
+
+    if delete and not pm:
+        with suppress(disnake.HTTPException):
+            await select_msg.delete()
+            if m is not None:
+                await m.delete()
+    if m is None or m.content.lower() == "c":
+        raise SelectionCancelled()
+    idx = int(m.content) - 1
+    return choices[idx]
+
+
+async def search_and_select(
+    inter: disnake.Interaction,
+    list_to_search: list[_HaystackT],
+    query: str,
+    key: Callable[[_HaystackT], str],
+    cutoff=5,
+    pm=False,
+    message=None,
+    list_filter=None,
+    selectkey=None,
+    return_metadata=False,
+    strip_query_quotes=True,
+    selector=get_selection,
+) -> _HaystackT:
+    """
+    Searches a list for an object matching the key, and prompts user to select on multiple matches.
+    Guaranteed to return a result - raises if there is no result.
+    :param inter: The context of the search.
+    :param list_to_search: The list of objects to search.
+    :param query: The value to search for.
+    :param key: How to search - compares key(obj) to value
+    :param cutoff: The cutoff percentage of fuzzy searches.
+    :param pm: Whether to PM the user the select prompt.
+    :param message: A message to add to the select prompt.
+    :param list_filter: A filter to filter the list to search by.
+    :param selectkey: If supplied, each option will display as selectkey(opt) in the select prompt.
+    :param return_metadata: Whether to return a metadata object {num_options, chosen_index}.
+    :param strip_query_quotes: Whether to strip quotes from the query.
+    :param selector: The coroutine to use to select a result if multiple results are possible.
+    """
+    if list_filter:
+        list_to_search = list(filter(list_filter, list_to_search))
+
+    if strip_query_quotes:
+        query = query.strip("\"'")
+
+    result = search(list_to_search, query, key, cutoff)
+
+    if result is None:
+        raise NoSelectionElements("No matches found.")
+    results, strict = result
+
+    if strict:
+        result = results
+    else:
+        if len(results) == 0:
+            raise NoSelectionElements()
+
+        first_result = results[0]
+        confidence = fuzz.partial_ratio(key(first_result).lower(), query.lower())
+        if len(results) == 1 and confidence > 75:
+            result = first_result
+        else:
+            result = await selector(
+                inter,
+                results,
+                key=selectkey or key,
+                pm=pm,
+                message=message,
+                force_select=True,
+            )
+    if not return_metadata:
+        return result
+    metadata = {
+        "num_options": 1 if strict else len(results),
+        "chosen_index": 0 if strict else results.index(result),
+    }
+    return result, metadata
