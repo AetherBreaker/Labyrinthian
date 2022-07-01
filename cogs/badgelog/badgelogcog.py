@@ -9,15 +9,13 @@ from pymongo.results import InsertOneResult
 from utils.checks import urlCheck
 from utils.models.settings.guild import ServerSettings
 
-_LabyrinthianT = TypeVar("_LabyrinthianT", bound=disnake.Client)
+
 if TYPE_CHECKING:
     from bot import Labyrinthian
 
-    _LabyrinthianT = Labyrinthian
-
 
 class Badges(commands.Cog):
-    def __init__(self, bot: _LabyrinthianT):
+    def __init__(self, bot: "Labyrinthian"):
         self.bot = bot
         self.valid = [
             "Artificer",

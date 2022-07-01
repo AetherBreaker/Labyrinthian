@@ -5,7 +5,6 @@ from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from random import randint
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -13,25 +12,19 @@ from typing import (
     List,
     Mapping,
     MutableMapping,
-    Optional,
     Sequence,
-    TypeVar,
     Union,
 )
 
 import cachetools
-import disnake
 import yaml
 from bson.objectid import ObjectId
 from bson.raw_bson import RawBSONDocument
 from pymongo.results import DeleteResult, InsertOneResult, UpdateResult
-from pymongo.typings import _DocumentType
 
-_LabyrinthianT = TypeVar("_LabyrinthianT", bound=disnake.Client)
+
 if TYPE_CHECKING:
     from bot import Labyrinthian
-
-    _LabyrinthianT = Labyrinthian
 
 
 @dataclass
@@ -42,7 +35,7 @@ class UpdateResultFacade:
 class MongoCache(cachetools.TTLCache):
     def __init__(
         self,
-        bot: _LabyrinthianT,
+        bot: "Labyrinthian",
         workdir: str,
         maxsize: float,
         ttl: float,
@@ -289,7 +282,7 @@ class MongoCache(cachetools.TTLCache):
 
 class CharlistCache(cachetools.TTLCache):
     def __init__(
-        self, bot: _LabyrinthianT, maxsize: float, ttl: float, *args, **kwargs
+        self, bot: "Labyrinthian", maxsize: float, ttl: float, *args, **kwargs
     ) -> None:
         super().__init__(maxsize, ttl, *args, **kwargs)
         self.bot = bot

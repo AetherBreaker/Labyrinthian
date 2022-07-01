@@ -1,7 +1,7 @@
 ﻿from asyncio import TimeoutError
 from contextlib import suppress
 from copy import deepcopy
-from typing import TYPE_CHECKING, Dict, List, Optional, TypeVar
+from typing import TYPE_CHECKING, Dict, List, Optional
 
 import disnake
 from bson import ObjectId
@@ -11,11 +11,9 @@ from utils.ui.menu import UIBase
 
 TOO_MANY_CHARACTERS_SENTINEL = "__special:too_many_characters"
 
-_LabyrinthianT = TypeVar("_LabyrinthianT", bound=disnake.Client)
+
 if TYPE_CHECKING:
     from bot import Labyrinthian
-
-    _LabyrinthianT = Labyrinthian
 
 
 async def create_CharSelect(
@@ -28,7 +26,7 @@ async def create_CharSelect(
 class CharSelect(UIBase):
     def __init__(
         self,
-        bot: _LabyrinthianT,
+        bot: "Labyrinthian",
         owner: disnake.User,
         guild: disnake.Guild,
         user: disnake.Member = None,
@@ -169,7 +167,7 @@ class CharSelect(UIBase):
 class LogBrowser(UIBase):
     def __init__(
         self,
-        bot: _LabyrinthianT,
+        bot: "Labyrinthian",
         owner: disnake.Member,
         guild: disnake.Guild,
         charname: str,

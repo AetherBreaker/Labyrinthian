@@ -1,24 +1,22 @@
-import traceback
 from dataclasses import dataclass
 from datetime import timezone
-from typing import TYPE_CHECKING, Any, Dict, TypeVar
+from typing import TYPE_CHECKING, Any, Dict
 
 import disnake
 
 from utils.models.errors import IntegerConversionError
 
-_LabyrinthianT = TypeVar("_LabyrinthianT", bound=disnake.Client)
+
 if TYPE_CHECKING:
     from bot import Labyrinthian
 
-    _LabyrinthianT = Labyrinthian
 
 errorfrmt = "ansi\n\u001b[1;40;31m"
 
 
 @dataclass
 class AuctionHandler:
-    bot: _LabyrinthianT
+    bot: "Labyrinthian"
     auctiondata: Dict[str, Any]
     config: Dict[str, Any]
 
@@ -88,7 +86,7 @@ class AuctionHandler:
 class ListingHandler:
     def __init__(
         self,
-        bot: _LabyrinthianT,
+        bot: "Labyrinthian",
         button_inter: disnake.MessageInteraction,
         modal_inter: disnake.ModalInteraction,
         auctiondata: Dict[str, Any],

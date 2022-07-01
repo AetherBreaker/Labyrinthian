@@ -16,11 +16,10 @@ from utils.models.errors import (
     PriceTooLowError,
 )
 
-_LabyrinthianT = TypeVar("_LabyrinthianT", bound=disnake.Client)
+
 if TYPE_CHECKING:
     from bot import Labyrinthian
 
-    _LabyrinthianT = Labyrinthian
 
 TOO_MANY_CHARACTERS_SENTINEL = "__special:too_many_characters"
 instructionsfrmt = "ansi\n\u001b[1;40;32m"
@@ -108,7 +107,7 @@ class Character:
 
 
 class ListingConst(disnake.ui.View):
-    def __init__(self, bot: _LabyrinthianT, owner: disnake.Member) -> None:
+    def __init__(self, bot: "Labyrinthian", owner: disnake.Member) -> None:
         super().__init__(timeout=600)
         self.bot = bot
         self.owner = owner
@@ -194,7 +193,7 @@ class ListingConst(disnake.ui.View):
     async def _init(
         cls,
         inter: disnake.MessageInteraction,
-        bot: _LabyrinthianT,
+        bot: "Labyrinthian",
         owner: disnake.Member,
     ):
         inst: ListingConst = cls(bot=bot, owner=owner)
@@ -254,7 +253,7 @@ class ListingConst(disnake.ui.View):
 
 
 class CharSelect(disnake.ui.Select[ListingConst]):
-    def __init__(self, bot: _LabyrinthianT, charlist: List[str]) -> None:
+    def __init__(self, bot: "Labyrinthian", charlist: List[str]) -> None:
         self.bot = bot
         self.charlist = charlist
         self.firstchar = None
@@ -448,7 +447,7 @@ class AttunementButton(disnake.ui.Button[ListingConst]):
 
 
 class SendModalButton(disnake.ui.Button[ListingConst]):
-    def __init__(self, bot: _LabyrinthianT):
+    def __init__(self, bot: "Labyrinthian"):
         self.bot = bot
         super().__init__(style=disnake.ButtonStyle.green, label="Continue", emoji="➡️")
 
@@ -556,7 +555,7 @@ class SendModalButton(disnake.ui.Button[ListingConst]):
 
 
 class SendListingButton(disnake.ui.Button[ListingConst]):
-    def __init__(self, bot: _LabyrinthianT):
+    def __init__(self, bot: "Labyrinthian"):
         self.bot = bot
         super().__init__(
             style=disnake.ButtonStyle.green, label="Post Listing", emoji="🔰"

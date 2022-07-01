@@ -1,11 +1,5 @@
-from typing import TYPE_CHECKING, Any, Dict, TypeVar
+from typing import Any, Dict
 import disnake
-
-_LabyrinthianT = TypeVar("_LabyrinthianT", bound=disnake.Client)
-if TYPE_CHECKING:
-    from bot import Labyrinthian
-
-    _LabyrinthianT = Labyrinthian
 
 
 class ListingActionRow(disnake.ui.ActionRow):

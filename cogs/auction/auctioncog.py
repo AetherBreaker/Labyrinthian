@@ -1,27 +1,23 @@
 import asyncio
-import random
-import traceback
 from datetime import timezone
 from random import randint
-from typing import TYPE_CHECKING, Any, Dict, List, TypeVar
+from typing import TYPE_CHECKING, Any, Dict, List
 
 import disnake
-from cogs.auction.auction_constructor import ListingConst, send_const
+from cogs.auction.auction_constructor import ListingConst
 from cogs.auction.auction_listing import ListingActionRow
 from cogs.auction.handlers import AuctionHandler, ListingHandler
 from disnake.ext import commands
 
 from utils.models.errors import FormTimeoutError
 
-_LabyrinthianT = TypeVar("_LabyrinthianT", bound=disnake.Client)
+
 if TYPE_CHECKING:
     from bot import Labyrinthian
 
-    _LabyrinthianT = Labyrinthian
-
 
 class AuctionHouse(commands.Cog):
-    def __init__(self, bot: _LabyrinthianT):
+    def __init__(self, bot: "Labyrinthian"):
         self.bot = bot
 
     @commands.Cog.listener("on_button_click")

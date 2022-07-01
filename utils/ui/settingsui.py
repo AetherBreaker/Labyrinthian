@@ -4,10 +4,8 @@ from contextlib import suppress
 from copy import deepcopy
 from random import randint
 import re
-from tkinter import N
-from typing import TYPE_CHECKING, Any, Dict, List, Mapping, Optional, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Mapping, Optional, Union
 import disnake
-import emoji
 import inflect
 from utils.functions import (
     has_unicode_emote,
@@ -26,16 +24,13 @@ from utils.ui.menu import MenuBase
 from utils.ui.menutemplates import AddButton, EditButton, RemoveButton, SelectandModify
 
 
-_LabyrinthianT = TypeVar("_LabyrinthianT", bound=disnake.Client)
 if TYPE_CHECKING:
     from bot import Labyrinthian
-
-    _LabyrinthianT = Labyrinthian
 
 
 class SettingsMenuBase(MenuBase, abc.ABC):
     __menu_copy_attrs__ = ("bot", "settings", "guild")
-    bot: _LabyrinthianT
+    bot: "Labyrinthian"
     settings: ServerSettings
     guild: disnake.Guild
     inputtemplate = {"main": {"title": "title", "descitems": [], "fielditems": []}}
@@ -141,7 +136,7 @@ class SettingsNav(SettingsMenuBase):
     @classmethod
     def new(
         cls,
-        bot: _LabyrinthianT,
+        bot: "Labyrinthian",
         owner: disnake.User,
         settings: ServerSettings,
         guild: disnake.Guild,
