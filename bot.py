@@ -34,6 +34,7 @@ extensions = (
     "cogs.badgelog.badgelogcog",
     "cogs.administrative.configcog",
     "cogs.auction.auctioncog",
+    "cogs.coins.coincog",
 )
 
 # async def get_prefix(bot: commands.Bot, message: disnake.Message):

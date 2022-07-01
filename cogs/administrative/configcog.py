@@ -1,4 +1,3 @@
-from json import JSONDecodeError, loads
 import traceback
 from typing import TYPE_CHECKING, TypeVar
 
@@ -9,15 +8,13 @@ from utils import checks
 from utils.models.errors import FormTimeoutError
 from utils.ui.settingsui import SettingsNav
 
-_LabyrinthianT = TypeVar("_LabyrinthianT", bound=disnake.Client)
+
 if TYPE_CHECKING:
     from bot import Labyrinthian
 
-    _LabyrinthianT = Labyrinthian
-
 
 class Configs(commands.Cog):
-    def __init__(self, bot: _LabyrinthianT) -> None:
+    def __init__(self, bot: "Labyrinthian") -> None:
         self.bot = bot
 
     @commands.slash_command()

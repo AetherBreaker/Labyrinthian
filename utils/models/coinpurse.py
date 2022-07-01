@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import TYPE_CHECKING, Dict, Optional, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 import inflect
 
@@ -8,6 +8,7 @@ from utils.models.settings.coin_docs import BaseCoin, CoinConfig, CoinType
 
 if TYPE_CHECKING:
     from settings.guild import ServerSettings
+    from bot import Labyrinthian
 
 
 # ==== Coin Instance ====
@@ -195,4 +196,51 @@ class Coin(int):
 
 # ==== CoinPurse ====
 class CoinPurse:
+    def __init__(
+        self,
+        coinlist: List[Coin],
+        bot: "Labyrinthian",
+        config: CoinConfig,
+        usersettings,
+    ):
+        self.coinlist = coinlist
+        self.config = config
+        self.settings = usersettings
+        self.bot = bot
+
+    # ==== coin selection ====
+    def _match_selection(self, input):
+        pass
+
+    # ==== coin ops ====
+    def add_coins(self, input):
+        pass
+
+    def remove_coins(self, input):
+        pass
+
+    # ==== conversion helpers ====
     pass
+
+    # ==== display ====
+    def display_contents(self):
+        pass
+
+    # ==== construction ====
+    @classmethod
+    async def for_char(cls, mdb, guild: str):
+        pass
+
+    # ==== data conversion ====
+    def _init_from_dict(cls, input: Dict):
+        pass
+
+    def to_dict(self):
+        pass
+
+    # ==== magic methods ====
+    def __str__(self):
+        pass
+
+    def __iter__(self):
+        pass
