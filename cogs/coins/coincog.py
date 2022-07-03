@@ -11,10 +11,6 @@ class CoinsCog(commands.Cog):
     def __init__(self, bot: "Labyrinthian"):
         self.bot = bot
 
-    # ==== helpers ====
-    def process_coins(self, input):
-        pass
-
     # ==== top commands ====
     @commands.slash_command()
     async def coins(self, inter: disnake.ApplicationCommandInteraction):
@@ -23,6 +19,18 @@ class CoinsCog(commands.Cog):
     # ==== sub commands ====
     @coins.sub_command()
     async def mod(self, inter: disnake.ApplicationCommandInteraction):
+        pass
+
+    @coins.sub_command()
+    async def pay(self, inter: disnake.ApplicationCommandInteraction):
+        pass
+
+    @coins.sub_command()
+    async def set(self, inter: disnake.ApplicationCommandInteraction):
+        pass
+
+    # ==== helpers ====
+    def process_input(self, input):
         pass
 
 
