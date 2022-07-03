@@ -11,7 +11,6 @@ from typing import Any, Callable, List, TypeVar, Optional, Union
 from disnake.ext import commands
 import disnake
 import emoji
-import inflect
 
 from rapidfuzz import fuzz, process
 
