@@ -172,7 +172,7 @@ class MongoCache(cachetools.TTLCache):
         LITdat.write(data)
         LITdat.close()
 
-    def find_matches_in_self(self, searchfilter: Mapping[str, Any]):
+    def _find_matches_in_self(self, searchfilter: Mapping[str, Any]):
         """Searches through the cache and returns a list of cache values that match the provided filter
         filter is expected to be a dict where every key value pair must match a key value pair in a cache document"""
         return list(
@@ -207,7 +207,7 @@ class MongoCache(cachetools.TTLCache):
         self, collectionkey: str, filter: Mapping[str, Any], *args: Any, **kwargs: Any
     ):
         data = None  # type: ignore
-        cachematches = deepcopy(self.find_matches_in_self(filter))
+        cachematches = deepcopy(self._find_matches_in_self(filter))
         if cachematches:
             cachematches[0].pop("collectionkey")
             # print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
@@ -239,7 +239,7 @@ class MongoCache(cachetools.TTLCache):
         if str(replacement["_id"]) in self.keys():
             self[str(replacement["_id"])] = replacement
         else:
-            cachematches = self.find_matches_in_self(filter)
+            cachematches = self._find_matches_in_self(filter)
             idkey = str(cachematches[0]["_id"])
             self[idkey] = replacement
         replacement.pop("collectionkey")  # type: ignore
@@ -292,8 +292,8 @@ class CharlistCache(cachetools.TTLCache):
             # print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
             return self[f"{guildkey}{userkey}"]
         else:
-            data: List[str] = await self.bot.sdb[f"BLCharList_{guildkey}"].distinct(
-                "character", {"user": userkey}
+            data: List[str] = await self.bot.sdb[f"charactercollection"].distinct(
+                "name", {"user": userkey, "guild": guildkey}
             )
             self[f"{guildkey}{userkey}"] = data
             # print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
