@@ -16,7 +16,9 @@ from disnake.ext.commands.errors import CommandInvokeError
 from cogs.auction.auction_constructor import ConstSender
 from utils import MongoCache, config
 from utils.models.errors import LabyrinthianException
+from utils.models.settings.character import Character
 from utils.models.settings.guild import ServerSettings
+from utils.models.settings.user import UserPreferences
 from utils.reload import reload_child_modules
 
 if config.TESTING_VAR == "True":
@@ -36,13 +38,6 @@ extensions = (
     "cogs.auction.auctioncog",
     "cogs.coins.coincog",
 )
-
-# async def get_prefix(bot: commands.Bot, message: disnake.Message):
-#     """Redefines Disnake get_prefix function to redirect get_guild_prefix when running in servers."""
-#     if not message.guild:
-#         return commands.when_mentioned_or(config.DEFAULT_PREFIX)(bot, message)
-#     guildprefix = await bot.get_guild_prefix(message.guild)
-#     return commands.when_mentioned_or(guildprefix)(bot, message)
 
 
 class Labyrinthian(commands.Bot):
@@ -71,8 +66,18 @@ class Labyrinthian(commands.Bot):
     async def get_server_settings(self, guild_id: str) -> ServerSettings:
         if not isinstance(guild_id, str):
             guild_id = str(guild_id)
-        server_settings = await ServerSettings.for_guild(self.dbcache, guild_id)
-        return server_settings
+        return await ServerSettings.for_guild(self.dbcache, guild_id)
+
+    async def get_user_prefs(self, user_id: str) -> UserPreferences:
+        if not isinstance(user_id, str):
+            user_id = str(user_id)
+        return await UserPreferences.for_user(self.dbcache, user_id)
+
+    async def get_character(self, guild_id: str, user_id: str, character_name: str):
+        settings = await self.get_server_settings(guild_id)
+        return await Character.for_user(
+            self.dbcache, settings, guild_id, user_id, character_name
+        )
 
     # # literally just a copy-paste from dpy, except for the `reload_submodules`` check w/ call
     # def reload_extension(
@@ -195,7 +200,7 @@ async def on_slash_command_error(inter: disnake.Interaction, error):
         return
 
     elif isinstance(error, LabyrinthianException):
-        return await inter.author.send(str(error))
+        return await inter.send(str(error), ephemeral=True)
 
     elif isinstance(
         error, (commands.UserInputError, commands.NoPrivateMessage, ValueError)
@@ -222,21 +227,16 @@ async def on_slash_command_error(inter: disnake.Interaction, error):
         original = error.original
 
         if isinstance(original, LabyrinthianException):
-            return await inter.author.send(str(original))
+            return await inter.send(str(error), ephemeral=True)
 
         elif isinstance(original, Forbidden):
             try:
-                return await inter.author.send(
+                return await inter.send(
                     "Error: I am missing permissions to run this command. "
                     f"Please make sure I have permission to send messages to <#{inter.channel.id}>."
                 )
             except HTTPException:
-                try:
-                    return await inter.send(
-                        "Error: I cannot send messages to this user."
-                    )
-                except HTTPException:
-                    return
+                return
 
         elif isinstance(original, NotFound):
             return await inter.send(
