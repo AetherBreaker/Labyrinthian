@@ -232,7 +232,7 @@ class CoinPurse:
         pass
 
     # ==== data conversion ====
-    def _init_from_dict(cls, input: Dict):
+    def _init_from_dict(self, input: Dict):
         pass
 
     def to_dict(self):
