@@ -1,5 +1,14 @@
-from typing import Dict, NewType
+from typing import TYPE_CHECKING, Dict, NewType, Any
+
+from bson import ObjectId
 from utils.models.settings import SettingsBaseModel
+
+
+if TYPE_CHECKING:
+    ObjID = ObjectId
+else:
+    ObjID = Any
+
 
 UserID = NewType("UserID", str)
 GuildID = NewType("GuildID", str)
@@ -8,7 +17,8 @@ CharacterName = NewType("CharacterName", str)
 
 class UserPreferences(SettingsBaseModel):
     user: UserID
-    characters: Dict[GuildID, Dict[CharacterName, str]] = {}
+    activechar: Dict[GuildID, CharacterName]
+    characters: Dict[GuildID, Dict[CharacterName, ObjID]] = {}
     autoswap: bool = True
 
     # ==== lifecycle ====
