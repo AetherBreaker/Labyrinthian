@@ -5,12 +5,10 @@ import inflect
 from utils.functions import timedeltaplus
 from utils.models.coinpurse import Coin
 from utils.models.errors import IntegerConversionError
-from utils.models.settings.coin_docs import CoinConfig
+from utils.models.settings.coin import CoinConfig
 
 if TYPE_CHECKING:
     from .guild import ServerSettings
-
-    _ServerSettingsT = ServerSettings
 
 
 class Duration(int):
