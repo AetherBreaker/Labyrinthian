@@ -276,9 +276,6 @@ class MongoCache(cachetools.TTLCache):
     ) -> DeleteResult:  # type: ignore
         pass
 
-    """note to self, store items in LIT file
-    using keys of their object ID to ensure a unique key for each item"""
-
 
 class CharlistCache(cachetools.TTLCache):
     def __init__(
