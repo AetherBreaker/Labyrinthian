@@ -1,15 +1,17 @@
+from datetime import datetime
 import re
 from typing import TYPE_CHECKING, Any, Dict, NewType
 from bson import ObjectId
 
 from pydantic import AnyUrl, validator
+from utils.models import LabyrinthianBaseModel
 
-from utils.models.settings import SettingsBaseModel
 from utils.models.settings.guild import ServerSettings
 
 
 if TYPE_CHECKING:
     ObjID = ObjectId
+    from utils.MongoCache import UpdateResultFacade
 else:
     ObjID = Any
 
@@ -27,12 +29,13 @@ GuildID = NewType("GuildID", str)
 CharacterName = NewType("CharacterName", str)
 
 
-class LastLog(SettingsBaseModel):
+class LastLog(LabyrinthianBaseModel):
     id: ObjID = None
-    time: int = None
+    time: datetime = None
 
 
-class Character(SettingsBaseModel):
+class Character(LabyrinthianBaseModel):
+    _id: ObjID
     settings: ServerSettings
     user: UserID
     guild: GuildID
@@ -105,9 +108,10 @@ class Character(SettingsBaseModel):
     async def commit(self, db):
         """Commits the settings to the database."""
         data = self.dict(exclude={"settings"})
-        await db.update_one(
+        result: "UpdateResultFacade" = await db.update_one(
             "charactercollection",
             {"user": self.user, "guild": self.guild, "name": self.name},
             {"$set": data},
             upsert=True,
         )
+        return result
