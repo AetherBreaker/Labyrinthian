@@ -1,27 +1,35 @@
-from string import Template
 from time import time
 from typing import TYPE_CHECKING, Any, Dict, List
 
 import disnake
+import inflect
 from pydantic import ValidationError
 import rapidfuzz
 from cogs.badgelog.browser import create_CharSelect
 from disnake.ext import commands
 from pymongo.results import InsertOneResult
-from utils.models.settings.character import Character
+from utils.models.character import Character
+from utils.models.xplog import XPLogEntry
 
 
 if TYPE_CHECKING:
     from bot import Labyrinthian
     from utils.models.settings.guild import ServerSettings
+    from utils.models.settings.user import UserPreferences
+    from utils.MongoCache import UpdateResultFacade
 
 
 class Badges(commands.Cog):
     def __init__(self, bot: "Labyrinthian"):
         self.bot = bot
 
-    # ==== standalone commands ====
-    @commands.slash_command()
+    # ==== top lvl commands ====
+    @commands.slash_command(description="Log information about your character!")
+    async def character(self, inter: disnake.ApplicationCommandInteraction):
+        pass
+
+    # ==== sub commands ====
+    @character.sub_command()
     @commands.cooldown(4, 1200.0, type=commands.BucketType.user)
     async def create(
         self,
@@ -65,11 +73,18 @@ class Badges(commands.Cog):
             await inter.send(err, ephemeral=True)
             return
         else:
-            await char.commit(self.bot.dbcache)
-            self.bot.charcache.pop(f"{inter.guild.id}{inter.author.id}")
-            await inter.response.send_message(
-                f"Registered {name}'s badge log with the Adventurers Coalition."
+            result: "UpdateResultFacade" = await char.commit(self.bot.dbcache)
+            uprefs: "UserPreferences" = await self.bot.get_user_prefs(
+                str(inter.author.id)
             )
+            if str(inter.guild.id) not in uprefs.characters:
+                uprefs.characters[str(inter.guild.id)] = {}
+            uprefs.characters[str(inter.guild.id)][name] = result.inserted_id
+            uprefs.activechar[str(inter.guild.id)] = name
+            uprefs.commit(self.bot.dbcache)
+            if f"{inter.guild.id}{inter.author.id}" in self.bot.charcache:
+                self.bot.charcache.pop(f"{inter.guild.id}{inter.author.id}")
+            await inter.send(f"Registered {name} with the Adventurers Coalition.")
             embed = (
                 disnake.Embed(
                     title=f"{name}'s Adventurers ID'",
@@ -93,12 +108,12 @@ class Badges(commands.Cog):
                     name=f"Total Levels: {char.level}", value="\u200B", inline=True
                 )
             )
-            await inter.channel.send(
+            await inter.send(
                 "Heres your adventurer's ID...",
                 embed=embed,
             )
 
-    @commands.slash_command()
+    @character.sub_command()
     @commands.cooldown(5, 30.0, type=commands.BucketType.user)
     async def rename(
         self, inter: disnake.ApplicationCommandInteraction, name: str, newname: str
@@ -116,91 +131,98 @@ class Badges(commands.Cog):
         else:
             character.name = newname
             await character.commit(self.bot.dbcache)
+            if f"{inter.guild.id}{inter.author.id}" in self.bot.charcache:
+                self.bot.charcache.pop(f"{inter.guild.id}{inter.author.id}")
             await inter.send(f"{name}'s name changed to {newname}")
 
-    @commands.slash_command(name="update-log")
+    @character.sub_command()
     @commands.cooldown(3, 30.0, type=commands.BucketType.user)
     async def xp(
         self,
         inter: disnake.ApplicationCommandInteraction,
         name: str,
-        badgeinput: float,
-        awardingdm: disnake.Member,
+        xp: float,
+        dm: disnake.Member,
     ):
-        """Adds an entry to your characters badge log
+        """Adds an entry to your character's xp log.
         Parameters
         ----------
         name: The name of your character
-        badgeinput: The amount of badges to add (or remove)
-        awardingdm: The DM that awarded you badges, if fixing/adjusting your badges, select @Labyrinthian"""
-        character: Dict[str, Any] = await self.bot.dbcache.find_one(
-            f"BLCharList_{inter.guild.id}",
-            {"user": str(inter.author.id), "character": name},
+        xp: The amount of badges to add (or remove)
+        dm: The DM that awarded you xp, if fixing/adjusting your xp, select @Labyrinthian"""
+        char: "Character" = await self.bot.get_character(
+            str(inter.guild.id), str(inter.author.id), name
         )
-        serverconf: ServerSettings = self.bot.get_server_settings(str(inter.guild.id))
-        if character is None:
-            await inter.response.send_message(f"{name} doesn't exist!")
-        elif badgeinput == 0:
-            await inter.response.send_message("You can't add zero badges!")
-        elif not serverconf.is_dm(awardingdm) and not awardingdm == self.bot.user:
-            await inter.response.send_message(f"<@{awardingdm.id}> isn't a DM!")
-        else:
-            timeStamp = int(time())
-            newlog = {
-                "charRefId": character["_id"],
-                "user": str(inter.author.id),
-                "character": name,
-                "previous badges": character["currentbadges"],
-                "badges added": badgeinput,
-                "awarding DM": awardingdm.id,
-                "timestamp": timeStamp,
-            }
-            objID: InsertOneResult = await self.bot.dbcache.insert_one(
-                f"BadgeLogMaster_{inter.guild.id}", newlog
+        settings: ServerSettings = self.bot.get_server_settings(str(inter.guild.id))
+        if char is None:
+            await inter.send(f"{name} doesn't exist!", ephemeral=True)
+            return
+        if xp == 0:
+            await inter.send("You can't add zero badges!", ephemeral=True)
+            return
+        if not settings.is_dm(dm) and not dm == self.bot.user:
+            await inter.send(f"<@{dm.id}> isn't a DM!", ephemeral=True)
+            return
+        timestamp = int(time())
+        newlog = XPLogEntry(
+            charref=char._id,
+            user=char.user,
+            guild=char.guild,
+            name=char.name,
+            prevxp=char.xp,
+            xpadded=xp,
+            dm=dm.id,
+            timestamp=timestamp,
+        )
+        result: "InsertOneResult" = await newlog.commit(self.bot.dbcache)
+        char.xp += xp
+        char.lastlog.id = result.inserted_id
+        char.lastlog.time = timestamp
+        await char.commit(self.bot.dbcache)
+        p = inflect.engine()
+        outputstr = (
+            f"{name} lost {p.plural(settings.xplabel)} {char.xp-xp}({'-' if xp < 0 else '+'}{xp}) to <@{dm.id}>"
+            if xp < 0
+            else f"{name} was awarded {p.plural(settings.xplabel)} {char.xp-xp}({'-' if xp < 0 else '+'}{xp}) by <@{dm.id}>"
+        )
+        await inter.send(
+            embed=disnake.Embed(
+                title=f"{settings.xplabel} log updated",
+                description=f"<@{newlog.user}> at <t:{timestamp}:f>\n{outputstr}",
             )
-            badgetemp: Dict[str, Any] = await self.bot.dbcache.find_one(
-                "srvconf", {"guild": str(inter.guild.id)}
-            )
-            badgetemp = badgetemp["badgetemplate"]
-            for x, y in badgetemp.items():
-                if character["currentbadges"] + badgeinput >= y:
-                    character["expectedlvl"] = x
-            character["lastlog"] = objID.inserted_id
-            character["lastlogtimeStamp"] = timeStamp
-            character["currentbadges"] += badgeinput
-            await self.bot.sdb[f"BLCharList_{inter.guild.id}"].replace_one(
-                {"user": str(inter.author.id), "character": name}, character, True
-            )
-            templstr = (
-                "$character lost badges $prev($input) to $awarding"
-                if badgeinput < 0
-                else "$character was awarded badges $prev($input) by $awarding"
-            )
-            mapping = {
-                "character": f"{name}",
-                "prev": f"{character['currentbadges']-badgeinput}",
-                "input": f"{'' if badgeinput < 0 else '+'}{badgeinput}",
-                "awarding": f"<@{awardingdm.id}>",
-            }
-            await inter.response.send_message(
-                embed=disnake.Embed(
-                    title=f"Badge log updated",
-                    description=f"{'' if character['user'] == newlog['user'] else '<@'+newlog['user']+'> at'} <t:{timeStamp}:f>\n{Template(templstr).substitute(**mapping)}",
-                )
-            )
+        )
 
-    @commands.slash_command(name="log-browser")
+    @character.sub_command()
     @commands.cooldown(3, 30.0, type=commands.BucketType.user)
-    async def character(self, inter: disnake.ApplicationCommandInteraction):
+    async def log(self, inter: disnake.ApplicationCommandInteraction):
         """Displays your character's badgelog data.
         Parameters
         ----------
         name: The name of your character."""
         await create_CharSelect(inter, self.bot, inter.author, inter.guild)
 
+    @character.sub_command()
+    async def swap(self, inter: disnake.ApplicationCommandInteraction, name: str):
+        charlist = await self.bot.charcache.find_distinct_chardat(
+            str(inter.guild.id), str(inter.author.id)
+        )
+        if name not in charlist:
+            await inter.send(f"{name} doesn't exist!", ephemeral=True)
+            return
+        uprefs: "UserPreferences" = await self.bot.get_user_prefs(str(inter.author.id))
+        self.bot.dispatch(
+            "changed_character",
+            inter.guild,
+            name,
+            uprefs.activechar[str(inter.guild.id)],
+        )
+        uprefs.activechar[str(inter.guild.id)] = name
+        uprefs.commit(self.bot.dbcache)
+        await inter.send(f"Active character changed to {name}")
+
     # ==== command families ====
-    @commands.slash_command(
-        name="class", description="Set your characters classes in their badge log."
+    @character.sub_command_group(
+        name="class", description="Set your characters classes."
     )
     async def classes(self, _: disnake.ApplicationCommandInteraction):
         pass
@@ -230,7 +252,8 @@ class Badges(commands.Cog):
         classlist = [x for x in classlist if x not in char.multiclasses]
         if multiclass_name not in classlist:
             await inter.send(
-                f"{multiclass_name} is not a valid class, try using the autocompletion to select a class.",
+                f"{multiclass_name} is not a valid class in this server, try using "
+                f"the autocompletion to select a class.",
                 ephemeral=True,
             )
             return
@@ -322,6 +345,7 @@ class Badges(commands.Cog):
     @remove.autocomplete("name")
     @update.autocomplete("name")
     @xp.autocomplete("name")
+    @swap.autocomplete("name")
     async def autocomp_names(
         self, inter: disnake.ApplicationCommandInteraction, user_input: str
     ):
