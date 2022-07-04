@@ -2,24 +2,23 @@ import asyncio
 import logging
 import os
 import traceback
-from types import ModuleType
 from typing import Optional, Union
+from bson import ObjectId
 
 import disnake
 import motor.motor_asyncio
 from aiohttp import ClientOSError, ClientResponseError
 from disnake.errors import Forbidden, HTTPException, InvalidData, NotFound
 from disnake.ext import commands
-from disnake.ext.commands.common_bot_base import _is_submodule
 from disnake.ext.commands.errors import CommandInvokeError
 
 from cogs.auction.auction_constructor import ConstSender
 from utils import MongoCache, config
 from utils.models.errors import LabyrinthianException
-from utils.models.settings.character import Character
+from utils.models.character import Character
 from utils.models.settings.guild import ServerSettings
 from utils.models.settings.user import UserPreferences
-from utils.reload import reload_child_modules
+from utils.models.xplog import XPLogBook
 
 if config.TESTING_VAR == "True":
     import sys
@@ -73,11 +72,16 @@ class Labyrinthian(commands.Bot):
             user_id = str(user_id)
         return await UserPreferences.for_user(self.dbcache, user_id)
 
-    async def get_character(self, guild_id: str, user_id: str, character_name: str):
+    async def get_character(
+        self, guild_id: str, user_id: str, character_name: str
+    ) -> Optional[Character]:
         settings = await self.get_server_settings(guild_id)
         return await Character.for_user(
             self.dbcache, settings, guild_id, user_id, character_name
         )
+
+    async def get_character_xplog(self, character_ref_id: ObjectId):
+        return await XPLogBook.new(self.sdb, character_ref_id)
 
     # # literally just a copy-paste from dpy, except for the `reload_submodules`` check w/ call
     # def reload_extension(
