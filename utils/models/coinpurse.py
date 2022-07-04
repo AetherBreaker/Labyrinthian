@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 import inflect
 
-from utils.models.settings.coin_docs import BaseCoin, CoinConfig, CoinType
+from utils.models.settings.coin import BaseCoin, CoinConfig, CoinType
 
 
 if TYPE_CHECKING:

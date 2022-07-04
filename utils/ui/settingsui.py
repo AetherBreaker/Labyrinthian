@@ -16,8 +16,8 @@ from utils.functions import (
 )
 from utils.models.coinpurse import Coin
 from utils.models.errors import FormInvalidInputError, FormTimeoutError
-from utils.models.settings.auction_docs import Duration, Rarity
-from utils.models.settings.coin_docs import BaseCoin, CoinType
+from utils.models.settings.auction import Duration, Rarity
+from utils.models.settings.coin import BaseCoin, CoinType
 from utils.models.settings.guild import XPConfig, ServerSettings
 
 from utils.ui.menu import MenuBase
