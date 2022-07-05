@@ -10,6 +10,7 @@ import disnake
 from cogs.auction.auction_listing import ListingActionRow
 from pymongo.results import InsertOneResult
 from utils.functions import timedeltaplus
+
 from utils.models.errors import (
     FormTimeoutError,
     IntegerConversionError,
@@ -19,6 +20,8 @@ from utils.models.errors import (
 
 if TYPE_CHECKING:
     from bot import Labyrinthian
+    from utils.models.settings.auction import ListingDurationsConfig
+    from utils.models.coinpurse import Coin
 
 
 TOO_MANY_CHARACTERS_SENTINEL = "__special:too_many_characters"
@@ -348,7 +351,7 @@ class CharSelect(disnake.ui.Select[ListingConst]):
 
 
 class DurSelect(disnake.ui.Select[ListingConst]):
-    def __init__(self, durlist: List[int]) -> None:
+    def __init__(self, durlist: "ListingDurationsConfig") -> None:
         self.durlist = durlist
         self.firstdur = None
         super().__init__(
@@ -362,10 +365,10 @@ class DurSelect(disnake.ui.Select[ListingConst]):
     def _refresh_dur_select(self):
         self.options.clear()
         durcls: Duration
-        for display_dur, durcls in self.durlist.items():
+        for x in self.durlist.values():
             selected = True if durcls == self.firstdur else False
             self.add_option(
-                label=f"{str(timedeltaplus(seconds=durcls.time))} - {durcls.fee} gp fee",
+                label=f"{str(timedeltaplus(seconds=x))} - {x} {durcls.type.prefix} fee",
                 value=display_dur,
                 default=selected,
             )
