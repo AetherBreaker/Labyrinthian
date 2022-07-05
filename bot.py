@@ -32,7 +32,7 @@ intents = disnake.Intents.all()
 cwd = os.getcwd()
 
 extensions = (
-    "cogs.badgelog.badgelogcog",
+    "cogs.characterlog.charactercog",
     "cogs.administrative.configcog",
     "cogs.auction.auctioncog",
     "cogs.coins.coincog",
