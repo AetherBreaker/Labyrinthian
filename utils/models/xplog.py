@@ -1,6 +1,6 @@
-from datetime import datetime
 import math
-from typing import TYPE_CHECKING, Any, List, NewType
+import traceback
+from typing import TYPE_CHECKING, Any, Generator, List, NewType, Tuple
 
 from bson import ObjectId
 from utils.models import LabyrinthianBaseModel
@@ -27,7 +27,7 @@ class XPLogEntry(LabyrinthianBaseModel):
     prevxp: float
     xpadded: float
     dm: DMUID
-    timestamp: datetime
+    timestamp: int
 
     # ==== database ====
     async def commit(self, db):
@@ -43,14 +43,15 @@ class XPLogBook(LabyrinthianBaseModel):
     # ==== construction ====
     @classmethod
     async def new(cls, db, char_ref_id: ObjectId) -> "XPLogBook":
-        data = (
-            db["xplog"]
-            .find({"charref": char_ref_id}, sort=("timestamp", -1))
-            .to_list(None)
-        )
-        return cls.construct(log=[XPLogEntry.construct(values=x) for x in data])
+        data = db["xplog"].find({"charref": char_ref_id})
+        data = data.sort("timestamp", -1)
+        data = await data.to_list(None)
+        if data:
+            return cls.construct(log=[XPLogEntry.construct(**x) for x in data])
+        else:
+            return None
 
-    def paginate(self, items_per_page: int):
+    def paginate(self, items_per_page: int) -> Generator[Tuple[XPLogEntry], None, None]:
         data = [*self.log]
         for x in range(math.ceil(len(self.log) / items_per_page)):
             result = []
