@@ -2,7 +2,7 @@ import traceback
 from typing import TYPE_CHECKING, TypeVar
 
 import disnake
-from cogs.badgelog.browser import create_CharSelect
+from cogs.characterlog.browser import create_CharSelect
 from disnake.ext import commands
 from utils import checks
 from utils.models.errors import FormTimeoutError
@@ -101,12 +101,9 @@ class Configs(commands.Cog):
 
     @admin.sub_command()
     async def serversettings(self, inter: disnake.ApplicationCommandInteraction):
-        try:
-            settings = await self.bot.get_server_settings(str(inter.guild.id))
-            settings_ui = SettingsNav.new(self.bot, inter.author, settings, inter.guild)
-            await settings_ui.send_to(inter, ephemeral=True)
-        except:
-            traceback.print_exc()
+        settings = await self.bot.get_server_settings(str(inter.guild.id))
+        settings_ui = SettingsNav.new(self.bot, inter.author, settings, inter.guild)
+        await settings_ui.send_to(inter, ephemeral=True)
 
 
 def setup(bot):
