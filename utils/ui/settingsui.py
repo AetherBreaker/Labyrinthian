@@ -147,6 +147,7 @@ class SettingsNav(SettingsMenuBase):
         inst.guild = guild
         return inst
 
+    # ==== ui ====
     @disnake.ui.button(
         style=disnake.ButtonStyle.primary,
         label="Auction House Settings",
@@ -181,6 +182,7 @@ class SettingsNav(SettingsMenuBase):
     async def exit(self, *_):
         await self.on_timeout()
 
+    # ==== content ====
     async def get_content(self) -> Mapping:
         p = inflect.engine()
         inputdict = deepcopy(self.inputtemplate)
