@@ -15,9 +15,14 @@ GuildID = NewType("GuildID", str)
 CharacterName = NewType("CharacterName", str)
 
 
+class ActiveCharacter(SettingsBaseModel):
+    name: CharacterName
+    id: ObjID
+
+
 class UserPreferences(SettingsBaseModel):
     user: UserID
-    activechar: Dict[GuildID, CharacterName]
+    activechar: Dict[GuildID, ActiveCharacter] = {}
     characters: Dict[GuildID, Dict[CharacterName, ObjID]] = {}
     autoswap: bool = True
 
