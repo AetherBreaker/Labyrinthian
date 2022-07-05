@@ -265,7 +265,13 @@ class LogBrowser(UIBase):
                     else:
                         isneg = False
                     logstr.append(
-                        f"{'' if char['user'] == badgelog[0]['user'] else '<@'+badgelog[0]['user']+'> at'} <t:{badgelog[0]['timestamp']}:f>\n`{badgelog[0]['character']} {'lost badges' if isneg else 'was awarded'} {badgelog[0]['previous badges']}({'' if isneg else '+'}{badgelog[0]['badges added']}) {'to' if isneg else 'by'}` <@{badgelog[0]['awarding DM']}>"
+                        f"{'' if char['user'] == badgelog[0]['user'] else '<@'+badgelog[0]['user']+'> at'} "
+                        f"<t:{badgelog[0]['timestamp']}:f>\n"
+                        f"`{badgelog[0]['character']} "
+                        f"{'lost badges' if isneg else 'was awarded'} "
+                        f"{badgelog[0]['previous badges']}"
+                        f"({'+'*isneg}{badgelog[0]['badges added']}) "
+                        f"{'to' if isneg else 'by'}` <@{badgelog[0]['awarding DM']}>"
                     )
                     badgelog.pop(0)
                     Embed["fields"][3]["value"] = "\n\n".join(logstr)

@@ -5,11 +5,13 @@ import disnake
 import inflect
 from pydantic import ValidationError
 import rapidfuzz
-from cogs.badgelog.browser import create_CharSelect
+from cogs.characterlog.browser import create_CharSelect
 from disnake.ext import commands
 from pymongo.results import InsertOneResult
 from utils.models.character import Character
+from utils.models.settings.user import ActiveCharacter
 from utils.models.xplog import XPLogEntry
+from utils.ui.logui import LogMenu
 
 
 if TYPE_CHECKING:
@@ -19,7 +21,7 @@ if TYPE_CHECKING:
     from utils.MongoCache import UpdateResultFacade
 
 
-class Badges(commands.Cog):
+class CharacterLog(commands.Cog):
     def __init__(self, bot: "Labyrinthian"):
         self.bot = bot
 
@@ -46,13 +48,20 @@ class Badges(commands.Cog):
         name: The name of your character.
         starting_class: Your character's starter class.
         starting_class_level: The level of your character's starter class."""
+        charlist = await self.bot.charcache.find_distinct_chardat(
+            str(inter.guild.id), str(inter.author.id)
+        )
+        if len(charlist) >= 25:
+            await inter.send(
+                "You have reached the character cap, please contact a staff member to remove one "
+                "of your pre-existing character.",
+                ephemeral=True,
+            )
+            return
         settings: "ServerSettings" = await self.bot.get_server_settings(
             str(inter.guild.id)
         )
         errlist = []
-        charlist = await self.bot.charcache.find_distinct_chardat(
-            str(inter.guild.id), str(inter.author.id)
-        )
         if name in charlist:
             errlist.append(f"name:\n\t{name} already exists!")
         try:
@@ -80,8 +89,10 @@ class Badges(commands.Cog):
             if str(inter.guild.id) not in uprefs.characters:
                 uprefs.characters[str(inter.guild.id)] = {}
             uprefs.characters[str(inter.guild.id)][name] = result.inserted_id
-            uprefs.activechar[str(inter.guild.id)] = name
-            uprefs.commit(self.bot.dbcache)
+            uprefs.activechar[str(inter.guild.id)] = ActiveCharacter(
+                name=name, id=result.inserted_id
+            )
+            await uprefs.commit(self.bot.dbcache)
             if f"{inter.guild.id}{inter.author.id}" in self.bot.charcache:
                 self.bot.charcache.pop(f"{inter.guild.id}{inter.author.id}")
             await inter.send(f"Registered {name} with the Adventurers Coalition.")
@@ -136,7 +147,7 @@ class Badges(commands.Cog):
             await inter.send(f"{name}'s name changed to {newname}")
 
     @character.sub_command()
-    @commands.cooldown(3, 30.0, type=commands.BucketType.user)
+    # @commands.cooldown(3, 30.0, type=commands.BucketType.user)
     async def xp(
         self,
         inter: disnake.ApplicationCommandInteraction,
@@ -153,7 +164,9 @@ class Badges(commands.Cog):
         char: "Character" = await self.bot.get_character(
             str(inter.guild.id), str(inter.author.id), name
         )
-        settings: ServerSettings = self.bot.get_server_settings(str(inter.guild.id))
+        settings: ServerSettings = await self.bot.get_server_settings(
+            str(inter.guild.id)
+        )
         if char is None:
             await inter.send(f"{name} doesn't exist!", ephemeral=True)
             return
@@ -165,7 +178,7 @@ class Badges(commands.Cog):
             return
         timestamp = int(time())
         newlog = XPLogEntry(
-            charref=char._id,
+            charref=char.id,
             user=char.user,
             guild=char.guild,
             name=char.name,
@@ -181,9 +194,9 @@ class Badges(commands.Cog):
         await char.commit(self.bot.dbcache)
         p = inflect.engine()
         outputstr = (
-            f"{name} lost {p.plural(settings.xplabel)} {char.xp-xp}({'-' if xp < 0 else '+'}{xp}) to <@{dm.id}>"
+            f"{name} lost {p.plural(settings.xplabel)} {char.xp-xp}({'+'*(xp > 0)}{xp}) to <@{dm.id}>"
             if xp < 0
-            else f"{name} was awarded {p.plural(settings.xplabel)} {char.xp-xp}({'-' if xp < 0 else '+'}{xp}) by <@{dm.id}>"
+            else f"{name} was awarded {p.plural(settings.xplabel)} {char.xp-xp}({'+'*(xp > 0)}{xp}) by <@{dm.id}>"
         )
         await inter.send(
             embed=disnake.Embed(
@@ -199,7 +212,10 @@ class Badges(commands.Cog):
         Parameters
         ----------
         name: The name of your character."""
-        await create_CharSelect(inter, self.bot, inter.author, inter.guild)
+        uprefs = await self.bot.get_user_prefs(str(inter.author.id))
+        settings = await self.bot.get_server_settings(str(inter.guild.id))
+        ui = LogMenu.new(self.bot, settings, uprefs, inter.author, inter.guild)
+        await ui.send_to(inter)
 
     @character.sub_command()
     async def swap(self, inter: disnake.ApplicationCommandInteraction, name: str):
@@ -216,8 +232,10 @@ class Badges(commands.Cog):
             name,
             uprefs.activechar[str(inter.guild.id)],
         )
-        uprefs.activechar[str(inter.guild.id)] = name
-        uprefs.commit(self.bot.dbcache)
+        uprefs.activechar[str(inter.guild.id)] = ActiveCharacter(
+            name=name, id=uprefs.characters[str(inter.guild.id)][name]
+        )
+        await uprefs.commit(self.bot.dbcache)
         await inter.send(f"Active character changed to {name}")
 
     # ==== command families ====
@@ -257,7 +275,7 @@ class Badges(commands.Cog):
                 ephemeral=True,
             )
             return
-        if len(char["classes"]) >= 5:
+        if len(char.multiclasses) >= 5:
             await inter.send(f"You can't have more than 5 classes!", ephemeral=True)
             return
         if multiclass_level < 1:
@@ -327,7 +345,7 @@ class Badges(commands.Cog):
             await inter.send("You can't have a level less than zero.", ephemeral=True)
             return
         char.multiclasses[multiclass_name] = multiclass_level
-        char.commit(self.bot.dbcache)
+        await char.commit(self.bot.dbcache)
         await inter.send(
             f"{name}'s {multiclass_name} level changed to {multiclass_level}"
         )
@@ -389,4 +407,4 @@ class Badges(commands.Cog):
 
 
 def setup(bot):
-    bot.add_cog(Badges(bot))
+    bot.add_cog(CharacterLog(bot))
