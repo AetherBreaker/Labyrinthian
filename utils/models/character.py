@@ -1,4 +1,3 @@
-from datetime import datetime
 import re
 from typing import TYPE_CHECKING, Any, Dict, NewType
 from bson import ObjectId
@@ -31,11 +30,11 @@ CharacterName = NewType("CharacterName", str)
 
 class LastLog(LabyrinthianBaseModel):
     id: ObjID = None
-    time: datetime = None
+    time: int = None
 
 
 class Character(LabyrinthianBaseModel):
-    _id: ObjID
+    id: ObjID
     settings: ServerSettings
     user: UserID
     guild: GuildID
@@ -88,14 +87,14 @@ class Character(LabyrinthianBaseModel):
     @classmethod
     async def for_user(
         cls,
-        mdb,
+        db,
         settings: ServerSettings,
         guild_id: str,
         user_id: str,
         character_name: str,
     ):
         """Returns a character log."""
-        char = mdb.find_one(
+        char = await db.find_one(
             "charactercollection",
             {"user": user_id, "guild": guild_id, "name": character_name},
         )
@@ -103,11 +102,14 @@ class Character(LabyrinthianBaseModel):
             return None
         else:
             data = {"settings": settings, **char}
-            return await cls.parse_obj(data)
+            data.pop("_id")
+            data["id"] = char["_id"]
+            return cls.parse_obj(data)
 
     async def commit(self, db):
         """Commits the settings to the database."""
         data = self.dict(exclude={"settings"})
+        data.pop("id")
         result: "UpdateResultFacade" = await db.update_one(
             "charactercollection",
             {"user": self.user, "guild": self.guild, "name": self.name},
