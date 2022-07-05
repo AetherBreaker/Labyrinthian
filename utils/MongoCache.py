@@ -172,14 +172,15 @@ class MongoCache(cachetools.TTLCache):
         LITdat.write(data)
         LITdat.close()
 
-    def _find_matches_in_self(self, searchfilter: Mapping[str, Any]):
+    def _find_matches_in_self(
+        self, collectionkey: str, searchfilter: Mapping[str, Any]
+    ):
         """Searches through the cache and returns a list of cache values that match the provided filter
         filter is expected to be a dict where every key value pair must match a key value pair in a cache document"""
+        filt = {"collectionkey": collectionkey, **searchfilter}
         return list(
             filter(
-                lambda item: all(
-                    [x in item and item[x] == y for x, y in searchfilter.items()]
-                ),
+                lambda item: all([x in item and item[x] == y for x, y in filt.items()]),
                 self.values(),
             )
         )
@@ -207,7 +208,7 @@ class MongoCache(cachetools.TTLCache):
         self, collectionkey: str, filter: Mapping[str, Any], *args: Any, **kwargs: Any
     ):
         data = None  # type: ignore
-        cachematches = deepcopy(self._find_matches_in_self(filter))
+        cachematches = deepcopy(self._find_matches_in_self(collectionkey, filter))
         if cachematches:
             cachematches[0].pop("collectionkey")
             # print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
@@ -216,9 +217,10 @@ class MongoCache(cachetools.TTLCache):
             data: MutableMapping[str, Any] = await self.bot.sdb[collectionkey].find_one(
                 filter, *args, **kwargs
             )
-            datacopy = deepcopy(data)
-            datacopy["collectionkey"] = collectionkey
-            self[str(datacopy["_id"])] = datacopy
+            if data is not None:
+                datacopy = deepcopy(data)
+                datacopy["collectionkey"] = collectionkey
+                self[str(datacopy["_id"])] = datacopy
             # print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
             return data
 
@@ -239,7 +241,7 @@ class MongoCache(cachetools.TTLCache):
         if str(replacement["_id"]) in self.keys():
             self[str(replacement["_id"])] = replacement
         else:
-            cachematches = self._find_matches_in_self(filter)
+            cachematches = self._find_matches_in_self(collectionkey, filter)
             idkey = str(cachematches[0]["_id"])
             self[idkey] = replacement
         replacement.pop("collectionkey")  # type: ignore
@@ -273,8 +275,11 @@ class MongoCache(cachetools.TTLCache):
 
     async def delete_one(
         self, collectionkey: str, filter: Mapping[str, Any], *args, **kwargs
-    ) -> DeleteResult:  # type: ignore
-        pass
+    ):
+        result = await self.bot.sdb[collectionkey].find_one_and_delete(
+            *args, filter=filter, **kwargs
+        )
+        self.pop(str(result["_id"]))
 
 
 class CharlistCache(cachetools.TTLCache):
