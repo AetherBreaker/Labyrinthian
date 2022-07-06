@@ -349,4 +349,4 @@ class ServerSettings(SettingsBaseModel):
         if not self.dmroles:
             return any(r.name.lower() in DEFAULT_DM_ROLE_NAMES for r in member.roles)
         dm_role_set = set(self.dmroles)
-        return any(r.id in dm_role_set for r in member.roles)
+        return any(str(r.id) in dm_role_set for r in member.roles)
