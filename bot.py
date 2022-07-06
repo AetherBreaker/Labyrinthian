@@ -261,8 +261,8 @@ async def on_slash_command_error(inter: disnake.Interaction, error):
                 return await inter.send(
                     "Error: Internal server error on Discord's end. Please try again."
                 )
-
     else:
+        traceback.print_exc()
         return await inter.author.send(f"{error}\n```py\n{traceback.format_exc()}```")
 
 
@@ -270,9 +270,34 @@ async def on_slash_command_error(inter: disnake.Interaction, error):
 async def on_error(event: str, *args, **kwargs):
     for arg in args:
         if isinstance(arg, disnake.Interaction):
+            traceback.print_exc()
             await arg.author.send(f"```py\n{traceback.format_exc()}```")
         elif isinstance(arg, commands.Context):
+            traceback.print_exc()
             await arg.author.send(f"```py\n{traceback.format_exc()}```")
+        elif hasattr(arg, "author"):
+            try:
+                traceback.print_exc()
+                await arg.author.send(f"```py\n{traceback.format_exc()}```")
+            except:
+                pass
+        else:
+            traceback.print_exc()
+    for arg in kwargs.values:
+        if isinstance(arg, disnake.Interaction):
+            traceback.print_exc()
+            await arg.author.send(f"```py\n{traceback.format_exc()}```")
+        elif isinstance(arg, commands.Context):
+            traceback.print_exc()
+            await arg.author.send(f"```py\n{traceback.format_exc()}```")
+        elif hasattr(arg, "author"):
+            try:
+                traceback.print_exc()
+                await arg.author.send(f"```py\n{traceback.format_exc()}```")
+            except:
+                pass
+        else:
+            traceback.print_exc()
 
 
 for ext in extensions:
