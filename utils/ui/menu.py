@@ -10,6 +10,7 @@ class UIBase(disnake.ui.View):
     async def on_error(
         self, error, item: disnake.ui.Item, inter: disnake.MessageInteraction
     ):
+        traceback.print_exc()
         await inter.author.send(
             f"Error in {item}\n" f"{error}\n```py\n{traceback.format_exc()}```"
         )
