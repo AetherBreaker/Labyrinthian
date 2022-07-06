@@ -21,17 +21,17 @@ if TYPE_CHECKING:
     from utils.MongoCache import UpdateResultFacade
 
 
-class CharacterLog(commands.Cog):
+class CharacterLog(
+    commands.Cog,
+    slash_command_attrs={
+        "default_member_permissions": disnake.Permissions(permissions=3072)
+    },
+):
     def __init__(self, bot: "Labyrinthian"):
         self.bot = bot
 
     # ==== top lvl commands ====
-    @commands.slash_command(description="Log information about your character!")
-    async def character(self, inter: disnake.ApplicationCommandInteraction):
-        pass
-
-    # ==== sub commands ====
-    @character.sub_command()
+    @commands.slash_command()
     @commands.cooldown(4, 1200.0, type=commands.BucketType.user)
     async def create(
         self,
@@ -124,30 +124,30 @@ class CharacterLog(commands.Cog):
                 embed=embed,
             )
 
-    @character.sub_command()
+    @commands.slash_command()
     @commands.cooldown(5, 30.0, type=commands.BucketType.user)
     async def rename(
-        self, inter: disnake.ApplicationCommandInteraction, name: str, newname: str
+        self, inter: disnake.ApplicationCommandInteraction, name: str, new_name: str
     ):
         """Change your character's name.
         Parameters
         ----------
         name: The name of your character.
-        newname: Your character's new name."""
+        new_name: Your character's new name."""
         character: "Character" = await self.bot.get_character(
             str(inter.guild.id), str(inter.author.id), name
         )
         if character is None:
             await inter.send(f"{name} doesn't exist!", ephemeral=True)
         else:
-            character.name = newname
+            character.name = new_name
             await character.commit(self.bot.dbcache)
             if f"{inter.guild.id}{inter.author.id}" in self.bot.charcache:
                 self.bot.charcache.pop(f"{inter.guild.id}{inter.author.id}")
-            await inter.send(f"{name}'s name changed to {newname}")
+            await inter.send(f"{name}'s name changed to {new_name}")
 
-    @character.sub_command()
-    # @commands.cooldown(3, 30.0, type=commands.BucketType.user)
+    @commands.slash_command()
+    @commands.cooldown(10, 30.0, type=commands.BucketType.user)
     async def xp(
         self,
         inter: disnake.ApplicationCommandInteraction,
@@ -159,7 +159,7 @@ class CharacterLog(commands.Cog):
         Parameters
         ----------
         name: The name of your character
-        xp: The amount of badges to add (or remove)
+        xp: The amount of xp to add (or remove)
         dm: The DM that awarded you xp, if fixing/adjusting your xp, select @Labyrinthian"""
         char: "Character" = await self.bot.get_character(
             str(inter.guild.id), str(inter.author.id), name
@@ -205,20 +205,31 @@ class CharacterLog(commands.Cog):
             )
         )
 
-    @character.sub_command()
+    @commands.slash_command()
     @commands.cooldown(3, 30.0, type=commands.BucketType.user)
     async def log(self, inter: disnake.ApplicationCommandInteraction):
         """Displays your character's badgelog data.
         Parameters
         ----------
         name: The name of your character."""
+        charlist = await self.bot.charcache.find_distinct_chardat(
+            str(inter.guild.id), str(inter.author.id)
+        )
+        if not charlist:
+            await inter.send("You don't have any characters to view!", ephemeral=True)
+            return
         uprefs = await self.bot.get_user_prefs(str(inter.author.id))
         settings = await self.bot.get_server_settings(str(inter.guild.id))
         ui = LogMenu.new(self.bot, settings, uprefs, inter.author, inter.guild)
         await ui.send_to(inter)
 
-    @character.sub_command()
+    @commands.slash_command()
+    @commands.cooldown(5, 30.0, type=commands.BucketType.user)
     async def swap(self, inter: disnake.ApplicationCommandInteraction, name: str):
+        """Used to swap your active character.
+        Parameters
+        ----------
+        name: The name of your character."""
         charlist = await self.bot.charcache.find_distinct_chardat(
             str(inter.guild.id), str(inter.author.id)
         )
@@ -239,9 +250,7 @@ class CharacterLog(commands.Cog):
         await inter.send(f"Active character changed to {name}")
 
     # ==== command families ====
-    @character.sub_command_group(
-        name="class", description="Set your characters classes."
-    )
+    @commands.slash_command(name="class", description="Set your characters classes.")
     async def classes(self, _: disnake.ApplicationCommandInteraction):
         pass
 
@@ -356,7 +365,8 @@ class CharacterLog(commands.Cog):
         self, inter: disnake.ApplicationCommandInteraction, user_input: str
     ):
         classlist = await self._get_classlist(str(inter.guild.id))
-        return [x[0] for x in rapidfuzz.process.extract(user_input, classlist, limit=8)]
+        if classlist:
+            return [x[0] for x in rapidfuzz.process.extract(user_input, classlist)]
 
     @rename.autocomplete("name")
     @add.autocomplete("name")
@@ -370,7 +380,8 @@ class CharacterLog(commands.Cog):
         charlist: List[str] = await self.bot.charcache.find_distinct_chardat(
             str(inter.guild.id), str(inter.author.id)
         )
-        return [x[0] for x in rapidfuzz.process.extract(user_input, charlist, limit=8)]
+        if charlist:
+            return [x[0] for x in rapidfuzz.process.extract(user_input, charlist)]
 
     @add.autocomplete("multiclass_name")
     async def autocomp_remaining_classes(
@@ -380,9 +391,10 @@ class CharacterLog(commands.Cog):
         char: "Character" = await self.bot.get_character(
             str(inter.guild.id), str(inter.author.id), name
         )
-        classlist = await self._get_classlist(str(inter.guild.id))
-        classlist = [x for x in classlist if x not in char.multiclasses]
-        return [x[0] for x in rapidfuzz.process.extract(user_input, classlist, limit=8)]
+        if char:
+            classlist = await self._get_classlist(str(inter.guild.id))
+            classlist = [x for x in classlist if x not in char.multiclasses]
+            return [x[0] for x in rapidfuzz.process.extract(user_input, classlist)]
 
     @remove.autocomplete("multiclass_name")
     @update.autocomplete("multiclass_name")
@@ -393,12 +405,13 @@ class CharacterLog(commands.Cog):
         char: "Character" = await self.bot.get_character(
             str(inter.guild.id), str(inter.author.id), name
         )
-        return [
-            x[0]
-            for x in rapidfuzz.process.extract(
-                user_input, list(char.multiclasses.keys()), limit=8
-            )
-        ]
+        if char:
+            return [
+                x[0]
+                for x in rapidfuzz.process.extract(
+                    user_input, list(char.multiclasses.keys()), limit=8
+                )
+            ]
 
     # ==== helpers ====
     async def _get_classlist(self, guild_id):
