@@ -1,3 +1,4 @@
+from copy import deepcopy
 import re
 from typing import TYPE_CHECKING, Any, Dict, NewType
 from bson import ObjectId
@@ -10,7 +11,9 @@ from utils.models.settings.guild import ServerSettings
 
 if TYPE_CHECKING:
     ObjID = ObjectId
+    from bot import Labyrinthian
     from utils.MongoCache import UpdateResultFacade
+    from utils.models.settings.user import UserPreferences
 else:
     ObjID = Any
 
@@ -34,7 +37,7 @@ class LastLog(LabyrinthianBaseModel):
 
 
 class Character(LabyrinthianBaseModel):
-    id: ObjID
+    id: ObjID = None
     settings: ServerSettings
     user: UserID
     guild: GuildID
@@ -103,13 +106,13 @@ class Character(LabyrinthianBaseModel):
         else:
             data = {"settings": settings, **char}
             data.pop("_id")
-            data["id"] = char["_id"]
+            if "id" not in data or data["id"] is None:
+                data["id"] = char["_id"]
             return cls.parse_obj(data)
 
     async def commit(self, db):
         """Commits the settings to the database."""
         data = self.dict(exclude={"settings"})
-        data.pop("id")
         result: "UpdateResultFacade" = await db.update_one(
             "charactercollection",
             {"user": self.user, "guild": self.guild, "name": self.name},
@@ -117,3 +120,42 @@ class Character(LabyrinthianBaseModel):
             upsert=True,
         )
         return result
+
+    async def archive(self, bot: "Labyrinthian", uprefs: "UserPreferences"):
+        """Archives the character data, rendering it inaccessible to end users
+        but retaining the data on the database."""
+        data = self.dict(exclude={"settings"})
+        await bot.dbcache.insert_one("graveyard", data)
+        result = await bot.dbcache.delete_one("charactercollection", {"_id": self.id})
+        if result is None:
+            await bot.dbcache.delete_one("charactercollection", {"id": self.id})
+        if self.guild in uprefs.activechar:
+            uprefs.activechar.pop(self.guild)
+        if self.name in uprefs.characters[self.guild]:
+            uprefs.characters[self.guild].pop(self.name)
+        await uprefs.commit(bot.dbcache)
+
+    # @classmethod
+    # async def retrieve(
+    #     cls,
+    #     bot: "Labyrinthian",
+    #     settings: ServerSettings,
+    #     guild_id: str,
+    #     user_id: str,
+    #     character_name: str,
+    # ):
+    #     """Returns a character log."""
+    #     char = await bot.dbcache.find_one(
+    #         "graveyard",
+    #         {"user": user_id, "guild": guild_id, "name": character_name},
+    #     )
+    #     if char is None:
+    #         return None
+    #     else:
+    #         data = {"settings": settings, **char}
+    #         data.pop("_id")
+    #         if "id" not in data or data["id"] is None:
+    #             data["id"] = char["_id"]
+    #         recovered = cls.parse_obj(data)
+
+    #         return recovered
