@@ -1,9 +1,11 @@
 import abc
+import asyncio
 from dis import dis
 from typing import TYPE_CHECKING
 
 import disnake
 import inflect
+from utils.models.errors import FormTimeoutError
 
 from utils.ui.menu import MenuBase
 
@@ -25,7 +27,8 @@ class LogMenuBase(MenuBase, abc.ABC):
 
 
 class LogMenu(LogMenuBase):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, privileged: bool, *args, **kwargs):
+        self.priv = privileged
         self.selval = None
         self.char: "Character" = None
         self.log: "XPLogBook" = None
@@ -41,8 +44,9 @@ class LogMenu(LogMenuBase):
         uprefs: "UserPreferences",
         owner: disnake.User,
         guild: disnake.Guild,
+        privileged: bool = False,
     ):
-        inst = cls(owner=owner, timeout=180)
+        inst = cls(privileged=privileged, owner=owner, timeout=180)
         inst.bot = bot
         inst.guild = guild
         inst.settings = settings
@@ -50,7 +54,7 @@ class LogMenu(LogMenuBase):
         return inst
 
     # ==== ui ====
-    @disnake.ui.button(emoji="⏪", style=disnake.ButtonStyle.blurple)
+    @disnake.ui.button(emoji="⏪", style=disnake.ButtonStyle.blurple, disabled=True)
     async def first_page(self, _: disnake.ui.Button, inter: disnake.MessageInteraction):
         self.page = 0
         _.disabled = True
@@ -59,7 +63,7 @@ class LogMenu(LogMenuBase):
         self.last_page.disabled = False
         await self.refresh_content(inter)
 
-    @disnake.ui.button(emoji="◀", style=disnake.ButtonStyle.secondary)
+    @disnake.ui.button(emoji="◀", style=disnake.ButtonStyle.secondary, disabled=True)
     async def previous_page(
         self, _: disnake.ui.Button, inter: disnake.MessageInteraction
     ):
@@ -75,7 +79,7 @@ class LogMenu(LogMenuBase):
     async def close_view(self, _: disnake.ui.Button, inter: disnake.MessageInteraction):
         await self.on_timeout()
 
-    @disnake.ui.button(emoji="▶", style=disnake.ButtonStyle.secondary)
+    @disnake.ui.button(emoji="▶", style=disnake.ButtonStyle.secondary, disabled=True)
     async def next_page(self, _: disnake.ui.Button, inter: disnake.MessageInteraction):
         self.page += 1
         if self.page >= (len(self.pagelist) - 1):
@@ -85,7 +89,7 @@ class LogMenu(LogMenuBase):
         self.previous_page.disabled = False
         await self.refresh_content(inter)
 
-    @disnake.ui.button(emoji="⏩", style=disnake.ButtonStyle.blurple)
+    @disnake.ui.button(emoji="⏩", style=disnake.ButtonStyle.blurple, disabled=True)
     async def last_page(self, _: disnake.ui.Button, inter: disnake.MessageInteraction):
         self.page = len(self.pagelist) - 1
         self.first_page.disabled = False
@@ -109,6 +113,12 @@ class LogMenu(LogMenuBase):
         self.char = await self.bot.get_character(
             str(self.guild.id), str(self.owner.id), self.selval
         )
+        if not self.char:
+            return
+        if self.priv:
+            for x in self.children:
+                if isinstance(x, StaffArchiveCharButton):
+                    x.disabled = False
         self.log = await self.bot.get_character_xplog(self.char.id)
         self.struct_log_embs()
         if len(self.pagelist) in (1, 0):
@@ -154,19 +164,27 @@ class LogMenu(LogMenuBase):
             self.select_char.add_option(label=char, default=selected)
 
     async def _before_send(self):
-        disabled = False
+        disabled = True
         if str(self.guild.id) in self.uprefs.activechar:
-            self.log = await self.bot.get_character_xplog(
-                self.uprefs.activechar[str(self.guild.id)].id
-            )
             self.selval = self.uprefs.activechar[str(self.guild.id)].name
             self.char = await self.bot.get_character(
                 str(self.guild.id), str(self.owner.id), self.selval
             )
+            self.log = await self.bot.get_character_xplog(
+                self.uprefs.activechar[str(self.guild.id)].id
+            )
             self.struct_log_embs()
-            disabled = True
-        if str(self.owner.id) != self.uprefs.user:
-            self.add_item(StaffDeleteCharButton(disabled))
+            if len(self.pagelist) in (1, 0):
+                self.first_page.disabled = True
+                self.previous_page.disabled = True
+                self.next_page.disabled = True
+                self.last_page.disabled = True
+            else:
+                self.next_page.disabled = False
+                self.last_page.disabled = False
+            disabled = False
+        if self.priv:
+            self.add_item(StaffArchiveCharButton(disabled))
         self._refresh_char_select()
 
     async def get_content(self):
@@ -240,15 +258,48 @@ class LogMenu(LogMenuBase):
         return {"embeds": embeds}
 
 
-class StaffDeleteCharButton(disnake.ui.Button[LogMenu]):
+class StaffArchiveCharButton(disnake.ui.Button[LogMenu]):
     def __init__(self, disabled: bool):
         super().__init__(
             style=disnake.ButtonStyle.red,
-            label="Delete Character",
+            label="Archive Character",
             disabled=disabled,
             emoji="✖️",
             row=4,
         )
 
-    async def callback(self, _: disnake.ui.Button, inter: disnake.MessageInteraction):
-        pass
+    async def callback(self, inter: disnake.MessageInteraction):
+        await inter.response.send_modal(
+            title="Confirmation",
+            custom_id=f"{inter.id}character_archival_confirm",
+            components=disnake.ui.TextInput(
+                label="Confirm Character Archival",
+                custom_id="confirm_archive",
+                style=disnake.TextInputStyle.single_line,
+                placeholder="Confirm",
+                required=True,
+                min_length=7,
+                max_length=7,
+            ),
+        )
+        try:
+            modalinter: disnake.ModalInteraction = await self.view.bot.wait_for(
+                "modal_submit",
+                check=lambda i: i.custom_id == f"{inter.id}character_archival_confirm"
+                and i.author.id == inter.author.id,
+                timeout=180,
+            )
+        except asyncio.TimeoutError:
+            raise FormTimeoutError
+        if modalinter.text_values["confirm_archive"] == "Confirm":
+            await self.view.char.archive(self.view.bot, self.view.uprefs)
+            self.view.selval = None
+            self.view.char = None
+            self.view.log = None
+            self.view.pagelist = []
+            self.view.page = 0
+            self.disabled = True
+        else:
+            await inter.send("Removal canceled", ephemeral=True)
+        self.view._refresh_char_select()
+        await self.view.refresh_content(modalinter)
