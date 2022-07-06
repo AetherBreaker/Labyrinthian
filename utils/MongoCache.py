@@ -224,9 +224,6 @@ class MongoCache(cachetools.TTLCache):
             # print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
             return data
 
-    # async def find(self, collectionkey: str, filter: Optional[Any] = None, *args: Any, **kwargs: Any):
-    #     pass
-
     async def replace_one(
         self,
         collectionkey: str,
@@ -237,14 +234,14 @@ class MongoCache(cachetools.TTLCache):
         **kwargs,
     ) -> UpdateResult:
         if "collectionkey" not in replacement:
-            replacement["collectionkey"] = collectionkey  # type: ignore
+            replacement["collectionkey"] = collectionkey
         if str(replacement["_id"]) in self.keys():
             self[str(replacement["_id"])] = replacement
         else:
             cachematches = self._find_matches_in_self(collectionkey, filter)
             idkey = str(cachematches[0]["_id"])
             self[idkey] = replacement
-        replacement.pop("collectionkey")  # type: ignore
+        replacement.pop("collectionkey")
         result: UpdateResult = await self.bot.sdb[collectionkey].replace_one(
             filter, replacement, upsert, *args, **kwargs
         )
@@ -279,7 +276,10 @@ class MongoCache(cachetools.TTLCache):
         result = await self.bot.sdb[collectionkey].find_one_and_delete(
             *args, filter=filter, **kwargs
         )
-        self.pop(str(result["_id"]))
+        if result is None:
+            return result
+        if str(result["_id"]) in self.keys():
+            self.pop(str(result["_id"]))
 
 
 class CharlistCache(cachetools.TTLCache):
@@ -297,6 +297,7 @@ class CharlistCache(cachetools.TTLCache):
             data: List[str] = await self.bot.sdb[f"charactercollection"].distinct(
                 "name", {"user": userkey, "guild": guildkey}
             )
-            self[f"{guildkey}{userkey}"] = data
+            if data:
+                self[f"{guildkey}{userkey}"] = data
             # print(yaml.dump(self._Cache__data, sort_keys=False, default_flow_style=False))
             return data
