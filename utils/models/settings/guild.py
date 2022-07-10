@@ -334,13 +334,14 @@ class ServerSettings(SettingsBaseModel):
 
     def run_updates(self):
         for x in self:
-            if hasattr(x, "run_updates"):
+            if hasattr(x, "run_updates") and callable(x.run_updates):
                 x.run_updates()
-            elif hasattr(x, "update_types"):
+            elif hasattr(x, "update_types") and callable(x.update_types):
                 x.update_types()
 
     async def commit(self, db):
         """Commits the settings to the database."""
+        self.run_updates()
         data = self.dict()
         data["xptemplate"] = self.xptemplate.to_dict()
         data["coinconf"] = self.coinconf.to_dict()
