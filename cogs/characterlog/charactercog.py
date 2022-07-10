@@ -247,8 +247,8 @@ class CharacterLog(
         if settings.loggingchar is not None:
             self.bot.dispatch(
                 "changed_character",
-                inter.guild,
-                inter.author,
+                settings,
+                str(inter.author.id),
                 newchar,
                 uprefs.activechar[str(inter.guild.id)],
             )

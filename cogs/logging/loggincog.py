@@ -6,6 +6,7 @@ from disnake.ext import commands
 if TYPE_CHECKING:
     from bot import Labyrinthian
     from utils.models.settings.user import ActiveCharacter
+    from utils.models.settings.guild import ServerSettings
 
 
 UserID = NewType("UserID", str)
@@ -20,8 +21,8 @@ class Logging(commands.Cog):
     @commands.Cog.listener("on_changed_character")
     async def log_charchange(
         self,
-        guild: disnake.Guild,
-        user: disnake.User,
+        settings: "ServerSettings",
+        user: UserID,
         newchar: "ActiveCharacter",
         oldchar: "ActiveCharacter",
     ):
