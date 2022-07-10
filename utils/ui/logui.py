@@ -109,17 +109,13 @@ class LogMenu(LogMenuBase):
             self.pagelist = None
             await self.refresh_content(inter)
             return
-        self.selval = select.values[0]
-        self.char = await self.bot.get_character(
-            str(self.guild.id), str(self.owner.id), self.selval
-        )
+        await self.refresh_chardat(select.values[0])
         if not self.char:
             return
         if self.priv:
             for x in self.children:
                 if isinstance(x, StaffArchiveCharButton):
                     x.disabled = False
-        self.log = await self.bot.get_character_xplog(self.char.id)
         self.struct_log_embs()
         if len(self.pagelist) in (1, 0):
             self.first_page.disabled = True
@@ -163,16 +159,18 @@ class LogMenu(LogMenuBase):
             selected = self.selval is not None and self.selval == char
             self.select_char.add_option(label=char, default=selected)
 
+    async def refresh_chardat(self, name):
+        self.selval = name
+        self.char = await self.bot.get_character(
+            str(self.guild.id), str(self.owner.id), self.selval
+        )
+        if self.char:
+            self.log = await self.bot.get_character_xplog(self.char.id)
+
     async def _before_send(self):
         disabled = True
         if str(self.guild.id) in self.uprefs.activechar:
-            self.selval = self.uprefs.activechar[str(self.guild.id)].name
-            self.char = await self.bot.get_character(
-                str(self.guild.id), str(self.owner.id), self.selval
-            )
-            self.log = await self.bot.get_character_xplog(
-                self.uprefs.activechar[str(self.guild.id)].id
-            )
+            await self.refresh_chardat(self.uprefs.activechar[str(self.guild.id)].name)
             self.struct_log_embs()
             if len(self.pagelist) in (1, 0):
                 self.first_page.disabled = True
