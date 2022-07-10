@@ -237,17 +237,21 @@ class CharacterLog(
             await inter.send(f"{name} doesn't exist!", ephemeral=True)
             return
         uprefs: "UserPreferences" = await self.bot.get_user_prefs(str(inter.author.id))
-        self.bot.dispatch(
-            "changed_character",
-            inter.guild,
-            name,
-            uprefs.activechar[str(inter.guild.id)],
-        )
-        uprefs.activechar[str(inter.guild.id)] = ActiveCharacter(
+        newchar = ActiveCharacter(
             name=name, id=uprefs.characters[str(inter.guild.id)][name]
         )
+        uprefs.activechar[str(inter.guild.id)] = newchar
         await uprefs.commit(self.bot.dbcache)
         await inter.send(f"Active character changed to {name}")
+        settings = await self.bot.get_server_settings(str(inter.guild.id))
+        if settings.loggingchar is not None:
+            self.bot.dispatch(
+                "changed_character",
+                inter.guild,
+                inter.author,
+                newchar,
+                uprefs.activechar[str(inter.guild.id)],
+            )
 
     # ==== command families ====
     @commands.slash_command(name="class", description="Set your characters classes.")
