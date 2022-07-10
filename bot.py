@@ -67,6 +67,14 @@ class Labyrinthian(commands.Bot):
             guild_id = str(guild_id)
         return await ServerSettings.for_guild(self.dbcache, guild_id)
 
+    async def get_settings_no_valid(self, guild_id: str) -> ServerSettings:
+        data = await self.dbcache.find_one("srvconf", {"guild": guild_id})
+        if data is None:
+            settings = ServerSettings(guild=guild_id)
+        else:
+            settings = ServerSettings.construct(**data)
+        return settings
+
     async def get_user_prefs(self, user_id: str) -> UserPreferences:
         if not isinstance(user_id, str):
             user_id = str(user_id)
