@@ -285,6 +285,10 @@ class ServerSettings(SettingsBaseModel):
     ahinternal: Optional[str] = None
     xplabel: str = "Badge"
     coinconf: CoinConfig = CoinConfig.from_dict(DEFAULT_COINS)
+    loggingcoins: Optional[str] = None
+    loggingxp: Optional[str] = None
+    loggingauction: Optional[str] = None
+    loggingchar: Optional[str] = None
 
     def __iter__(self):
         yield self.guild
@@ -299,6 +303,10 @@ class ServerSettings(SettingsBaseModel):
         yield self.ahinternal
         yield self.xplabel
         yield self.coinconf
+        yield self.loggingcoins
+        yield self.loggingxp
+        yield self.loggingauction
+        yield self.loggingchar
 
     # ==== validators ====
 
