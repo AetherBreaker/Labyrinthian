@@ -1,4 +1,5 @@
-from typing import Any, List, Optional, Union
+from typing import TYPE_CHECKING, Any, List, Optional, Union
+import typing
 
 import disnake
 from utils.models.coinpurse import Coin
@@ -6,6 +7,9 @@ from utils.models.settings import SettingsBaseModel
 from utils.models.settings.auction import ListingDurationsConfig, RaritiesConfig
 from utils.models.settings.charlog import XPConfig
 from utils.models.settings.coin import CoinConfig
+
+if TYPE_CHECKING:
+    from bot import Labyrinthian
 
 DEFAULT_DM_ROLE_NAMES = {"dm", "gm", "dungeon master", "game master"}
 DEFAULT_XP_TEMPLATE = {
@@ -311,16 +315,21 @@ class ServerSettings(SettingsBaseModel):
     # ==== validators ====
 
     # ==== lifecycle ====
+    @staticmethod
+    async def get_data(bot: "Labyrinthian", guild: str):
+        data = await bot.dbcache.find_one("srvconf", {"guild": guild})
+        if data is None:
+            data = {"guild": guild}
+        return data
+
     @classmethod
-    async def for_guild(cls, mdb, guild: str):
+    async def for_guild(cls, data):
         """Returns the server settings for a given guild."""
-        existing = await mdb.find_one("srvconf", {"guild": guild})
-        if existing is not None:
-            outp = cls.parse_obj(existing)
+        if len(data) >= 2:
+            outp = cls.parse_obj(data)
+            outp.setup_selfref()
         else:
-            outp = cls(guild=guild)
-        outp.setup_selfref()
-        outp.run_updates()
+            outp = cls(data)
         return outp
 
     def setup_selfref(self):
@@ -351,6 +360,17 @@ class ServerSettings(SettingsBaseModel):
         await db.update_one(
             "srvconf", {"guild": self.guild}, {"$set": data}, upsert=True
         )
+
+    @classmethod
+    def no_validate(cls, data):
+        typings = typing.get_type_hints(cls)
+        for field, value in data.items():
+            fieldtype = typings.get(field, None)
+            if hasattr(fieldtype, "from_dict"):
+                data[field] = fieldtype.from_dict(value)
+        settings = cls.construct(**data)
+        settings.setup_selfref()
+        return settings
 
     # ==== helpers ====
     def is_dm(self, member: disnake.Member):

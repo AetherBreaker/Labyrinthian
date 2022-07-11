@@ -1,9 +1,10 @@
 from copy import deepcopy
 import re
-from typing import TYPE_CHECKING, Any, Dict, NewType
+from typing import TYPE_CHECKING, Any, Dict, NewType, Optional
+import typing
 from bson import ObjectId
 
-from pydantic import AnyUrl, validator
+from pydantic import AnyUrl, BaseModel, validator
 from utils.models import LabyrinthianBaseModel
 
 from utils.models.settings.guild import ServerSettings
@@ -87,28 +88,34 @@ class Character(LabyrinthianBaseModel):
         return v
 
     # ==== lifecycle ====
-    @classmethod
-    async def for_user(
-        cls,
-        db,
-        settings: ServerSettings,
-        guild_id: str,
-        user_id: str,
-        character_name: str,
-    ):
-        """Returns a character log."""
-        char = await db.find_one(
+    @staticmethod
+    async def get_data(
+        bot: "Labyrinthian", filter: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
+        char = await bot.dbcache.find_one(
             "charactercollection",
-            {"user": user_id, "guild": guild_id, "name": character_name},
+            filter,
         )
         if char is None:
             return None
         else:
-            data = {"settings": settings, **char}
-            data.pop("_id")
-            if "id" not in data or data["id"] is None:
-                data["id"] = char["_id"]
-            return cls.parse_obj(data)
+            settings = await bot.get_server_settings(char["guild"], validate=False)
+            if "id" not in char or char["id"] is None:
+                char["id"] = deepcopy(char["_id"])
+            char.pop("_id")
+            char = {"settings": settings, **char}
+            return char
+
+    @classmethod
+    def no_validate(cls, data):
+        typings = typing.get_type_hints(cls)
+        for field, value in data.items():
+            fieldtype = typings.get(field, None)
+            if isinstance(fieldtype, BaseModel):
+                data[field] = fieldtype(value)
+            elif hasattr(fieldtype, "from_dict"):
+                data[field] = fieldtype.from_dict(value)
+        return cls.construct(**data)
 
     async def commit(self, db):
         """Commits the settings to the database."""
