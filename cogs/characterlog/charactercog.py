@@ -59,7 +59,7 @@ class CharacterLog(
             )
             return
         settings: "ServerSettings" = await self.bot.get_server_settings(
-            str(inter.guild.id)
+            str(inter.guild.id), validate=False
         )
         errlist = []
         if name in charlist:
@@ -165,7 +165,7 @@ class CharacterLog(
             str(inter.guild.id), str(inter.author.id), name
         )
         settings: ServerSettings = await self.bot.get_server_settings(
-            str(inter.guild.id)
+            str(inter.guild.id), validate=False
         )
         if char is None:
             await inter.send(f"{name} doesn't exist!", ephemeral=True)
@@ -219,7 +219,9 @@ class CharacterLog(
             await inter.send("You don't have any characters to view!", ephemeral=True)
             return
         uprefs = await self.bot.get_user_prefs(str(inter.author.id))
-        settings = await self.bot.get_server_settings(str(inter.guild.id))
+        settings = await self.bot.get_server_settings(
+            str(inter.guild.id), validate=False
+        )
         ui = LogMenu.new(self.bot, settings, uprefs, inter.author, inter.guild)
         await ui.send_to(inter)
 
@@ -237,21 +239,26 @@ class CharacterLog(
             await inter.send(f"{name} doesn't exist!", ephemeral=True)
             return
         uprefs: "UserPreferences" = await self.bot.get_user_prefs(str(inter.author.id))
+        if name == uprefs.activechar[str(inter.guild.id)].name:
+            await inter.send("That character is already active!", ephemeral=True)
+            return
         newchar = ActiveCharacter(
             name=name, id=uprefs.characters[str(inter.guild.id)][name]
         )
-        uprefs.activechar[str(inter.guild.id)] = newchar
-        await uprefs.commit(self.bot.dbcache)
-        await inter.send(f"Active character changed to {name}")
-        settings = await self.bot.get_server_settings(str(inter.guild.id))
+        settings = await self.bot.get_server_settings(
+            str(inter.guild.id), validate=False
+        )
         if settings.loggingchar is not None:
             self.bot.dispatch(
                 "changed_character",
                 settings,
-                str(inter.author.id),
+                inter.author,
                 newchar,
                 uprefs.activechar[str(inter.guild.id)],
             )
+        uprefs.activechar[str(inter.guild.id)] = newchar
+        await uprefs.commit(self.bot.dbcache)
+        await inter.send(f"Active character changed to {name}")
 
     # ==== command families ====
     @commands.slash_command(name="class", description="Set your characters classes.")
@@ -377,7 +384,6 @@ class CharacterLog(
     @remove.autocomplete("name")
     @update.autocomplete("name")
     @xp.autocomplete("name")
-    @swap.autocomplete("name")
     async def autocomp_names(
         self, inter: disnake.ApplicationCommandInteraction, user_input: str
     ):
@@ -387,13 +393,30 @@ class CharacterLog(
         if charlist:
             return [x[0] for x in rapidfuzz.process.extract(user_input, charlist)]
 
+    @swap.autocomplete("name")
+    async def autocomp_inactive_names(
+        self, inter: disnake.ApplicationCommandInteraction, user_input: str
+    ):
+        charlist: List[str] = await self.bot.charcache.find_distinct_chardat(
+            str(inter.guild.id), str(inter.author.id)
+        )
+        if charlist:
+            uprefs: "UserPreferences" = await self.bot.get_user_prefs(
+                str(inter.author.id)
+            )
+            return [
+                x[0]
+                for x in rapidfuzz.process.extract(user_input, charlist)
+                if x[0] != uprefs.activechar[str(inter.guild.id)].name
+            ]
+
     @add.autocomplete("multiclass_name")
     async def autocomp_remaining_classes(
         self, inter: disnake.ApplicationCommandInteraction, user_input: str
     ):
         name = inter.filled_options["name"]
         char: "Character" = await self.bot.get_character(
-            str(inter.guild.id), str(inter.author.id), name
+            str(inter.guild.id), str(inter.author.id), name, validate=False
         )
         if char:
             classlist = await self._get_classlist(str(inter.guild.id))
@@ -407,7 +430,7 @@ class CharacterLog(
     ):
         name = inter.filled_options["name"]
         char: "Character" = await self.bot.get_character(
-            str(inter.guild.id), str(inter.author.id), name
+            str(inter.guild.id), str(inter.author.id), name, validate=False
         )
         if char:
             return [
@@ -419,9 +442,11 @@ class CharacterLog(
 
     # ==== helpers ====
     async def _get_classlist(self, guild_id):
-        settings: "ServerSettings" = await self.bot.get_server_settings(str(guild_id))
+        settings: "ServerSettings" = await self.bot.get_server_settings(
+            str(guild_id), validate=False
+        )
         return settings.classlist
 
 
-def setup(bot):
+def setup(bot: "Labyrinthian"):
     bot.add_cog(CharacterLog(bot))
