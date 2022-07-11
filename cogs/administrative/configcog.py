@@ -54,7 +54,9 @@ class Configs(commands.Cog):
             )
             return
         uprefs = await self.bot.get_user_prefs(str(inter.author.id))
-        settings = await self.bot.get_server_settings(str(inter.guild.id))
+        settings = await self.bot.get_server_settings(
+            str(inter.guild.id), validate=False
+        )
         ui = LogMenu.new(
             self.bot, settings, uprefs, inter.author, inter.guild, privileged=True
         )
