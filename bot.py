@@ -1,4 +1,5 @@
 import asyncio
+from copy import deepcopy
 import logging
 import os
 import traceback
@@ -27,6 +28,16 @@ if config.TESTING_VAR == "True":
 
 logging.basicConfig(level=logging.INFO)
 
+
+# logger = logging.getLogger("disnake")
+# logger.setLevel(logging.DEBUG)
+# handler = logging.FileHandler(filename="disnake.log", encoding="utf-8", mode="w")
+# handler.setFormatter(
+#     logging.Formatter("%(asctime)s:%(levelname)s:%(name)s: %(message)s")
+# )
+# logger.addHandler(handler)
+
+
 intents = disnake.Intents.all()
 
 cwd = os.getcwd()
@@ -36,6 +47,7 @@ extensions = (
     "cogs.administrative.configcog",
     "cogs.auction.auctioncog",
     "cogs.coins.coincog",
+    "cogs.eventlogging.loggincog",
 )
 
 
@@ -59,21 +71,17 @@ class Labyrinthian(commands.Bot):
         self.sdb: motor.motor_asyncio.AsyncIOMotorDatabase = self.mclient[
             config.MONGODB_SERVERDB_NAME
         ]
-        self.dbcache = MongoCache.MongoCache(self, cwd, maxsize=50, ttl=20)
-        self.charcache = MongoCache.CharlistCache(self, maxsize=50, ttl=20)
+        self.dbcache = MongoCache.MongoCache(self, cwd, maxsize=50, ttl=30)
+        self.charcache = MongoCache.CharlistCache(self, maxsize=50, ttl=30)
 
-    async def get_server_settings(self, guild_id: str) -> ServerSettings:
-        if not isinstance(guild_id, str):
-            guild_id = str(guild_id)
-        return await ServerSettings.for_guild(self.dbcache, guild_id)
-
-    async def get_settings_no_valid(self, guild_id: str) -> ServerSettings:
-        data = await self.dbcache.find_one("srvconf", {"guild": guild_id})
-        if data is None:
-            settings = ServerSettings(guild=guild_id)
+    async def get_server_settings(
+        self, guild_id: str, validate: bool = True
+    ) -> ServerSettings:
+        data = await ServerSettings.get_data(self, guild_id)
+        if validate:
+            return await ServerSettings.for_guild(data)
         else:
-            settings = ServerSettings.construct(**data)
-        return settings
+            return ServerSettings.no_validate(data)
 
     async def get_user_prefs(self, user_id: str) -> UserPreferences:
         if not isinstance(user_id, str):
@@ -81,12 +89,24 @@ class Labyrinthian(commands.Bot):
         return await UserPreferences.for_user(self.dbcache, user_id)
 
     async def get_character(
-        self, guild_id: str, user_id: str, character_name: str
+        self, guild_id: str, user_id: str, character_name: str, validate: bool = True
     ) -> Optional[Character]:
-        settings = await self.get_server_settings(guild_id)
-        return await Character.for_user(
-            self.dbcache, settings, guild_id, user_id, character_name
+        data = await Character.get_data(
+            self, {"user": user_id, "guild": guild_id, "name": character_name}
         )
+        if validate:
+            return Character.parse_obj(data)
+        else:
+            return Character.no_validate(data)
+
+    async def get_char_by_oid(
+        self, oid: ObjectId, validate: bool = True
+    ) -> Optional[Character]:
+        data = await Character.get_data(self, {"_id": oid})
+        if validate:
+            return Character.parse_obj(data)
+        else:
+            return Character.no_validate(data)
 
     async def get_character_xplog(self, character_ref_id: ObjectId):
         return await XPLogBook.new(self.sdb, character_ref_id)
