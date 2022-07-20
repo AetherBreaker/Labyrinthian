@@ -1,3 +1,4 @@
+from copy import deepcopy
 from time import time
 from typing import TYPE_CHECKING, Any, Dict, List
 
@@ -95,6 +96,8 @@ class CharacterLog(
             await uprefs.commit(self.bot.dbcache)
             if f"{inter.guild.id}{inter.author.id}" in self.bot.charcache:
                 self.bot.charcache.pop(f"{inter.guild.id}{inter.author.id}")
+            if settings.loggingchar:
+                self.bot.dispatch("character_created", settings, inter.author, char)
             await inter.send(f"Registered {name} with the Adventurers Coalition.")
             embed = (
                 disnake.Embed(
@@ -145,9 +148,16 @@ class CharacterLog(
             if f"{inter.guild.id}{inter.author.id}" in self.bot.charcache:
                 self.bot.charcache.pop(f"{inter.guild.id}{inter.author.id}")
             await inter.send(f"{name}'s name changed to {new_name}")
+            settings = await self.bot.get_server_settings(
+                str(inter.guild.id), validate=False
+            )
+            if settings.loggingchar:
+                self.bot.dispatch(
+                    "character_renamed", settings, inter.author, name, new_name
+                )
 
     @commands.slash_command()
-    @commands.cooldown(10, 30.0, type=commands.BucketType.user)
+    @commands.cooldown(5, 30.0, type=commands.BucketType.user)
     async def xp(
         self,
         inter: disnake.ApplicationCommandInteraction,
@@ -194,16 +204,19 @@ class CharacterLog(
         await char.commit(self.bot.dbcache)
         p = inflect.engine()
         outputstr = (
-            f"{name} lost {p.plural(settings.xplabel)} {char.xp-xp}({'+'*(xp > 0)}{xp}) to <@{dm.id}>"
+            f"{name} lost {p.plural(settings.xplabel)} {char.xp-xp}({xp}) <@{dm.id}>"
             if xp < 0
-            else f"{name} was awarded {p.plural(settings.xplabel)} {char.xp-xp}({'+'*(xp > 0)}{xp}) by <@{dm.id}>"
+            else f"{name} was awarded {p.plural(settings.xplabel)} {char.xp-xp}(+{xp}) <@{dm.id}>"
         )
+        sendstr = f"<@{newlog.user}> at <t:{timestamp}:f>\n{outputstr}"
         await inter.send(
             embed=disnake.Embed(
                 title=f"{settings.xplabel} log updated",
-                description=f"<@{newlog.user}> at <t:{timestamp}:f>\n{outputstr}",
+                description=sendstr,
             )
         )
+        if settings.loggingxp:
+            self.bot.dispatch("xp_changed", settings, inter.author, sendstr, xp < 0)
 
     @commands.slash_command()
     @commands.cooldown(3, 30.0, type=commands.BucketType.user)
@@ -286,6 +299,7 @@ class CharacterLog(
         if char is None:
             await inter.send(f"{name} doesn't exist!", ephemeral=True)
             return
+        classset = deepcopy(char.multiclasses)
         classlist = await self._get_classlist(str(inter.guild.id))
         classlist = [x for x in classlist if x not in char.multiclasses]
         if multiclass_name not in classlist:
@@ -304,6 +318,13 @@ class CharacterLog(
         char.multiclasses[multiclass_name] = multiclass_level
         await char.commit(self.bot.dbcache)
         await inter.send(f"{name} multiclassed into {multiclass_name}!")
+        settings: "ServerSettings" = await self.bot.get_server_settings(
+            str(inter.guild.id), validate=False
+        )
+        if settings.loggingchar:
+            self.bot.dispatch(
+                "class_added", settings, inter.user, char, classset, multiclass_name
+            )
 
     @classes.sub_command()
     @commands.cooldown(3, 30.0, type=commands.BucketType.user)
@@ -324,6 +345,7 @@ class CharacterLog(
         if char is None:
             await inter.send(f"{name} doesn't exist!", ephemeral=True)
             return
+        classset = deepcopy(char.multiclasses)
         if multiclass_name not in char.multiclasses:
             await inter.send(
                 f"{name} isn't {'an' if multiclass_name == 'Artificer' else 'a'} {multiclass_name}",
@@ -333,6 +355,13 @@ class CharacterLog(
         char.multiclasses.pop(multiclass_name)
         await char.commit(self.bot.dbcache)
         await inter.send(f"{name} is no longer a {multiclass_name}")
+        settings: "ServerSettings" = await self.bot.get_server_settings(
+            str(inter.guild.id), validate=False
+        )
+        if settings.loggingchar:
+            self.bot.dispatch(
+                "class_removed", settings, inter.user, char, classset, multiclass_name
+            )
 
     @classes.sub_command()
     @commands.cooldown(3, 30.0, type=commands.BucketType.user)
@@ -364,11 +393,19 @@ class CharacterLog(
         if multiclass_level < 1:
             await inter.send("You can't have a level less than zero.", ephemeral=True)
             return
+        classlvl = deepcopy(char.multiclasses[multiclass_name])
         char.multiclasses[multiclass_name] = multiclass_level
         await char.commit(self.bot.dbcache)
         await inter.send(
             f"{name}'s {multiclass_name} level changed to {multiclass_level}"
         )
+        settings: "ServerSettings" = await self.bot.get_server_settings(
+            str(inter.guild.id), validate=False
+        )
+        if settings.loggingchar:
+            self.bot.dispatch(
+                "class_updated", settings, inter.user, char, multiclass_name, classlvl
+            )
 
     # ==== autocompletion ====
     @create.autocomplete("starting_class")
