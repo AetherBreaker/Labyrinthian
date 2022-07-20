@@ -757,20 +757,6 @@ class AuctionSettingsView(SettingsMenuBase):
         await self.refresh_content(inter)
 
     @disnake.ui.button(
-        label="Auction Logging Channel",
-        style=disnake.ButtonStyle.green,
-        row=1,
-    )
-    async def auction_logging_chan(
-        self, _: disnake.ui.Button, inter: disnake.MessageInteraction
-    ):
-        self.settings.ahinternal = await self._text_select_channel(
-            _, inter, self.settings.ahinternal
-        )
-        await self.commit_settings()
-        await self.refresh_content(inter)
-
-    @disnake.ui.button(
         label="Auction Listing Channel",
         style=disnake.ButtonStyle.green,
         row=1,
@@ -1970,6 +1956,53 @@ class BotSettingsView(SettingsMenuBase):
         except asyncio.TimeoutError:
             raise FormTimeoutError
 
+    @disnake.ui.button(
+        label="Character Command Logging Channel", style=disnake.ButtonStyle.green
+    )
+    async def char_cmd_logging_chan(
+        self, _: disnake.ui.Button, inter: disnake.MessageInteraction
+    ):
+        self.settings.loggingchar = await self._text_select_channel(
+            _, inter, self.settings.loggingchar
+        )
+        await self.commit_settings()
+        await self.refresh_content(inter)
+
+    @disnake.ui.button(
+        label="XP Command Logging Channel",
+        style=disnake.ButtonStyle.green,
+    )
+    async def xp_cmd_logging_chan(
+        self, _: disnake.ui.Button, inter: disnake.MessageInteraction
+    ):
+        self.settings.loggingxp = await self._text_select_channel(
+            _, inter, self.settings.loggingxp
+        )
+        await self.commit_settings()
+        await self.refresh_content(inter)
+
+    @disnake.ui.button(
+        label="Coins Command Logging Channel", style=disnake.ButtonStyle.green
+    )
+    async def coin_cmd_logging_chan(
+        self, _: disnake.ui.Button, inter: disnake.MessageInteraction
+    ):
+        self.settings.loggingcoins = await self._text_select_channel(
+            _, inter, self.settings.loggingcoins
+        )
+        await self.commit_settings()
+        await self.refresh_content(inter)
+
+    @disnake.ui.button(label="Auction Logging Channel", style=disnake.ButtonStyle.green)
+    async def auction_logging_chan(
+        self, _: disnake.ui.Button, inter: disnake.MessageInteraction
+    ):
+        self.settings.ahinternal = await self._text_select_channel(
+            _, inter, self.settings.ahinternal
+        )
+        await self.commit_settings()
+        await self.refresh_content(inter)
+
     @disnake.ui.button(label="Back", style=disnake.ButtonStyle.grey, row=4)
     async def back(self, _: disnake.ui.Button, inter: disnake.MessageInteraction):
         await self.defer_to(SettingsNav, inter)
@@ -2031,6 +2064,62 @@ class BotSettingsView(SettingsMenuBase):
             return self.settings.dmroles  # type: ignore
         finally:
             self.select_dm_roles.disabled = False
+
+    async def _text_select_channel(
+        self, button: disnake.ui.Button, inter: disnake.MessageInteraction, setting: str
+    ) -> Optional[List[int]]:
+        button.disabled = True
+        await self.refresh_content(inter)
+        await inter.send(
+            "Select a channel by sending a message to this channel. You can link a #channel.\n"
+            "Type `reset` to unset the channel and disable this feature.",
+            ephemeral=True,
+        )
+
+        try:
+            input_msg: disnake.Message = await self.bot.wait_for(
+                "message",
+                timeout=60,
+                check=lambda msg: msg.author == inter.author
+                and msg.channel.id == inter.channel_id,
+            )
+            with suppress(disnake.HTTPException):
+                await input_msg.delete()
+            if input_msg.content == "reset":
+                await inter.send(
+                    "The channel has been unset, and feature disabled.", ephemeral=True
+                )
+                return None
+            channel_id = ""
+            if len(input_msg.channel_mentions) > 0:
+                channel_id = str(input_msg.channel_mentions[0].id)
+            else:
+                result: disnake.TextChannel = await search_and_select(
+                    inter,
+                    self.guild.channels,
+                    input_msg.content,
+                    lambda c: c.name,
+                    list_filter=lambda c: True
+                    if isinstance(c, disnake.TextChannel)
+                    else False,
+                )
+                channel_id = str(result.id)
+            if channel_id:
+                await inter.send("The channel id has been updated", ephemeral=True)
+                return channel_id
+            await inter.send(
+                "No valid channel found. Use the button to try again.",
+                ephemeral=True,
+            )
+            return setting
+        except asyncio.TimeoutError:
+            await inter.send(
+                "No valid channel found. Use the button to try again.",
+                ephemeral=True,
+            )
+            return setting
+        finally:
+            button.disabled = False
 
     # ==== content ====
     def _refresh_dm_role_select(self):
