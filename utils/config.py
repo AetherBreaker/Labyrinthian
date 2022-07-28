@@ -15,7 +15,10 @@ TESTING = os.getenv("TESTING") or "test" in sys.argv
 # ENVIRONMENT = os.getenv("ENVIRONMENT", "production" if not TESTING else "development")
 OWNER_ID = os.getenv("DISCORD_OWNER_USER_ID", 0).split()
 # slash command test guilds - these only apply in development anyway, so hardcoded
-COMMAND_TEST_GUILD_IDS = [951225215801757716]  # Gamering  # Star of Helvetica
+COMMAND_TEST_GUILD_IDS = [
+    951225215801757716,  # Star of Helvetica
+    # 788527785844801549,  # the pond
+]
 # ---- mongo/redis ----
 MONGO_URL = os.getenv("MONGO_URL")
 MONGODB_SERVERDB_NAME = os.getenv("MONGODB_SERVERDB_NAME")
