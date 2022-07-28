@@ -231,7 +231,7 @@ class CharacterLog(
         if not charlist:
             await inter.send("You don't have any characters to view!", ephemeral=True)
             return
-        uprefs = await self.bot.get_user_prefs(str(inter.author.id))
+        uprefs = await self.bot.get_user_prefs(str(inter.author.id), validate=False)
         settings = await self.bot.get_server_settings(
             str(inter.guild.id), validate=False
         )
