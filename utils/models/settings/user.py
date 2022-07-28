@@ -1,11 +1,14 @@
-from typing import TYPE_CHECKING, Dict, NewType, Any
+from typing import TYPE_CHECKING, Dict, List, NewType, Any
+import typing
 
 from bson import ObjectId
+from pydantic import BaseModel
 from utils.models.settings import SettingsBaseModel
 
 
 if TYPE_CHECKING:
     ObjID = ObjectId
+    from bot import Labyrinthian
 else:
     ObjID = Any
 
@@ -27,15 +30,12 @@ class UserPreferences(SettingsBaseModel):
     autoswap: bool = True
 
     # ==== lifecycle ====
-    @classmethod
-    async def for_user(cls, mdb, user: str):
-        """Returns the user preferences for a given user."""
-        existing = await mdb.find_one("userprefs", {"user": user})
-        if existing is not None:
-            output = cls.parse_obj(existing)
-        else:
-            output = cls(user=user)
-        return output
+    @staticmethod
+    async def get_data(bot: "Labyrinthian", user: UserID):
+        data = await bot.dbcache.find_one("userprefs", {"user": user})
+        if data is None:
+            data = {"user": user}
+        return data
 
     async def commit(self, db):
         """Commits the settings to the database."""
