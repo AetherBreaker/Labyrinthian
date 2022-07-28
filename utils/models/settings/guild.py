@@ -2,8 +2,9 @@ from typing import TYPE_CHECKING, Any, List, Optional, Union
 import typing
 
 import disnake
+from utils.models import LabyrinthianBaseModel
 from utils.models.coinpurse import Coin
-from utils.models.settings import SettingsBaseModel
+
 from utils.models.settings.auction import ListingDurationsConfig, RaritiesConfig
 from utils.models.settings.charlog import XPConfig
 from utils.models.settings.coin import CoinConfig
@@ -271,7 +272,7 @@ DEFAULT_THRESHOLD = {
 }
 
 
-class ServerSettings(SettingsBaseModel):
+class ServerSettings(LabyrinthianBaseModel):
     guild: str
     dmroles: Optional[List[Union[str, int]]] = []
     classlist: List[str] = DEFAULT_CLASS_LIST

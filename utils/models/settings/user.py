@@ -3,7 +3,8 @@ import typing
 
 from bson import ObjectId
 from pydantic import BaseModel
-from utils.models.settings import SettingsBaseModel
+
+from utils.models import LabyrinthianBaseModel
 
 
 if TYPE_CHECKING:
@@ -18,12 +19,12 @@ GuildID = NewType("GuildID", str)
 CharacterName = NewType("CharacterName", str)
 
 
-class ActiveCharacter(SettingsBaseModel):
+class ActiveCharacter(LabyrinthianBaseModel):
     name: CharacterName
     id: ObjID
 
 
-class UserPreferences(SettingsBaseModel):
+class UserPreferences(LabyrinthianBaseModel):
     user: UserID
     activechar: Dict[GuildID, ActiveCharacter] = {}
     characters: Dict[GuildID, Dict[CharacterName, ObjID]] = {}
