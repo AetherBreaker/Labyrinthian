@@ -6,6 +6,7 @@ from bson import ObjectId
 
 from pydantic import AnyUrl, BaseModel, validator
 from utils.models import LabyrinthianBaseModel
+from utils.models.coinpurse import CoinPurse
 
 from utils.models.settings.guild import ServerSettings
 
@@ -27,6 +28,9 @@ URL_KEY_V1_RE = re.compile(r"key=([^&#]+)")
 URL_KEY_V2_RE = re.compile(r"/spreadsheets/d/([a-zA-Z0-9-_]+)")
 
 
+DEFAULT_PURSE = {}
+
+
 UserID = NewType("UserID", str)
 GuildID = NewType("GuildID", str)
 CharacterName = NewType("CharacterName", str)
@@ -44,6 +48,7 @@ class Character(LabyrinthianBaseModel):
     guild: GuildID
     name: CharacterName
     sheet: AnyUrl
+    coinpurse: CoinPurse
     multiclasses: Dict[str, int] = {}
     xp: int = 0
     lastlog: LastLog = LastLog()
@@ -103,23 +108,17 @@ class Character(LabyrinthianBaseModel):
             if "id" not in char or char["id"] is None:
                 char["id"] = deepcopy(char["_id"])
             char.pop("_id")
+            uprefs = await bot.get_user_prefs(char["user"])
             char = {"settings": settings, **char}
+            if "coinpurse" not in char:
+                char["coinpurse"] = {}
+            char["coinpurse"]["config"] = deepcopy(settings.coinconf)
             return char
-
-    @classmethod
-    def no_validate(cls, data):
-        typings = typing.get_type_hints(cls)
-        for field, value in data.items():
-            fieldtype = typings.get(field, None)
-            if isinstance(fieldtype, BaseModel):
-                data[field] = fieldtype(value)
-            elif hasattr(fieldtype, "from_dict"):
-                data[field] = fieldtype.from_dict(value)
-        return cls.construct(**data)
 
     async def commit(self, db):
         """Commits the settings to the database."""
         data = self.dict(exclude={"settings"})
+        data["coinpurse"] = self.coinpurse.to_dict()
         result: "UpdateResultFacade" = await db.update_one(
             "charactercollection",
             {"user": self.user, "guild": self.guild, "name": self.name},
