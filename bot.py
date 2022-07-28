@@ -83,10 +83,14 @@ class Labyrinthian(commands.Bot):
         else:
             return ServerSettings.no_validate(data)
 
-    async def get_user_prefs(self, user_id: str) -> UserPreferences:
-        if not isinstance(user_id, str):
-            user_id = str(user_id)
-        return await UserPreferences.for_user(self.dbcache, user_id)
+    async def get_user_prefs(
+        self, user_id: str, validate: bool = True
+    ) -> Optional[UserPreferences]:
+        data = await UserPreferences.get_data(self, user_id)
+        if validate:
+            return UserPreferences.parse_obj(data)
+        else:
+            return UserPreferences.no_validate(data)
 
     async def get_character(
         self, guild_id: str, user_id: str, character_name: str, validate: bool = True
