@@ -9,6 +9,7 @@ from utils.models.settings.coin import BaseCoin, CoinConfig, CoinType
 if TYPE_CHECKING:
     from settings.guild import ServerSettings
     from bot import Labyrinthian
+    from settings.user import UserPreferences
 
 
 # ==== Coin Instance ====
@@ -42,25 +43,53 @@ class Coin(int):
     def supersettings(self, value):
         self._supersettings = value
 
-    def __iadd__(self, other):
+    def __add__(self, other):
         res = super(Coin, self).__add__(other)
-        return self.__class__(max(res, 0), self.base, self.type)
+        return Coin(max(res, 0), self.base, self.type)
+
+    def __iadd__(self, other):
+        res = super(Coin, self).__iadd__(other)
+        return Coin(max(res, 0), self.base, self.type)
+
+    def __sub__(self, other):
+        res = super(Coin, self).__sub__(other)
+        return Coin(max(res, 0), self.base, self.type)
 
     def __isub__(self, other):
-        res = super(Coin, self).__sub__(other)
-        return self.__class__(max(res, 0), self.base, self.type)
+        res = super(Coin, self).__isub__(other)
+        return Coin(max(res, 0), self.base, self.type)
+
+    def __mul__(self, other):
+        res = super(Coin, self).__mul__(other)
+        return Coin(max(res, 0), self.base, self.type)
 
     def __imul__(self, other):
-        res = super(Coin, self).__mul__(other)
-        return self.__class__(max(res, 0), self.base, self.type)
+        res = super(Coin, self).__imul__(other)
+        return Coin(max(res, 0), self.base, self.type)
 
-    def __idiv__(self, other):
-        res = super(Coin, self).__div__(other)
-        return self.__class__(max(res, 0), self.base, self.type)
+    def __floordiv__(self, other):
+        res = super(Coin, self).__floordiv__(other)
+        return Coin(max(res, 0), self.base, self.type)
 
     def __ifloordiv__(self, other):
-        res = super(Coin, self).__floordiv__(other)
-        return self.__class__(max(res, 0), self.base, self.type)
+        res = super(Coin, self).__ifloordiv__(other)
+        return Coin(max(res, 0), self.base, self.type)
+
+    def __idiv__(self, other):
+        res = super(Coin, self).__idiv__(other)
+        return Coin(max(res, 0), self.base, self.type)
+
+    def __itruediv__(self, other):
+        res = super(Coin, self).__itruediv__(other)
+        return Coin(max(res, 0), self.base, self.type)
+
+    def __mod__(self, other):
+        res = super(Coin, self).__mod__(other)
+        return Coin(max(res, 0), self.base, self.type)
+
+    def __imod__(self, other):
+        res = super(Coin, self).__imod__(other)
+        return Coin(max(res, 0), self.base, self.type)
 
     def __str__(self) -> str:
         return "%d" % int(self)
@@ -199,48 +228,51 @@ class CoinPurse:
     def __init__(
         self,
         coinlist: List[Coin],
-        bot: "Labyrinthian",
         config: CoinConfig,
-        usersettings,
     ):
         self.coinlist = coinlist
         self.config = config
-        self.settings = usersettings
-        self.bot = bot
-
-    # ==== coin selection ====
-    def _match_selection(self, input):
-        pass
-
-    # ==== coin ops ====
-    def add_coins(self, input):
-        pass
-
-    def remove_coins(self, input):
-        pass
-
-    # ==== conversion helpers ====
-    pass
-
-    # ==== display ====
-    def display_contents(self):
-        pass
-
-    # ==== construction ====
-    @classmethod
-    async def for_char(cls, mdb, guild: str):
-        pass
-
-    # ==== data conversion ====
-    def _init_from_dict(self, input: Dict):
-        pass
-
-    def to_dict(self):
-        pass
 
     # ==== magic methods ====
+    def __add__(self, other: Union["CoinPurse", Coin]):
+        newlist = deepcopy(self.coinlist)
+        if isinstance(other, Coin):
+            other = [other]
+        for x in other:
+            try:
+                target = next(y for y in self.coinlist if y.type.name == x.type.name)
+
+            except StopIteration:
+                newlist.append(x)
+        return CoinPurse(newlist, self.config, self.settings, self.bot)
+
     def __str__(self):
         pass
 
     def __iter__(self):
         pass
+
+    # ==== display ====
+    def display_contents(self, uprefs: "UserPreferences"):
+        pass
+
+    # ==== data conversion ====
+    @classmethod
+    def from_dict(cls, input: Dict[str, Union[List[Coin], "CoinConfig"]]):
+        if "coinlist" not in input:
+            input["coinlist"] = [
+                Coin(0, input["config"].base, x) for x in input["config"]
+            ]
+        return CoinPurse(input["coinlist"], input["config"])
+
+    def to_dict(self):
+        return {"coinlist": [x.to_dict() for x in self.coinlist]}
+
+    # ==== pydantic jank ====
+    @classmethod
+    def __get_validators__(cls):
+        yield lambda cls, input: input if isinstance(input, CoinPurse) else (
+            CoinPurse.from_dict(input)
+            if not isinstance(cls, CoinPurse)
+            else cls.from_dict(input)
+        )
