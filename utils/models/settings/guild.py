@@ -325,11 +325,8 @@ class ServerSettings(SettingsBaseModel):
     @classmethod
     async def for_guild(cls, data):
         """Returns the server settings for a given guild."""
-        if len(data) >= 2:
-            outp = cls.parse_obj(data)
-            outp.setup_selfref()
-        else:
-            outp = cls(data)
+        outp = cls.parse_obj(data)
+        outp.setup_selfref()
         return outp
 
     def setup_selfref(self):
@@ -363,12 +360,7 @@ class ServerSettings(SettingsBaseModel):
 
     @classmethod
     def no_validate(cls, data):
-        typings = typing.get_type_hints(cls)
-        for field, value in data.items():
-            fieldtype = typings.get(field, None)
-            if hasattr(fieldtype, "from_dict"):
-                data[field] = fieldtype.from_dict(value)
-        settings = cls.construct(**data)
+        settings = super().no_validate(data)
         settings.setup_selfref()
         return settings
 
