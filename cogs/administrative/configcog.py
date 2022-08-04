@@ -3,9 +3,7 @@ from typing import TYPE_CHECKING, List
 import disnake
 from pydantic import ValidationError
 import rapidfuzz
-from cogs.characterlog.browser import create_CharSelect
 from disnake.ext import commands
-from utils import checks
 from utils.ui.logui import LogMenu
 
 from utils.ui.settingsui import SettingsNav

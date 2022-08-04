@@ -6,7 +6,6 @@ import disnake
 import inflect
 from pydantic import ValidationError
 import rapidfuzz
-from cogs.characterlog.browser import create_CharSelect
 from disnake.ext import commands
 from pymongo.results import InsertOneResult
 from utils.models.character import Character
