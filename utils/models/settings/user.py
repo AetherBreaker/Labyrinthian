@@ -42,3 +42,29 @@ class UserPreferences(LabyrinthianBaseModel):
         await db.update_one(
             "userprefs", {"user": self.user}, {"$set": data}, upsert=True
         )
+
+    async def refresh_chardat(self, bot: "Labyrinthian"):
+        chardat = (
+            await bot.sdb["charactercollection"].find({"user": self.user}).sort("guild")
+        ).to_list(None)
+        for guild in list(self.characters.keys()):
+            match = bot.get_guild(int(guild))
+            self.characters.pop(guild)
+            if not match:
+                if guild in self.activechar:
+                    self.activechar.pop(guild)
+                continue
+            self.characters[guild] = {}
+            filterfunc = lambda document: document["guild"] == guild
+            guildchars = {}
+            for character in filter(filterfunc, chardat):
+                self.characters[guild][character["name"]] = character["_id"]
+                guildchars[character["name"]] = {
+                    "name": character["name"],
+                    "id": character["_id"],
+                }
+            if self.activechar[guild].name in guildchars:
+                self.activechar[guild] = ActiveCharacter(
+                    **guildchars[self.activechar[guild].name]
+                )
+        await self.commit(bot.dbcache)
