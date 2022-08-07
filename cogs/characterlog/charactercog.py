@@ -136,16 +136,23 @@ class CharacterLog(
         ----------
         name: The name of your character.
         new_name: Your character's new name."""
-        character: "Character" = await self.bot.get_character(
+        char: "Character" = await self.bot.get_character(
             str(inter.guild.id), str(inter.author.id), name
         )
-        if character is None:
+        if char is None:
             await inter.send(f"{name} doesn't exist!", ephemeral=True)
         else:
-            character.name = new_name
-            await character.commit(self.bot.dbcache)
+            char.name = new_name
+            await char.commit(self.bot.dbcache)
             if f"{inter.guild.id}{inter.author.id}" in self.bot.charcache:
                 self.bot.charcache.pop(f"{inter.guild.id}{inter.author.id}")
+            uprefs = await self.bot.get_user_prefs(str(inter.author.id))
+            if uprefs.activechar[str(inter.guild.id)].name == name:
+                uprefs.activechar[str(inter.guild.id)].name = new_name
+            uprefs.characters[str(inter.guild.id)][new_name] = uprefs.characters[
+                str(inter.guild.id)
+            ].pop(name)
+            uprefs.commit(self.bot.dbcache)
             await inter.send(f"{name}'s name changed to {new_name}")
             settings = await self.bot.get_server_settings(
                 str(inter.guild.id), validate=False
