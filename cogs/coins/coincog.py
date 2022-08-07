@@ -5,7 +5,7 @@ from disnake.ext import commands
 import rapidfuzz
 from utils.functions import search
 
-from utils.models.coinpurse import Coin
+from utils.models.coinpurse import Coin, CoinPurse
 
 
 if TYPE_CHECKING:
@@ -25,10 +25,21 @@ class CoinsCog(commands.Cog):
     # ==== sub commands ====
     @coins.sub_command()
     async def mod(self, inter: disnake.ApplicationCommandInteraction, input: str):
-        try:
-            coin = await self.process_to_coin(str(inter.guild.id), input)
-        except StopIteration:
-            await inter.send("No matching currency type found", ephemeral=True)
+        amount = await self.process_to_coinpurse(str(inter.guild.id), input)
+        if len(amount) == 0:
+            await inter.send("No matching currency types found", ephemeral=True)
+            return
+        uprefs = await self.bot.get_user_prefs(str(inter.author.id), validate=False)
+        if not str(inter.guild.id) in uprefs.activechar:
+            await inter.send("You have no active character!", ephemeral=True)
+            return
+        char = await self.bot.get_char_by_oid(uprefs.activechar[str(inter.guild.id)].id)
+        print(amount.baseval)
+        if amount.baseval < 0 and abs(amount.baseval) > char.coinpurse.baseval:
+            await inter.send("You don't have enough money for that!", ephemeral=True)
+            return
+        char.coinpurse = char.coinpurse + amount
+        await char.commit(self.bot.dbcache)
 
     @coins.sub_command()
     async def pay(self, inter: disnake.ApplicationCommandInteraction):
@@ -49,25 +60,25 @@ class CoinsCog(commands.Cog):
         result = []
         items = re.split(r"[^a-zA-Z0-9'-]", input)
         for x in items:
-        cointypematch = rapidfuzz.process.extract(
+            cointypematch = rapidfuzz.process.extract(
                 re.sub(r"[0-9]", "", x),
                 [x.name for x in settings.coinconf]
                 + [x.prefix for x in settings.coinconf],
-            limit=8,
-        )
+                limit=8,
+            )
             try:
                 result.append(
                     Coin(
                         int(re.sub(r"[^0-9\-]", "", x)),
-            settings.coinconf.base,
-            next(
-                x
-                for x in settings.coinconf
+                        settings.coinconf.base,
+                        next(
+                            x
+                            for x in settings.coinconf
                             if x.name == cointypematch[0][0]
                             or x.prefix == cointypematch[0][0]
-            ),
-            settings,
-        )
+                        ),
+                        settings,
+                    )
                 )
             except StopIteration:
                 continue

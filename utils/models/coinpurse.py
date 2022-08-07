@@ -1,4 +1,5 @@
 from copy import deepcopy
+from math import ceil
 from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 import inflect
@@ -237,12 +238,120 @@ class CoinPurse:
     def __len__(self):
         return self.coinlist.__len__()
 
+    def __str__(self):
+        pass
+
+    def __iter__(self):
+        for x in self.coinlist:
+            yield x
+
+    def __add__(self, other: Union["CoinPurse", Coin, List[Coin]]):
         newlist = deepcopy(self.coinlist)
         if isinstance(other, Coin):
             other = [other]
-        for x in other:
+        newlist = self.add_coin(newlist, other.coinlist)
+        return CoinPurse(newlist, self.config)
+
+    # ==== helpers ====
+    def add_coin(
+        self, coinlist: List[Coin], other: Union["CoinPurse", Coin, List[Coin]]
+    ):
+        # print("start of add")
+        # print("coinlist = " + "\n\t".join(x.prefixed_count for x in coinlist) + "\n")
+        # print(
+        #     "other = "
+        #     + "\n\t".join(
+        #         x.prefixed_count
+        #         for x in (other if isinstance(other, List) else [other])
+        #     )
+        #     + "\n\n"
+        # )
+        for y, x in enumerate(other):
+            if x == 0:
+                continue
             try:
-                target = next(y for y in self.coinlist if y.type.name == x.type.name)
+                targetindex = next(
+                    y for y, z in enumerate(coinlist) if z.type.name == x.type.name
+                )
+            except StopIteration:
+                coinlist.append(x)
+                coinlist = sorted(
+                    coinlist, key=lambda i: (i.type.rate, i.type.name, i.type.prefix, i)
+                )
+                continue
+            if x < 0:
+                subbed = self.sub_coin(coinlist, x, targetindex)
+                coinlist = sorted(
+                    subbed,
+                    key=lambda i: (i.type.rate, i.type.name, i.type.prefix, i),
+                )
+            elif x > 0:
+                coinlist[targetindex] += x
+                other[y] -= x
+        for x in other:
+            if x == 0:
+                other.remove(x)
+        # print("end of add")
+        # print("coinlist = " + "\n\t".join(x.prefixed_count for x in coinlist) + "\n")
+        # print(
+        #     "other = "
+        #     + "\n\t".join(
+        #         x.prefixed_count
+        #         for x in (other if isinstance(other, List) else [other])
+        #     )
+        #     + "\n\n"
+        # )
+        return coinlist
+
+    def sub_coin(self, coinlist: List[Coin], other: Coin, targetindex: int):
+        # print("start of subtract")
+        # print("coinlist = " + "\n\t".join(x.prefixed_count for x in coinlist) + "\n")
+        # print(
+        #     "other = "
+        #     + "\n\t".join(
+        #         x.prefixed_count
+        #         for x in (other if isinstance(other, List) else [other])
+        #     )
+        #     + "\n\n"
+        # )
+        while coinlist[targetindex] > 0 and other < 0:
+            if coinlist[targetindex] >= abs(other):
+                coinlist[targetindex] += other
+                thevalue = abs(other)
+                other += abs(other)
+            elif coinlist[targetindex] < abs(other):
+                other += coinlist[targetindex]
+                thevalue = abs(coinlist[targetindex])
+                coinlist[targetindex] -= coinlist[targetindex]
+            else:
+                coinlist[targetindex] -= 1
+                other += 1
+                thevalue = 1
+            print(
+                f"coinlist[targetindex] = {coinlist[targetindex].prefixed_count}-{thevalue}\n"
+            )
+            print(f"other = {other.prefixed_count}+{thevalue}\n")
+        if other > -1:
+            return coinlist
+        thievery = next(
+            x for x, y in reversed(list(enumerate(coinlist[:targetindex]))) if y > 0
+        )
+        x = (1 / coinlist[thievery].type.rate) * other.type.rate
+        amt = ceil(abs(other) / x)
+        otherlist = [
+            other,
+            Coin(int(amt * x), self.config.base, other.type),
+            Coin(-int(amt), self.config.base, coinlist[thievery].type),
+        ]
+        otherlist = sorted(
+            otherlist,
+            key=lambda i: (i, i.type.rate, i.type.name, i.type.prefix),
+            reverse=True,
+        )
+        # print("end of subtract")
+        # print("coinlist = " + "\n\t".join(x.prefixed_count for x in coinlist) + "\n")
+        # print("other = " + "\n\t".join(x.prefixed_count for x in otherlist) + "\n\n")
+        return self.add_coin(coinlist, otherlist)
 
         # Checks that the coinpurse only contains cointypes listed in the coinconfig
         # any invalid cointypes are converted to valid currency types, readded to
