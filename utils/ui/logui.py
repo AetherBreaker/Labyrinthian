@@ -1,21 +1,18 @@
 import abc
 import asyncio
-from dis import dis
 from typing import TYPE_CHECKING
 
 import disnake
 import inflect
 from utils.models.errors import FormTimeoutError
-
 from utils.ui.menu import MenuBase
-
 
 if TYPE_CHECKING:
     from bot import Labyrinthian
-    from utils.models.settings.user import UserPreferences
-    from utils.models.xplog import XPLogBook
     from utils.models.character import Character
     from utils.models.settings.guild import ServerSettings
+    from utils.models.settings.user import UserPreferences
+    from utils.models.xplog import XPLogBook
 
 
 class LogMenuBase(MenuBase, abc.ABC):

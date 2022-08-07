@@ -1,8 +1,7 @@
 import asyncio
-import disnake
-from disnake.ext import commands
-from utils.models.errors import FormTimeoutError
 
+import disnake
+from utils.models.errors import FormTimeoutError
 from utils.ui.menu import MenuBase
 
 

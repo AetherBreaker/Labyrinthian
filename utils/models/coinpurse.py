@@ -3,14 +3,12 @@ from math import ceil
 from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 import inflect
-
 from utils.models.settings.coin import BaseCoin, CoinType
-
 
 if TYPE_CHECKING:
     from utils.models.settings.coin import CoinConfig
+
     from settings.guild import ServerSettings
-    from bot import Labyrinthian
     from settings.user import UserPreferences
 
 

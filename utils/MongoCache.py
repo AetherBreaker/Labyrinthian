@@ -17,11 +17,9 @@ from typing import (
 )
 
 import cachetools
-import yaml
 from bson.objectid import ObjectId
 from bson.raw_bson import RawBSONDocument
-from pymongo.results import DeleteResult, InsertOneResult, UpdateResult
-
+from pymongo.results import InsertOneResult, UpdateResult
 
 if TYPE_CHECKING:
     from bot import Labyrinthian

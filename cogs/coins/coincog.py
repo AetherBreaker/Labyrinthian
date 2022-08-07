@@ -1,12 +1,10 @@
 import re
 from typing import TYPE_CHECKING
+
 import disnake
-from disnake.ext import commands
 import rapidfuzz
-from utils.functions import search
-
+from disnake.ext import commands
 from utils.models.coinpurse import Coin, CoinPurse
-
 
 if TYPE_CHECKING:
     from bot import Labyrinthian

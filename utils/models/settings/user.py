@@ -1,11 +1,7 @@
-from typing import TYPE_CHECKING, Dict, List, NewType, Any
-import typing
+from typing import TYPE_CHECKING, Any, Dict, NewType, Optional
 
 from bson import ObjectId
-from pydantic import BaseModel
-
 from utils.models import LabyrinthianBaseModel
-
 
 if TYPE_CHECKING:
     ObjID = ObjectId

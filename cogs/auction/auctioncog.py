@@ -8,9 +8,7 @@ from cogs.auction.auction_constructor import ListingConst
 from cogs.auction.auction_listing import ListingActionRow
 from cogs.auction.handlers import AuctionHandler, ListingHandler
 from disnake.ext import commands
-
 from utils.models.errors import FormTimeoutError
-
 
 if TYPE_CHECKING:
     from bot import Labyrinthian

@@ -1,14 +1,14 @@
 from typing import TYPE_CHECKING, Dict, NewType
-import disnake
-from disnake.ext import commands
-import inflect
 
+import disnake
+import inflect
+from disnake.ext import commands
 
 if TYPE_CHECKING:
     from bot import Labyrinthian
-    from utils.models.settings.user import ActiveCharacter
-    from utils.models.settings.guild import ServerSettings
     from utils.models.character import Character
+    from utils.models.settings.guild import ServerSettings
+    from utils.models.settings.user import ActiveCharacter
 
 
 UserID = NewType("UserID", str)

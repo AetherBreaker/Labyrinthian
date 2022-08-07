@@ -1,10 +1,6 @@
-from typing import TYPE_CHECKING, Dict, List, Union
-
-if TYPE_CHECKING:
-    from .guild import ServerSettings
+from typing import Dict, List, Union
 
 
-# ==== Settings Classes ====
 class CoinType:
     def __init__(
         self, name: str, prefix: str, rate: Union[float, int], emoji: str = None

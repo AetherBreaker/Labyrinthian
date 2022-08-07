@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
+
 import disnake
 from disnake.ext import commands
-
 
 if TYPE_CHECKING:
     from bot import Labyrinthian

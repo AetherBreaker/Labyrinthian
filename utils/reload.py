@@ -1,8 +1,8 @@
 import importlib.util
 import logging
 import os
-import typing as t
 import sys
+import typing as t
 from dataclasses import dataclass, field
 from types import ModuleType
 

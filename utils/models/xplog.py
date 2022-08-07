@@ -1,10 +1,8 @@
 import math
-import traceback
 from typing import TYPE_CHECKING, Any, Generator, List, NewType, Tuple
 
 from bson import ObjectId
 from utils.models import LabyrinthianBaseModel
-
 
 if TYPE_CHECKING:
     ObjID = ObjectId

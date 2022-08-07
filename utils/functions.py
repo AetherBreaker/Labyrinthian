@@ -3,15 +3,15 @@ Created on Oct 29, 2016
 @author: andrew
 """
 import asyncio
-from contextlib import suppress
 import math
 import random
 import re
-from typing import Any, Callable, List, TypeVar, Optional, Union
-from disnake.ext import commands
+from contextlib import suppress
+from typing import Any, Callable, List, Optional, TypeVar, Union
+
 import disnake
 import emoji
-
+from disnake.ext import commands
 from rapidfuzz import fuzz, process
 
 from utils.models.errors import (

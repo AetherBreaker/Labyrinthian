@@ -1,27 +1,23 @@
 import asyncio
-import traceback
 from contextlib import suppress
 from dataclasses import dataclass
 from datetime import timedelta
 from random import randint
-from typing import TYPE_CHECKING, Dict, List, NoReturn, Optional, TypeVar
+from typing import TYPE_CHECKING, Dict, List, NoReturn, Optional
 
 import disnake
 from cogs.auction.auction_listing import ListingActionRow
 from pymongo.results import InsertOneResult
 from utils.functions import timedeltaplus
-
 from utils.models.errors import (
     FormTimeoutError,
     IntegerConversionError,
     PriceTooLowError,
 )
 
-
 if TYPE_CHECKING:
     from bot import Labyrinthian
     from utils.models.settings.auction import ListingDurationsConfig
-    from utils.models.coinpurse import Coin
 
 
 TOO_MANY_CHARACTERS_SENTINEL = "__special:too_many_characters"

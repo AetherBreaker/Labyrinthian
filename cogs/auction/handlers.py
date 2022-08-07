@@ -3,9 +3,7 @@ from datetime import timezone
 from typing import TYPE_CHECKING, Any, Dict
 
 import disnake
-
 from utils.models.errors import IntegerConversionError
-
 
 if TYPE_CHECKING:
     from bot import Labyrinthian

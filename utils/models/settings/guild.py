@@ -1,10 +1,8 @@
-from typing import TYPE_CHECKING, Any, List, Optional, Union
-import typing
+from typing import TYPE_CHECKING, List, Optional, Union
 
 import disnake
 from utils.models import LabyrinthianBaseModel
 from utils.models.coinpurse import Coin
-
 from utils.models.settings.auction import ListingDurationsConfig, RaritiesConfig
 from utils.models.settings.charlog import XPConfig
 from utils.models.settings.coin import CoinConfig

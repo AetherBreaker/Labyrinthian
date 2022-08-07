@@ -1,19 +1,18 @@
 from copy import deepcopy
 from time import time
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import TYPE_CHECKING, List
 
 import disnake
 import inflect
-from pydantic import ValidationError
 import rapidfuzz
 from disnake.ext import commands
+from pydantic import ValidationError
 from pymongo.results import InsertOneResult
 from utils.models.character import Character
 from utils.models.coinpurse import CoinPurse
 from utils.models.settings.user import ActiveCharacter
 from utils.models.xplog import XPLogEntry
 from utils.ui.logui import LogMenu
-
 
 if TYPE_CHECKING:
     from bot import Labyrinthian

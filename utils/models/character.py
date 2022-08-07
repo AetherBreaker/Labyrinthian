@@ -1,19 +1,18 @@
-from copy import deepcopy
 import re
+from copy import deepcopy
 from typing import TYPE_CHECKING, Any, Dict, NewType, Optional
+
 from bson import ObjectId
 from pydantic import AnyUrl, validator
 from utils.models import LabyrinthianBaseModel
 from utils.models.coinpurse import CoinPurse
 from utils.models.settings.guild import ServerSettings
 
-
 if TYPE_CHECKING:
     ObjID = ObjectId
     from bot import Labyrinthian
-    from utils.MongoCache import UpdateResultFacade
     from utils.models.settings.user import UserPreferences
-    from utils.MongoCache import MongoCache
+    from utils.MongoCache import MongoCache, UpdateResultFacade
 else:
     ObjID = Any
 

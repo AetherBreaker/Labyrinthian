@@ -1,18 +1,16 @@
 from typing import TYPE_CHECKING, List
 
 import disnake
-from pydantic import ValidationError
 import rapidfuzz
 from disnake.ext import commands
+from pydantic import ValidationError
 from utils.ui.logui import LogMenu
-
 from utils.ui.settingsui import SettingsNav
-
 
 if TYPE_CHECKING:
     from bot import Labyrinthian
-    from utils.models.settings.user import UserPreferences
     from utils.models.character import Character
+    from utils.models.settings.user import UserPreferences
 
 
 class Configs(commands.Cog):

@@ -2,7 +2,6 @@ from typing import Dict, List, Union
 
 from utils.models.errors import IntegerConversionError, LabyrinthianException
 
-
 DEFAULT_XP_TEMPLATE = {
     "1": 0,
     "2": 1,

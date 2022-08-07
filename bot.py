@@ -1,22 +1,22 @@
 import asyncio
-from copy import deepcopy
 import logging
 import os
 import traceback
+from copy import deepcopy
 from typing import Optional, Union
-from bson import ObjectId
 
 import disnake
 import motor.motor_asyncio
 from aiohttp import ClientOSError, ClientResponseError
+from bson import ObjectId
 from disnake.errors import Forbidden, HTTPException, InvalidData, NotFound
 from disnake.ext import commands
 from disnake.ext.commands.errors import CommandInvokeError
 
 from cogs.auction.auction_constructor import ConstSender
 from utils import MongoCache, config
-from utils.models.errors import LabyrinthianException, MissingCharacterDataError
 from utils.models.character import Character
+from utils.models.errors import LabyrinthianException, MissingCharacterDataError
 from utils.models.settings.guild import ServerSettings
 from utils.models.settings.user import UserPreferences
 from utils.models.xplog import XPLogBook
