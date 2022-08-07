@@ -99,7 +99,7 @@ class Coin(int):
         return f"Coin(count={int(self)}, base={self.base!r}, type={self.type!r}, isbase={self.isbase!r})"
 
     def __deepcopy__(self, _):
-        return Coin(self, self.type, self.base)
+        return Coin(self, self.base, self.type)
 
     @property
     def prefixed_count(self):
