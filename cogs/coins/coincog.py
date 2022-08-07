@@ -35,8 +35,11 @@ class CoinsCog(commands.Cog):
         pass
 
     @coins.sub_command()
-    async def set(self, inter: disnake.ApplicationCommandInteraction):
-        pass
+    async def set(self, inter: disnake.ApplicationCommandInteraction, input: str):
+        amount = await self.process_to_coinpurse(str(inter.guild.id), input)
+        if len(amount) == 0:
+            await inter.send("No matching currency types found", ephemeral=True)
+        await inter.send(f"amount={amount.coinlist}")
 
     # ==== helpers ====
     async def process_to_coinpurse(self, guild_id: str, input: str):
