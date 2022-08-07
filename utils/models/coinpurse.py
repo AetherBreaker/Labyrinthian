@@ -249,6 +249,14 @@ class CoinPurse:
     def verify_all(self):
         pass
 
+
+    @property
+    def baseval(self) -> float:
+        total = 0.0
+        for x in self.coinlist:
+            total += x / x.type.rate
+        return total
+
     @property
     def tempdisplay(self):
         return "\n".join([f"{x.prefixed_count}" for x in self.coinlist])
