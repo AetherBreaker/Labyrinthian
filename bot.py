@@ -122,7 +122,7 @@ bot = Labyrinthian(
     prefix="'",
     testing=config.TESTING,
     intents=intents,
-    reload=True if config.TESTING_VAR == "True" else False,
+    reload=True if config.TESTING else False,
 )
 
 
