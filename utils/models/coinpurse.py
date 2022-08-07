@@ -263,6 +263,8 @@ class CoinPurse:
             input["coinlist"] = [
                 Coin(0, input["config"].base, x) for x in input["config"]
             ]
+        else:
+            input["coinlist"] = [Coin.from_dict(x) for x in input["coinlist"]]
         return CoinPurse(input["coinlist"], input["config"])
 
     def to_dict(self):
