@@ -22,7 +22,7 @@ class ActiveCharacter(LabyrinthianBaseModel):
 
 class UserPreferences(LabyrinthianBaseModel):
     user: UserID
-    activechar: Dict[GuildID, ActiveCharacter] = {}
+    activechar: Dict[GuildID, Optional[ActiveCharacter]] = {}
     characters: Dict[GuildID, Dict[CharacterName, ObjID]] = {}
     autoswap: bool = True
 
