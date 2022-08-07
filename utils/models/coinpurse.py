@@ -60,13 +60,13 @@ class Coin(int):
         res = super(Coin, self).__sub__(other)
         return Coin(res, self.base, self.type)
 
-    def __mul__(self, other):
-        res = super(Coin, self).__mul__(other)
-        return Coin(max(res, 0), self.base, self.type)
+    # def __mul__(self, other):
+    #     res = super(Coin, self).__mul__(other)
+    #     return Coin(res, self.base, self.type)
 
-    def __imul__(self, other):
-        res = super(Coin, self).__imul__(other)
-        return Coin(max(res, 0), self.base, self.type)
+    # def __imul__(self, other):
+    #     res = super(Coin, self).__imul__(other)
+    #     return Coin(res, self.base, self.type)
 
     def __floordiv__(self, other):
         res = super(Coin, self).__floordiv__(other)
