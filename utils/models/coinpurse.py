@@ -3,10 +3,11 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 import inflect
 
-from utils.models.settings.coin import BaseCoin, CoinConfig, CoinType
+from utils.models.settings.coin import BaseCoin, CoinType
 
 
 if TYPE_CHECKING:
+    from utils.models.settings.coin import CoinConfig
     from settings.guild import ServerSettings
     from bot import Labyrinthian
     from settings.user import UserPreferences
@@ -17,7 +18,7 @@ class Coin(int):
     def __new__(
         cls,
         count: Union[int, str],
-        base: BaseCoin,
+        base: "BaseCoin",
         type: Optional[CoinType] = None,
         supersettings: Optional["ServerSettings"] = None,
     ):
@@ -26,7 +27,7 @@ class Coin(int):
     def __init__(
         self,
         count: int,
-        base: BaseCoin,
+        base: "BaseCoin",
         type: Optional[CoinType] = None,
         supersettings: Optional["ServerSettings"] = None,
     ):
@@ -118,7 +119,7 @@ class Coin(int):
     def valuestr(self) -> str:
         return f"{self / self.type.rate} {self.base.prefix}"
 
-    def update_types(self, coinconf: CoinConfig = None) -> bool:
+    def update_types(self, coinconf: "CoinConfig" = None) -> bool:
         """Check if these coins types are outdated, if so, update them.
         Converts itself to a BaseCoin type if its original type cannot be found.
 
@@ -187,7 +188,7 @@ class Coin(int):
         self.rate_conversion(self.base)
         return True
 
-    def rate_conversion(self, type: CoinType):
+    def rate_conversion(self, type: "CoinType"):
         if type.rate == self.type.rate:
             self.type = deepcopy(type)
             return
@@ -228,7 +229,7 @@ class CoinPurse:
     def __init__(
         self,
         coinlist: List[Coin],
-        config: CoinConfig,
+        config: "CoinConfig",
     ):
         self.coinlist = coinlist
         self.config = config
