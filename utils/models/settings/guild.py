@@ -324,7 +324,7 @@ class ServerSettings(LabyrinthianBaseModel):
         return data
 
     @classmethod
-    async def for_guild(cls, data):
+    def for_guild(cls, data):
         """Returns the server settings for a given guild."""
         outp = cls.parse_obj(data)
         outp.setup_selfref()
