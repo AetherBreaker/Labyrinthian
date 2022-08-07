@@ -109,7 +109,9 @@ class Character(LabyrinthianBaseModel):
             uprefs = await bot.get_user_prefs(char["user"])
             char = {"settings": settings, **char}
             if "coinpurse" not in char:
-                char["coinpurse"] = {}
+                char["coinpurse"] = {
+                    "coinlist": settings.coinconf.create_empty_coinlist()
+                }
             char["coinpurse"]["config"] = deepcopy(settings.coinconf)
             return char
 
@@ -118,12 +120,12 @@ class Character(LabyrinthianBaseModel):
         data = self.dict(exclude={"settings"})
         data["coinpurse"] = self.coinpurse.to_dict()
         if self.id:
-        result: "UpdateResultFacade" = await db.update_one(
-            "charactercollection",
+            result: "UpdateResultFacade" = await db.update_one(
+                "charactercollection",
                 {"_id": self.id},
-            {"$set": data},
-            upsert=True,
-        )
+                {"$set": data},
+                upsert=True,
+            )
         else:
             result = await db.insert_one("charactercollection", data)
         return result
