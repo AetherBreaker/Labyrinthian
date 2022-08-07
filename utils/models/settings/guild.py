@@ -319,9 +319,11 @@ class ServerSettings(LabyrinthianBaseModel):
     @staticmethod
     async def get_data(bot: "Labyrinthian", guild: str):
         data = await bot.dbcache.find_one("srvconf", {"guild": guild})
+        wasnone = False
         if data is None:
+            wasnone = True
             data = {"guild": guild}
-        return data
+        return (data, wasnone)
 
     @classmethod
     def for_guild(cls, data):
