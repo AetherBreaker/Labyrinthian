@@ -32,7 +32,6 @@ class CoinsCog(commands.Cog):
             await inter.send("You have no active character!", ephemeral=True)
             return
         char = await self.bot.get_char_by_oid(uprefs.activechar[str(inter.guild.id)].id)
-        print(amount.baseval)
         if amount.baseval < 0 and abs(amount.baseval) > char.coinpurse.baseval:
             await inter.send("You don't have enough money for that!", ephemeral=True)
             return
