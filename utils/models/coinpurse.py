@@ -234,7 +234,9 @@ class CoinPurse:
         self.config = config
 
     # ==== magic methods ====
-    def __add__(self, other: Union["CoinPurse", Coin]):
+    def __len__(self):
+        return self.coinlist.__len__()
+
         newlist = deepcopy(self.coinlist)
         if isinstance(other, Coin):
             other = [other]
