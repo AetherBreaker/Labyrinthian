@@ -79,16 +79,25 @@ class Labyrinthian(commands.Bot):
     async def get_server_settings(
         self, guild_id: str, validate: bool = True
     ) -> ServerSettings:
-        data = await ServerSettings.get_data(self, guild_id)
+        data, wasnone = await ServerSettings.get_data(self, guild_id)
+        if wasnone:
+            settings = ServerSettings.for_guild(data)
+            await settings.commit(self.dbcache)
+            data = settings.dict()
         if validate:
-            return await ServerSettings.for_guild(data)
+            return ServerSettings.for_guild(data)
         else:
             return ServerSettings.no_validate(data)
 
     async def get_user_prefs(
         self, user_id: str, validate: bool = True
     ) -> Optional[UserPreferences]:
-        data = await UserPreferences.get_data(self, user_id)
+        data, wasnone = await UserPreferences.get_data(self, user_id)
+        if wasnone:
+
+            uprefs = UserPreferences(**data)
+            await uprefs.commit(self.dbcache)
+            data = uprefs.dict()
         if validate:
             return UserPreferences.parse_obj(data)
         else:
