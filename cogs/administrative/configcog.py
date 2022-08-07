@@ -51,7 +51,7 @@ class Configs(commands.Cog):
                 f"User {user.name} doesn't have any characters to view!", ephemeral=True
             )
             return
-        uprefs = await self.bot.get_user_prefs(str(inter.author.id))
+        uprefs = await self.bot.get_user_prefs(str(user.id))
         settings = await self.bot.get_server_settings(
             str(inter.guild.id), validate=False
         )

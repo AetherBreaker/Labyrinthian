@@ -162,7 +162,7 @@ class LogMenu(LogMenuBase):
     async def refresh_chardat(self, name):
         self.selval = name
         self.char = await self.bot.get_character(
-            str(self.guild.id), str(self.owner.id), self.selval, validate=False
+            str(self.guild.id), self.uprefs.user, self.selval, validate=False
         )
         if self.char:
             self.log = await self.bot.get_character_xplog(self.char.id)
