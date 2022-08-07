@@ -21,7 +21,7 @@ from utils.models.settings.guild import ServerSettings
 from utils.models.settings.user import UserPreferences
 from utils.models.xplog import XPLogBook
 
-if config.TESTING_VAR == "True":
+if config.TESTING:
     import sys
 
     sys.dont_write_bytecode = True
@@ -69,7 +69,9 @@ class Labyrinthian(commands.Bot):
         # databases
         self.mclient = motor.motor_asyncio.AsyncIOMotorClient(config.MONGO_URL)
         self.sdb: motor.motor_asyncio.AsyncIOMotorDatabase = self.mclient[
-            config.MONGODB_SERVERDB_NAME
+            config.MONGODB_TESTINGDB_NAME
+            if config.TESTING
+            else config.MONGODB_SERVERDB_NAME
         ]
         self.dbcache = MongoCache.MongoCache(self, cwd, maxsize=50, ttl=30)
         self.charcache = MongoCache.CharlistCache(self, maxsize=50, ttl=30)
