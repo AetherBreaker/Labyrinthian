@@ -39,27 +39,37 @@ class CoinsCog(commands.Cog):
         pass
 
     # ==== helpers ====
-    async def process_to_coin(self, guild_id: str, input: str):
+    async def process_to_coinpurse(self, guild_id: str, input: str):
         settings: "ServerSettings" = await self.bot.get_server_settings(
             guild_id, validate=False
         )
+        result = []
+        items = re.split(r"[^a-zA-Z0-9'-]", input)
+        for x in items:
         cointypematch = rapidfuzz.process.extract(
-            re.sub(r"[0-9]", "", input.strip()),
-            [x.name for x in settings.coinconf] + [x.prefix for x in settings.coinconf],
+                re.sub(r"[0-9]", "", x),
+                [x.name for x in settings.coinconf]
+                + [x.prefix for x in settings.coinconf],
             limit=8,
         )
-        print(cointypematch)
-        output = Coin(
-            int(re.sub(r"[^0-9\-]", "", input)),
+            try:
+                result.append(
+                    Coin(
+                        int(re.sub(r"[^0-9\-]", "", x)),
             settings.coinconf.base,
             next(
                 x
                 for x in settings.coinconf
-                if x.name == cointypematch[0][0] or x.prefix == cointypematch[0][0]
+                            if x.name == cointypematch[0][0]
+                            or x.prefix == cointypematch[0][0]
             ),
             settings,
         )
-        return output
+                )
+            except StopIteration:
+                continue
+        result = sorted(result, key=lambda i: (i.type.rate, i.type.name, i.type.prefix))
+        return CoinPurse(result, settings.coinconf)
 
 
 def setup(bot: "Labyrinthian"):
