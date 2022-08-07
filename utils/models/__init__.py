@@ -12,7 +12,13 @@ class LabyrinthianBaseModel(BaseModel):
             container_type = typing.get_origin(field.outer_type_) or field.outer_type_
             # Get converter...
             convert: typing.Callable[[typing.Any], typing.Any]
-            if inspect.isclass(field_type) and issubclass(field_type, BaseModel):
+            try:
+                isinitialized = isinstance(value, BaseModel)
+            except TypeError:
+                isinitialized = False
+            if isinitialized:  # Check if value has already been initialized.
+                convert = lambda obj: obj  # Return input unmodified.
+            elif inspect.isclass(field_type) and issubclass(field_type, BaseModel):
                 convert = field_type.parse_obj
             elif hasattr(field_type, "from_dict"):
                 convert = field_type.from_dict
