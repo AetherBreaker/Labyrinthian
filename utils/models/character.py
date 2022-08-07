@@ -117,12 +117,15 @@ class Character(LabyrinthianBaseModel):
         """Commits the settings to the database."""
         data = self.dict(exclude={"settings"})
         data["coinpurse"] = self.coinpurse.to_dict()
+        if self.id:
         result: "UpdateResultFacade" = await db.update_one(
             "charactercollection",
-            {"user": self.user, "guild": self.guild, "name": self.name},
+                {"_id": self.id},
             {"$set": data},
             upsert=True,
         )
+        else:
+            result = await db.insert_one("charactercollection", data)
         return result
 
     async def archive(self, bot: "Labyrinthian", uprefs: "UserPreferences"):
