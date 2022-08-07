@@ -15,7 +15,7 @@ from disnake.ext.commands.errors import CommandInvokeError
 
 from cogs.auction.auction_constructor import ConstSender
 from utils import MongoCache, config
-from utils.models.errors import LabyrinthianException
+from utils.models.errors import LabyrinthianException, MissingCharacterDataError
 from utils.models.character import Character
 from utils.models.settings.guild import ServerSettings
 from utils.models.settings.user import UserPreferences
@@ -109,6 +109,8 @@ class Labyrinthian(commands.Bot):
         data = await Character.get_data(
             self, {"user": user_id, "guild": guild_id, "name": character_name}
         )
+        if data is None:
+            raise MissingCharacterDataError()
         if validate:
             return Character.parse_obj(data)
         else:
@@ -118,6 +120,8 @@ class Labyrinthian(commands.Bot):
         self, oid: ObjectId, validate: bool = True
     ) -> Optional[Character]:
         data = await Character.get_data(self, {"_id": oid})
+        if data is None:
+            raise MissingCharacterDataError()
         if validate:
             return Character.parse_obj(data)
         else:
