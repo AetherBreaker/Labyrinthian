@@ -346,15 +346,19 @@ class ServerSettings(LabyrinthianBaseModel):
             elif hasattr(x, "update_types") and callable(x.update_types):
                 x.update_types()
 
-    async def commit(self, db):
-        """Commits the settings to the database."""
-        self.run_updates()
-        data = self.dict()
+    def dict(self, *args, **kwargs):
+        data = super().dict()
         data["xptemplate"] = self.xptemplate.to_dict()
         data["coinconf"] = self.coinconf.to_dict()
         data["listingdurs"] = self.listingdurs.to_dict()
         data["rarities"] = self.rarities.to_dict()
         data["outbidthreshold"] = self.outbidthreshold.to_dict()
+        return data
+
+    async def commit(self, db):
+        """Commits the settings to the database."""
+        self.run_updates()
+        data = self.dict()
         await db.update_one(
             "srvconf", {"guild": self.guild}, {"$set": data}, upsert=True
         )
