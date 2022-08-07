@@ -136,7 +136,10 @@ class Character(LabyrinthianBaseModel):
         result = await bot.dbcache.delete_one("charactercollection", {"_id": self.id})
         if result is None:
             await bot.dbcache.delete_one("charactercollection", {"id": self.id})
-        if self.guild in uprefs.activechar:
+        if (
+            uprefs.activechar[self.guild].name == self.name
+            or uprefs.activechar[self.guild].id == self.id
+        ):
             uprefs.activechar.pop(self.guild)
         if self.name in uprefs.characters[self.guild]:
             uprefs.characters[self.guild].pop(self.name)
