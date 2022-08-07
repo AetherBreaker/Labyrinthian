@@ -249,8 +249,9 @@ class CoinPurse:
     def verify_all(self):
         pass
 
-    def __iter__(self):
-        pass
+    @property
+    def tempdisplay(self):
+        return "\n".join([f"{x.prefixed_count}" for x in self.coinlist])
 
     def display_contents(self, uprefs: "UserPreferences"):
         pass
