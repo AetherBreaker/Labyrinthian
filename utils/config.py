@@ -5,13 +5,13 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ==== bot config constants / env vars ====
-TESTING_VAR = os.getenv("TESTING_VAR")
+TESTING = os.getenv("TESTING") == "True" or "test" in sys.argv
 TOKEN = (
     os.getenv("LABYRINTHIAN_DOT_DEV_TOKEN")
-    if TESTING_VAR == "True"
+    if TESTING
     else os.getenv("LABYRINTHIAN_TOKEN")
 )
-TESTING = os.getenv("TESTING") or "test" in sys.argv
+
 # ENVIRONMENT = os.getenv("ENVIRONMENT", "production" if not TESTING else "development")
 OWNER_ID = os.getenv("DISCORD_OWNER_USER_ID", 0).split()
 # slash command test guilds - these only apply in development anyway, so hardcoded
@@ -22,6 +22,7 @@ COMMAND_TEST_GUILD_IDS = [
 # ---- mongo/redis ----
 MONGO_URL = os.getenv("MONGO_URL")
 MONGODB_SERVERDB_NAME = os.getenv("MONGODB_SERVERDB_NAME")
+MONGODB_TESTINGDB_NAME = os.getenv("MONGODB_TESTINGDB_NAME")
 
 # ---- user ----
 DEFAULT_PREFIX = os.getenv("DEFAULT_PREFIX", "!")
