@@ -240,36 +240,38 @@ async def on_slash_command_error(inter: disnake.Interaction, error):
 
 @bot.event
 async def on_error(event: str, *args, **kwargs):
-    for arg in args:
-        if isinstance(arg, disnake.Interaction):
-            traceback.print_exc()
-            await arg.author.send(f"```py\n{traceback.format_exc()}```")
-        elif isinstance(arg, commands.Context):
-            traceback.print_exc()
-            await arg.author.send(f"```py\n{traceback.format_exc()}```")
-        elif hasattr(arg, "author"):
-            try:
+    if args:
+        for arg in args:
+            if isinstance(arg, disnake.Interaction):
                 traceback.print_exc()
                 await arg.author.send(f"```py\n{traceback.format_exc()}```")
-            except:
-                pass
-        else:
-            traceback.print_exc()
-    for arg in kwargs.values:
-        if isinstance(arg, disnake.Interaction):
-            traceback.print_exc()
-            await arg.author.send(f"```py\n{traceback.format_exc()}```")
-        elif isinstance(arg, commands.Context):
-            traceback.print_exc()
-            await arg.author.send(f"```py\n{traceback.format_exc()}```")
-        elif hasattr(arg, "author"):
-            try:
+            elif isinstance(arg, commands.Context):
                 traceback.print_exc()
                 await arg.author.send(f"```py\n{traceback.format_exc()}```")
-            except:
-                pass
-        else:
-            traceback.print_exc()
+            elif hasattr(arg, "author"):
+                try:
+                    traceback.print_exc()
+                    await arg.author.send(f"```py\n{traceback.format_exc()}```")
+                except:
+                    pass
+            else:
+                traceback.print_exc()
+    if kwargs:
+        for arg in kwargs.values:
+            if isinstance(arg, disnake.Interaction):
+                traceback.print_exc()
+                await arg.author.send(f"```py\n{traceback.format_exc()}```")
+            elif isinstance(arg, commands.Context):
+                traceback.print_exc()
+                await arg.author.send(f"```py\n{traceback.format_exc()}```")
+            elif hasattr(arg, "author"):
+                try:
+                    traceback.print_exc()
+                    await arg.author.send(f"```py\n{traceback.format_exc()}```")
+                except:
+                    pass
+            else:
+                traceback.print_exc()
 
 
 for ext in extensions:
