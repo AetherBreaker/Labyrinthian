@@ -34,9 +34,11 @@ class UserPreferences(LabyrinthianBaseModel):
     @staticmethod
     async def get_data(bot: "Labyrinthian", user: UserID):
         data = await bot.dbcache.find_one("userprefs", {"user": user})
+        wasnone = False
         if data is None:
+            wasnone = True
             data = {"user": user}
-        return data
+        return (data, wasnone)
 
     async def commit(self, db):
         """Commits the settings to the database."""
