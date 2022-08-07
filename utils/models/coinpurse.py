@@ -317,20 +317,13 @@ class CoinPurse:
         while coinlist[targetindex] > 0 and other < 0:
             if coinlist[targetindex] >= abs(other):
                 coinlist[targetindex] += other
-                thevalue = abs(other)
                 other += abs(other)
             elif coinlist[targetindex] < abs(other):
                 other += coinlist[targetindex]
-                thevalue = abs(coinlist[targetindex])
                 coinlist[targetindex] -= coinlist[targetindex]
             else:
                 coinlist[targetindex] -= 1
                 other += 1
-                thevalue = 1
-            print(
-                f"coinlist[targetindex] = {coinlist[targetindex].prefixed_count}-{thevalue}\n"
-            )
-            print(f"other = {other.prefixed_count}+{thevalue}\n")
         if other > -1:
             return coinlist
         thievery = next(
