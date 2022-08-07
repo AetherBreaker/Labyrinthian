@@ -45,19 +45,19 @@ class Coin(int):
 
     def __add__(self, other):
         res = super(Coin, self).__add__(other)
-        return Coin(max(res, 0), self.base, self.type)
+        return Coin(res, self.base, self.type)
 
     def __iadd__(self, other):
-        res = super(Coin, self).__iadd__(other)
-        return Coin(max(res, 0), self.base, self.type)
+        res = super(Coin, self).__add__(other)
+        return Coin(res, self.base, self.type)
 
     def __sub__(self, other):
         res = super(Coin, self).__sub__(other)
-        return Coin(max(res, 0), self.base, self.type)
+        return Coin(res, self.base, self.type)
 
     def __isub__(self, other):
-        res = super(Coin, self).__isub__(other)
-        return Coin(max(res, 0), self.base, self.type)
+        res = super(Coin, self).__sub__(other)
+        return Coin(res, self.base, self.type)
 
     def __mul__(self, other):
         res = super(Coin, self).__mul__(other)
@@ -69,27 +69,27 @@ class Coin(int):
 
     def __floordiv__(self, other):
         res = super(Coin, self).__floordiv__(other)
-        return Coin(max(res, 0), self.base, self.type)
+        return Coin(res, self.base, self.type)
 
     def __ifloordiv__(self, other):
         res = super(Coin, self).__ifloordiv__(other)
-        return Coin(max(res, 0), self.base, self.type)
+        return Coin(res, self.base, self.type)
 
     def __idiv__(self, other):
         res = super(Coin, self).__idiv__(other)
-        return Coin(max(res, 0), self.base, self.type)
+        return Coin(res, self.base, self.type)
 
     def __itruediv__(self, other):
         res = super(Coin, self).__itruediv__(other)
-        return Coin(max(res, 0), self.base, self.type)
+        return Coin(res, self.base, self.type)
 
     def __mod__(self, other):
         res = super(Coin, self).__mod__(other)
-        return Coin(max(res, 0), self.base, self.type)
+        return Coin(res, self.base, self.type)
 
     def __imod__(self, other):
         res = super(Coin, self).__imod__(other)
-        return Coin(max(res, 0), self.base, self.type)
+        return Coin(res, self.base, self.type)
 
     def __str__(self) -> str:
         return "%d" % int(self)
