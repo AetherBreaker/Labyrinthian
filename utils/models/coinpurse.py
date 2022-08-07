@@ -103,7 +103,6 @@ class Coin(int):
 
     @property
     def prefixed_count(self):
-        p = inflect.engine()
         return f"{self} {self.type.prefix}"
 
     @property
