@@ -48,3 +48,10 @@ class SelectionCancelled(SelectionException):
 
     def __init__(self):
         super().__init__("Selection timed out or was cancelled.")
+
+
+class MissingCharacterDataError(LabyrinthianException):
+    """Raised when a database call for character data returns nothing."""
+
+    def __init__(self):
+        super().__init__("It seems that characters data is missing, or lost.")
