@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from bot import Labyrinthian
     from utils.MongoCache import UpdateResultFacade
     from utils.models.settings.user import UserPreferences
+    from utils.MongoCache import MongoCache
 else:
     ObjID = Any
 
@@ -112,7 +113,7 @@ class Character(LabyrinthianBaseModel):
             char["coinpurse"]["config"] = deepcopy(settings.coinconf)
             return char
 
-    async def commit(self, db):
+    async def commit(self, db: "MongoCache"):
         """Commits the settings to the database."""
         data = self.dict(exclude={"settings"})
         data["coinpurse"] = self.coinpurse.to_dict()
