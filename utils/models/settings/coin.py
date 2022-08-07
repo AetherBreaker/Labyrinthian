@@ -91,6 +91,19 @@ class CoinConfig:
     def sort_items(self):
         self.types = sorted(self.types, key=lambda i: (i.rate, i.name, i.prefix))
 
+    def create_empty_coinlist(self):
+        coinlist = []
+        for x in self:
+            coinlist.append(
+                {
+                    "count": str(0),
+                    "base": self.base.to_dict(),
+                    "type": x.to_dict(),
+                    "isbase": True if isinstance(x, BaseCoin) else False,
+                }
+            )
+        return coinlist
+
     @classmethod
     def from_dict(
         cls,
