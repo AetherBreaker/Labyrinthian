@@ -180,7 +180,7 @@ class MongoCache(cachetools.TTLCache):
         filt = {"collectionkey": collectionkey, **searchfilter}
         return list(
             filter(
-                lambda item: all([x in item and item[x] == y for x, y in filt.items()]),
+                lambda item: all(x in item and item[x] == y for x, y in filt.items()),
                 self.values(),
             )
         )
