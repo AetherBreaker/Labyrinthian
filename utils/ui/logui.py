@@ -188,7 +188,6 @@ class LogMenu(LogMenuBase):
     async def get_content(self):
         p = inflect.engine()
         embeds = []
-        print(self.settings.xplabel.__dir__())
         if not self.char:
             embeds.append(
                 disnake.Embed(
