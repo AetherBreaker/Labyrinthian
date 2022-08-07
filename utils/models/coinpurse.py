@@ -242,26 +242,25 @@ class CoinPurse:
             try:
                 target = next(y for y in self.coinlist if y.type.name == x.type.name)
 
-            except StopIteration:
-                newlist.append(x)
-        return CoinPurse(newlist, self.config, self.settings, self.bot)
+        # Checks that the coinpurse only contains cointypes listed in the coinconfig
+        # any invalid cointypes are converted to valid currency types, readded to
+        # the coinpurse, then removed.
 
-    def __str__(self):
+    def verify_all(self):
         pass
 
     def __iter__(self):
         pass
 
-    # ==== display ====
     def display_contents(self, uprefs: "UserPreferences"):
         pass
 
-    # ==== data conversion ====
+    # ==== lifecycle ====
     @classmethod
     def from_dict(cls, input: Dict[str, Union[List[Coin], "CoinConfig"]]):
         if "coinlist" not in input:
             input["coinlist"] = [
-                Coin(0, input["config"].base, x) for x in input["config"]
+                Coin(0, base=input["config"].base, type=x) for x in input["config"]
             ]
         else:
             input["coinlist"] = [Coin.from_dict(x) for x in input["coinlist"]]
