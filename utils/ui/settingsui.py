@@ -401,30 +401,15 @@ class CoinPurseSettingsView(SettingsMenuBase, SelectandModify):
             if not matched:
                 self._clear_specific_items(EditButton, RemoveButton)
 
-    async def add(self, inter: disnake.MessageInteraction):
-        if len(self.settings.coinconf.types) >= 24:
-            return
-        await inter.response.send_modal(
-            title="Add Currency",
-            custom_id=f"{inter.id}add_currency_modal",
-            components=self.setup_coin_modal_components(),
-        )
-
-        try:
-            modalinter: disnake.ModalInteraction = await self.bot.wait_for(
-                "modal_submit",
-                check=lambda i: i.custom_id == f"{inter.id}add_currency_modal"
-                and i.author.id == inter.author.id,
-                timeout=180,
+    def validate_modal_input(self, data):
+        if re.search(r"[^a-zA-Z']", data["name"]):
+            raise FormInvalidInputError(
+                "Currency names can only contain alphabetical characters or apostrophies(')."
             )
-        except asyncio.TimeoutError:
-            raise FormTimeoutError
-        data = {
-            "name": modalinter.text_values["modal_currency_name"],
-            "prefix": modalinter.text_values["modal_currency_prefix"],
-            "rate": modalinter.text_values["modal_currency_rate"],
-            "emoji": modalinter.text_values["modal_currency_emoji"],
-        }
+        if re.search(r"[^a-zA-Z']", data["prefix"]):
+            raise FormInvalidInputError(
+                "Currency prefixes can only contain alphabetical characters or apostrophies(')."
+            )
         for x in self.settings.coinconf:
             if data["name"] == x.name:
                 raise FormInvalidInputError(
@@ -456,6 +441,33 @@ class CoinPurseSettingsView(SettingsMenuBase, SelectandModify):
                         f"> name:id\n"
                         f"Or you can provide a valid Unicode emoji."
                     )
+        return data
+
+    async def add(self, inter: disnake.MessageInteraction):
+        if len(self.settings.coinconf.types) >= 24:
+            return
+        await inter.response.send_modal(
+            title="Add Currency",
+            custom_id=f"{inter.id}add_currency_modal",
+            components=self.setup_coin_modal_components(),
+        )
+
+        try:
+            modalinter: disnake.ModalInteraction = await self.bot.wait_for(
+                "modal_submit",
+                check=lambda i: i.custom_id == f"{inter.id}add_currency_modal"
+                and i.author.id == inter.author.id,
+                timeout=180,
+            )
+        except asyncio.TimeoutError:
+            raise FormTimeoutError
+        data = {
+            "name": modalinter.text_values["modal_currency_name"],
+            "prefix": modalinter.text_values["modal_currency_prefix"],
+            "rate": modalinter.text_values["modal_currency_rate"],
+            "emoji": modalinter.text_values["modal_currency_emoji"],
+        }
+        data = self.validate_modal_input(data)
         self.settings.coinconf.types.append(CoinType.from_dict(data))
         self.settings.coinconf.sort_items()
         self.matchindex = (
@@ -487,39 +499,7 @@ class CoinPurseSettingsView(SettingsMenuBase, SelectandModify):
             "prefix": modalinter.text_values["modal_currency_prefix"],
             "emoji": modalinter.text_values["modal_currency_emoji"],
         }
-        for x in self.settings.coinconf:
-            if data["name"] == x.name and data["name"] != self.matched.name:
-                raise FormInvalidInputError(
-                    f"Multiple currencies cannot share the same name, please provide a unique name"
-                )
-            if data["prefix"] == x.prefix and data["prefix"] != self.matched.prefix:
-                raise FormInvalidInputError(
-                    f"Multiple currencies cannot share the same prefix, please provide a unique prefix"
-                )
-        if not isinstance(self.matched, BaseCoin):
-            data["rate"] = modalinter.text_values["modal_currency_rate"]
-            try:
-                data["rate"] = re.sub(r"[^\d\.]+", "", data["rate"])
-                data["rate"] = float(data["rate"])
-            except ValueError:
-                raise FormInvalidInputError(
-                    f"It seems your inputted rate couldn't be converted to a number, please ensure your "
-                    f"input only contains numbers, and up to a maximum of one decimal point."
-                )
-        if len(data["emoji"]) > 0:
-            if disnake.PartialEmoji.from_str(data["emoji"]).is_unicode_emoji():
-                if not has_unicode_emote(data["emoji"]):
-                    raise FormInvalidInputError(
-                        f"Your inputted icon couldn't be converted to a valid emoji.\n"
-                        f"Please ensure it matches one of the following formats:\n"
-                        f"Animated:\n"
-                        f"> <a:name:id>\n"
-                        f"> a:name:id\n"
-                        f"Static:\n"
-                        f"> <name:id>\n"
-                        f"> name:id\n"
-                        f"Or you can provide a valid Unicode emoji."
-                    )
+        data = self.validate_modal_input(data)
         self.settings.coinconf.types[self.matchindex] = CoinType.from_dict(data)
         self.matched = self.settings.coinconf.types[self.matchindex]
         self.settings.coinconf.sort_items()
