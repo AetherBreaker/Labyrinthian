@@ -9,6 +9,7 @@ import rapidfuzz
 from disnake.ext import commands
 from pymongo.results import InsertOneResult
 from utils.models.character import Character
+from utils.models.coinpurse import CoinPurse
 from utils.models.settings.user import ActiveCharacter
 from utils.models.xplog import XPLogEntry
 from utils.ui.logui import LogMenu
@@ -72,6 +73,12 @@ class CharacterLog(
                 name=name,
                 sheet=sheetlink,
                 multiclasses={starting_class: starting_class_level},
+                coinpurse=CoinPurse.from_dict(
+                    {
+                        "coinlist": settings.coinconf.create_empty_coinlist(),
+                        "config": settings.coinconf,
+                    }
+                ),
             )
         except ValidationError as e:
             for x in e.errors():
