@@ -71,13 +71,14 @@ class CharacterLog(
                 guild=str(inter.guild.id),
                 name=name,
                 sheet=sheetlink,
-                multiclasses={starting_class: starting_class_level},
                 coinpurse=CoinPurse.from_dict(
                     {
                         "coinlist": settings.coinconf.create_empty_coinlist(),
                         "config": settings.coinconf,
                     }
                 ),
+                multiclasses={starting_class: starting_class_level},
+                xp=settings.startingxp,
             )
         except ValidationError as e:
             for x in e.errors():

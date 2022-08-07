@@ -1798,6 +1798,76 @@ class CharacterLogSettingsView(SettingsMenuBase):
         except asyncio.TimeoutError:
             raise FormTimeoutError
 
+    @disnake.ui.button(label="Starting XP", style=disnake.ButtonStyle.green)
+    async def starting_xp_modal(
+        self, _: disnake.ui.Button, inter: disnake.MessageInteraction
+    ):
+        valuestr = self.settings.startingxp
+        p = inflect.engine()
+        components = [
+            disnake.ui.TextInput(
+                style=disnake.TextInputStyle.single_line,
+                label=f"Server Starting {p.plural(self.settings.xplabel)}",
+                placeholder="0",
+                custom_id="settings_starting_xp_set",
+                value=valuestr,
+                required=False,
+                max_length=10,
+            ),
+            disnake.ui.TextInput(
+                style=disnake.TextInputStyle.single_line,
+                label="Reset to Default",
+                placeholder=f'Type "Confirm" here to reset the starting {p.plural(self.settings.xplabel)} to the default',
+                custom_id="settings_starting_xp_reset",
+                required=False,
+                max_length=7,
+            ),
+        ]
+        await inter.response.send_modal(
+            custom_id=f"{inter.id}settings_starting_xp_modal",
+            title=f"Edit Starting {p.plural(self.settings.xplabel)}",
+            components=components,
+        )
+        try:
+            modalinter: disnake.ModalInteraction = await self.bot.wait_for(
+                "modal_submit",
+                check=lambda i: i.custom_id == f"{inter.id}settings_starting_xp_modal"
+                and i.author.id == inter.author.id,
+                timeout=180,
+            )
+
+            if modalinter.text_values["settings_starting_xp_reset"] == "Confirm":
+                await inter.send(
+                    f"Starting {p.plural(self.settings.xplabel)} reset to default",
+                    ephemeral=True,
+                )
+                self.settings.startingxp = self.settings.__fields__[
+                    "startingxp"
+                ].get_default()
+                await self.commit_settings()
+                await self.refresh_content(modalinter)
+                return
+            if len(modalinter.text_values["settings_starting_xp_set"]) > 0:
+                try:
+                    startingxp = re.sub(
+                        r"[^\d]+",
+                        "",
+                        modalinter.text_values["settings_starting_xp_set"],
+                    )
+                    startingxp = float(startingxp)
+                except ValueError:
+                    raise FormInvalidInputError(
+                        f"It seems your inputted amount couldn't be converted to a valid integer, "
+                        f"please ensure your input only contains numbers."
+                    )
+                self.settings.startingxp = modalinter.text_values[
+                    "settings_starting_xp_set"
+                ]
+            await self.commit_settings()
+            await self.refresh_content(modalinter)
+        except asyncio.TimeoutError:
+            raise FormTimeoutError
+
     @disnake.ui.button(label="Back", style=disnake.ButtonStyle.grey, row=4)
     async def back(self, _: disnake.ui.Button, inter: disnake.MessageInteraction):
         await self.defer_to(SettingsNav, inter)

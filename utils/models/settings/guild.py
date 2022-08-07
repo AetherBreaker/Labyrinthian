@@ -287,6 +287,7 @@ class ServerSettings(LabyrinthianBaseModel):
     ahback: Optional[str] = None
     ahinternal: Optional[str] = None
     xplabel: str = "Badge"
+    startingxp: str = 0
     coinconf: CoinConfig = CoinConfig.from_dict(DEFAULT_COINS)
     loggingcoins: Optional[str] = None
     loggingxp: Optional[str] = None
