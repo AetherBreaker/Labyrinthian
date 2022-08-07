@@ -249,6 +249,13 @@ class CoinPurse:
     def verify_all(self):
         pass
 
+    # ==== properties ====
+    @property
+    def base(self) -> Coin:
+        index = next(
+            x for x, y in enumerate(self.coinlist) if isinstance(y.type, "BaseCoin")
+        )
+        return self.coinlist[index]
 
     @property
     def baseval(self) -> float:
