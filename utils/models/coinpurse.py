@@ -220,6 +220,8 @@ class CoinPurse:
     ):
         self.coinlist = coinlist
         self.config = config
+        self.errors = []
+        self.events = []
 
     # ==== magic methods ====
     def __len__(self):
@@ -234,10 +236,21 @@ class CoinPurse:
 
     # ==== methods ====
     def combine_batch(self, other: Union["CoinPurse", Coin, List[Coin]]):
+        freshcoins = self._sort_coins(x.copy_no_hist() for x in self.coinlist)
         if isinstance(other, Coin):
             other = [other]
-        newlist = self.add_coin(newlist, other.coinlist)
-        return CoinPurse(newlist, self.config)
+        elif isinstance(other, CoinPurse):
+            other = other.coinlist
+        for othercoin in list(other):
+            try:
+                next(coin for coin in self.config if othercoin.type.name == coin.name)
+            except StopIteration:
+                self.errors.append(
+                    f"Invalid Coin: {othercoin.type.name} isn't a valid currency in this server"
+                )
+                other.remove(othercoin)
+        freshcoins = self._add_coin(freshcoins, other)
+        return CoinPurse(freshcoins, self.config)
 
     # ==== helpers ====
     def _validate_self(self):
@@ -309,7 +322,7 @@ class CoinPurse:
                 cointype.name == coin.type.name for coin in newcoins
             ),
             self.config,
-    ):
+        ):
             newcoins.append(Coin(0, self.config.base, cointype))
 
         # now we want to process any of the unrecognized coins
@@ -341,7 +354,7 @@ class CoinPurse:
                         self.config.base,
                         othercoin.type,
                         history=int(othercoin),
-                )
+                    )
                 )
                 coinlist = self._sort_coins(coinlist)
                 continue
@@ -374,10 +387,10 @@ class CoinPurse:
             coinlist,
             self._sort_coins(
                 [
-            other,
-            Coin(int(amt * x), self.config.base, other.type),
-            Coin(-int(amt), self.config.base, coinlist[thievery].type),
-        ]
+                    other,
+                    Coin(int(amt * x), self.config.base, other.type),
+                    Coin(-int(amt), self.config.base, coinlist[thievery].type),
+                ]
             ),
         )
 
@@ -392,8 +405,8 @@ class CoinPurse:
     def base(self) -> Coin:
         return self.coinlist[
             next(
-            x for x, y in enumerate(self.coinlist) if isinstance(y.type, "BaseCoin")
-        )
+                x for x, y in enumerate(self.coinlist) if isinstance(y.type, "BaseCoin")
+            )
         ]
 
     @property
