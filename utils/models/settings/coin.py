@@ -103,18 +103,14 @@ class CoinConfig:
     def sort_items(self):
         self.types = sorted(self.types, key=lambda i: (i.rate, i.name, i.prefix))
 
-    def create_empty_coinlist(self):
-        coinlist = []
+    def gen_coinpurse_dict(self) -> Generator[Dict, None, None]:
         for x in self:
-            coinlist.append(
-                {
+            yield {
                     "count": str(0),
                     "base": self.base.to_dict(),
                     "type": x.to_dict(),
                     "isbase": True if isinstance(x, BaseCoin) else False,
                 }
-            )
-        return coinlist
 
     @classmethod
     def from_dict(

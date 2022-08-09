@@ -73,7 +73,7 @@ class CharacterLog(
                 sheet=sheetlink,
                 coinpurse=CoinPurse.from_dict(
                     {
-                        "coinlist": settings.coinconf.create_empty_coinlist(),
+                        "coinlist": [settings.coinconf.gen_coinpurse_dict()],
                         "config": settings.coinconf,
                     }
                 ),
