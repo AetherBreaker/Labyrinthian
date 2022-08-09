@@ -352,17 +352,7 @@ class CoinPurse:
                 coinlist[targetindex] += othercoin
         return coinlist
 
-    def sub_coin(self, coinlist: List[Coin], other: Coin, targetindex: int):
-        # print("start of subtract")
-        # print("coinlist = " + "\n\t".join(x.prefixed_count for x in coinlist) + "\n")
-        # print(
-        #     "other = "
-        #     + "\n\t".join(
-        #         x.prefixed_count
-        #         for x in (other if isinstance(other, List) else [other])
-        #     )
-        #     + "\n\n"
-        # )
+    def _sub_coin(self, coinlist: List[Coin], other: Coin, targetindex: int):
         while coinlist[targetindex] > 0 and other < 0:
             if coinlist[targetindex] >= abs(other):
                 coinlist[targetindex] += other
@@ -380,24 +370,16 @@ class CoinPurse:
         )
         x = (1 / coinlist[thievery].type.rate) * other.type.rate
         amt = ceil(abs(other) / x)
-        otherlist = [
+        return self._add_coin(
+            coinlist,
+            self._sort_coins(
+                [
             other,
             Coin(int(amt * x), self.config.base, other.type),
             Coin(-int(amt), self.config.base, coinlist[thievery].type),
         ]
-        otherlist = sorted(
-            otherlist,
-            key=lambda i: (i, i.type.rate, i.type.name, i.type.prefix),
-            reverse=True,
+            ),
         )
-        # print("end of subtract")
-        # print("coinlist = " + "\n\t".join(x.prefixed_count for x in coinlist) + "\n")
-        # print("other = " + "\n\t".join(x.prefixed_count for x in otherlist) + "\n\n")
-        return self.add_coin(coinlist, otherlist)
-
-        # Checks that the coinpurse only contains cointypes listed in the coinconfig
-        # any invalid cointypes are converted to valid currency types, readded to
-        # the coinpurse, then removed.
 
     def verify_all(self):
         pass
