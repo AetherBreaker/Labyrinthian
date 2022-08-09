@@ -324,39 +324,32 @@ class CoinPurse:
         into recognized currency as close to the original value as possible."""
         pass
 
+    def _add_coin(self, coinlist: List[Coin], other: Union["CoinPurse", List[Coin]]):
+        for otherindex, othercoin in enumerate(other):
+            if othercoin == 0:
                 continue
             try:
                 targetindex = next(
-                    y for y, z in enumerate(coinlist) if z.type.name == x.type.name
+                    coinindex
+                    for coinindex, coin in enumerate(coinlist)
+                    if coin.type.name == othercoin.type.name
                 )
             except StopIteration:
-                coinlist.append(x)
-                coinlist = sorted(
-                    coinlist, key=lambda i: (i.type.rate, i.type.name, i.type.prefix, i)
+                coinlist.append(
+                    Coin(
+                        int(othercoin),
+                        self.config.base,
+                        othercoin.type,
+                        history=int(othercoin),
                 )
+                )
+                coinlist = self._sort_coins(coinlist)
                 continue
-            if x < 0:
-                subbed = self.sub_coin(coinlist, x, targetindex)
-                coinlist = sorted(
-                    subbed,
-                    key=lambda i: (i.type.rate, i.type.name, i.type.prefix, i),
-                )
-            elif x > 0:
-                coinlist[targetindex] += x
-                other[y] -= x
-        for x in other:
-            if x == 0:
-                other.remove(x)
-        # print("end of add")
-        # print("coinlist = " + "\n\t".join(x.prefixed_count for x in coinlist) + "\n")
-        # print(
-        #     "other = "
-        #     + "\n\t".join(
-        #         x.prefixed_count
-        #         for x in (other if isinstance(other, List) else [other])
-        #     )
-        #     + "\n\n"
-        # )
+            if othercoin < 0:
+                subbed = self._sub_coin(coinlist, othercoin, targetindex)
+                coinlist = self._sort_coins(subbed)
+            elif othercoin > 0:
+                coinlist[targetindex] += othercoin
         return coinlist
 
     def sub_coin(self, coinlist: List[Coin], other: Coin, targetindex: int):
