@@ -240,21 +240,85 @@ class CoinPurse:
         return CoinPurse(newlist, self.config)
 
     # ==== helpers ====
-    def add_coin(
-        self, coinlist: List[Coin], other: Union["CoinPurse", Coin, List[Coin]]
+    def _validate_self(self):
+        """This function is called to check that all Coin type data matches that contained
+        in self.config.
+
+        Slight or partial mismatches (i.e. cointype has a matching name, but the rate is mismatched)
+        should be soft corrected, value conversion should be unecessary in these situations.
+
+        Complete mismatches (i.e. the cointype is completely unrecognized) are passed off to
+        a converter function to convert it into an equal value of valid currency."""
+        newcoins = []
+        unrecognized = []
+        uidset = {cointype.uid for cointype in self.config}
+        for coin in self.coinlist:
+            coin = deepcopy(coin)
+
+            # if the uid isnt found in our set of valid uids for this server
+            # we append the coin to our list of unrecognized coins to be processed later
+            # we then continue the loop
+            if coin.uid not in uidset:
+                unrecognized.append(coin)
+                continue
+
+            # check if the coins basetype matches, and update it if not
+            if coin.base != self.config.base:
+                coin.base = self.config.base
+
+            # check if the coins type perfectly matches one of the valid types for this server
+            # if not, we individually cheak each type attribute, update it, and register the change
+            # in an event dict for displaying changes to the user
+            elif not any(coin.type == cointype for cointype in self.config):
+                targettype = next(
+                    cointype for cointype in self.config if coin.uid == cointype.uid
+                )
+                eventdict = {}
+                if coin.type.name != targettype.name:
+                    eventdict["namechanged"] = {
+                        "old": coin.type.name,
+                        "new": targettype.name,
+                    }
+                    coin.type.name = targettype.name
+                if coin.type.prefix != targettype.prefix:
+                    eventdict["prefixchanged"] = {
+                        "old": coin.type.prefix,
+                        "new": targettype.prefix,
+                    }
+                    coin.type.prefix = targettype.prefix
+                if coin.type.rate != targettype.rate:
+                    eventdict["ratechanged"] = {
+                        "old": coin.type.rate,
+                        "new": targettype.rate,
+                    }
+                    coin.type.rate = targettype.rate
+                if coin.type.emoji != targettype.emoji:
+                    eventdict["emojichanged"] = {
+                        "old": coin.type.emoji,
+                        "new": targettype.emoji,
+                    }
+                    coin.type.emoji = targettype.emoji
+                if eventdict:
+                    self.events.append(eventdict)
+            newcoins.append(coin)
+
+        # next we want to check to make sure the coinpurse has a Coin object for each
+        # valid cointype in this server.
+        for cointype in filter(
+            lambda cointype: not any(
+                cointype.name == coin.type.name for coin in newcoins
+            ),
+            self.config,
     ):
-        # print("start of add")
-        # print("coinlist = " + "\n\t".join(x.prefixed_count for x in coinlist) + "\n")
-        # print(
-        #     "other = "
-        #     + "\n\t".join(
-        #         x.prefixed_count
-        #         for x in (other if isinstance(other, List) else [other])
-        #     )
-        #     + "\n\n"
-        # )
-        for y, x in enumerate(other):
-            if x == 0:
+            newcoins.append(Coin(0, self.config.base, cointype))
+
+        # now we want to process any of the unrecognized coins
+        # that have piled up and add them to our coinlist
+        if unrecognized:
+            pass
+
+        self.coinlist = newcoins
+
                 continue
             try:
                 targetindex = next(
