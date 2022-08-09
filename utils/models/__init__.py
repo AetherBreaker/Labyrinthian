@@ -8,8 +8,15 @@ class LabyrinthianBaseModel(BaseModel):
     @classmethod
     def no_validate(cls, data: typing.Dict[str, typing.Any]):
         for field_name, field in cls.__fields__.items():
+            if field_name not in data:
+                continue
             value = data[field_name]
-            field_type = field.type_
+            (field_type,) = (
+                tuple(t for t in typing.get_args(field.type_) if t is not type(None))
+                if typing.get_origin(field.type_) is typing.Union
+                and type(None) in typing.get_args(field.type_)
+                else (field.type_,)
+            )
             container_type = typing.get_origin(field.outer_type_) or field.outer_type_
             # Get converter...
             convert: typing.Callable[[typing.Any], typing.Any]
