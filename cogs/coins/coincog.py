@@ -57,6 +57,7 @@ class CoinsCog(commands.Cog):
         result = []
         items = re.split(r"[^a-zA-Z0-9'-]", input)
         for x in items:
+            prefix = re.sub(r"[0-9\-]", "", x)
             cointypematch = rapidfuzz.process.extract(
                 re.sub(r"[0-9]", "", x),
                 [x.name for x in settings.coinconf]
