@@ -25,6 +25,8 @@ class UserPreferences(LabyrinthianBaseModel):
     activechar: Dict[GuildID, Optional[ActiveCharacter]] = {}
     characters: Dict[GuildID, Dict[CharacterName, ObjID]] = {}
     autoswap: bool = True
+    coinconvert: bool = False
+
     # ==== checks ====
     def has_valid_activechar(self, guild_id: GuildID) -> bool:
         if guild_id in self.activechar:
