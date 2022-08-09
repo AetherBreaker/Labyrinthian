@@ -381,8 +381,11 @@ class CoinPurse:
             ),
         )
 
-    def verify_all(self):
-        pass
+    @staticmethod
+    def _sort_coins(coinlist: List[Coin]) -> List[Coin]:
+        return sorted(
+            coinlist, key=lambda i: (i.type.rate, i.type.name, i.type.prefix, -i)
+        )
 
     # ==== properties ====
     @property
