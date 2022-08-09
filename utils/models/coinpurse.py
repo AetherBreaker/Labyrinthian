@@ -390,10 +390,11 @@ class CoinPurse:
     # ==== properties ====
     @property
     def base(self) -> Coin:
-        index = next(
+        return self.coinlist[
+            next(
             x for x, y in enumerate(self.coinlist) if isinstance(y.type, "BaseCoin")
         )
-        return self.coinlist[index]
+        ]
 
     @property
     def baseval(self) -> float:
