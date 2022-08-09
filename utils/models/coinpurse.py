@@ -400,11 +400,25 @@ class CoinPurse:
     def baseval(self) -> float:
         return float(sum(x.value for x in self.coinlist))
 
+    @property
+    def basechangeval(self) -> float:
+        return float(sum(x.histbaseval for x in self.coinlist))
 
     @property
     def display_operation(self) -> str:
         return "\n".join(x.full_operation_str for x in self.coinlist)
 
+    @property
+    def display_total(self) -> str:
+        return f"{self.config.base.emoji} {round(self.baseval, 2)} {self.config.base.prefix}"
+
+    @property
+    def display_operation_total(self) -> str:
+        change = round(self.basechangeval, 2)
+        return (
+            f"{self.config.base.emoji} {round(self.baseval, 2)} {self.config.base.prefix}"
+            + (f" ({'+'*(change>0)}{change})" * (change != 0.0))
+        )
 
     # ==== lifecycle ====
     @classmethod
