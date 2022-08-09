@@ -319,6 +319,11 @@ class CoinPurse:
 
         self.coinlist = newcoins
 
+    def _compensate(self, coinlist: Union["CoinPurse", List[Coin]], oddcoin: Coin):
+        """When an unrecognizable coin is found, this function is called to convert it
+        into recognized currency as close to the original value as possible."""
+        pass
+
                 continue
             try:
                 targetindex = next(
