@@ -498,6 +498,8 @@ class CoinPurseSettingsView(SettingsMenuBase, SelectandModify):
             "prefix": modalinter.text_values["modal_currency_prefix"],
             "emoji": modalinter.text_values["modal_currency_emoji"],
         }
+        if "id" in self.matched:
+            data["uid"] = self.matched.id
         data = self.validate_modal_input(data)
         self.settings.coinconf.types[self.matchindex] = CoinType.from_dict(data)
         self.matched = self.settings.coinconf.types[self.matchindex]
@@ -1902,6 +1904,16 @@ class CharacterLogSettingsView(SettingsMenuBase):
                 "desc": (
                     f"*This setting will replace all uses of the word {self.settings.xplabel} "
                     f"with whatever this is set to.*"
+                ),
+            }
+        )
+        inputdict["main"]["descitems"].append(
+            {
+                "header": f"__**Starting XP Amount:**__",
+                "setting": f'"{self.settings.startingxp}"',
+                "desc": (
+                    f"*This setting determines the amount of XP a newly created character "
+                    f"by default.*"
                 ),
             }
         )

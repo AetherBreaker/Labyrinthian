@@ -1,21 +1,28 @@
-from typing import Dict, List, Union
+from typing import Dict, Generator, List, Union
+import uuid
 
 
 class CoinType:
     def __init__(
-        self, name: str, prefix: str, rate: Union[float, int], emoji: str = None
+        self,
+        name: str,
+        prefix: str,
+        rate: Union[float, int],
+        emoji: str = None,
+        uid: str = str(uuid.uuid4()),
     ) -> None:
         self.name = name
         self.prefix = prefix
         self.rate = rate
         self.emoji = emoji
+        self.uid = uid
 
     def __iter__(self):
         yield self.name
         yield self.prefix
         yield self.rate
-        if self.emoji is not None:
             yield self.emoji
+        yield self.uid
 
     def __setattr__(self, name, value):
         self.__dict__[name] = value
@@ -34,25 +41,29 @@ class CoinType:
             "prefix": self.prefix,
             "rate": self.rate,
             "emoji": self.emoji,
+            "uid": self.uid,
         }
 
     def __repr__(self) -> str:
-        return f"CoinType(name={self.name!r}, prefix={self.prefix!r}, rate={self.rate})"
+        return f"CoinType(name={self.name!r}, prefix={self.prefix!r}, rate={self.rate}, uid={self.uid!r})"
 
 
 class BaseCoin:
-    def __init__(self, name: str, prefix: str, emoji: str = None):
+    def __init__(
+        self, name: str, prefix: str, emoji: str = None, uid: str = str(uuid.uuid4())
+    ):
         self.name = name
         self.prefix = prefix
         self.rate = 1.0
         self.emoji = emoji
+        self.uid = uid
 
     def __iter__(self):
         yield self.name
         yield self.prefix
         yield self.rate
-        if self.emoji is not None:
             yield self.emoji
+        yield self.uid
 
     def __setattr__(self, name, value):
         self.__dict__[name] = value
@@ -66,10 +77,15 @@ class BaseCoin:
         return cls(**input)
 
     def to_dict(self):
-        return {"name": self.name, "prefix": self.prefix, "emoji": self.emoji}
+        return {
+            "name": self.name,
+            "prefix": self.prefix,
+            "emoji": self.emoji,
+            "uid": self.uid,
+        }
 
     def __repr__(self) -> str:
-        return f"BaseCoin(name={self.name!r}, prefix={self.prefix!r}, rate={self.rate})"
+        return f"BaseCoin(name={self.name!r}, prefix={self.prefix!r}, rate={self.rate}, uid={self.uid!r})"
 
 
 class CoinConfig:
