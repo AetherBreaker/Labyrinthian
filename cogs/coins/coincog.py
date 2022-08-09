@@ -82,6 +82,9 @@ class CoinsCog(commands.Cog):
         result = sorted(result, key=lambda i: (i.type.rate, i.type.name, i.type.prefix))
         return CoinPurse(result, settings.coinconf)
 
+    async def float_to_coinpurse(self):
+        pass
+
 
 def setup(bot: "Labyrinthian"):
     bot.add_cog(CoinsCog(bot))
