@@ -367,11 +367,8 @@ class CoinPurse:
         return total
 
     @property
-    def tempdisplay(self):
-        return "\n".join([f"{x.prefixed_count}" for x in self.coinlist])
-
-    def display_contents(self, uprefs: "UserPreferences"):
-        pass
+    def display_operation(self) -> str:
+        "\n".join(x.full_operation_str for x in self.coinlist)
 
     # ==== lifecycle ====
     @classmethod

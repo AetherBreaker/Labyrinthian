@@ -401,9 +401,9 @@ class CoinPurseSettingsView(SettingsMenuBase, SelectandModify):
                 self._clear_specific_items(EditButton, RemoveButton)
 
     def validate_modal_input(self, data):
-        if re.search(r"[^a-zA-Z']", data["name"]):
+        if re.search(r"[^a-zA-Z' ]", data["name"]):
             raise FormInvalidInputError(
-                "Currency names can only contain alphabetical characters or apostrophies(')."
+                "Currency names can only contain alphabetical characters, spaces, or apostrophies(')."
             )
         if re.search(r"[^a-zA-Z']", data["prefix"]):
             raise FormInvalidInputError(
