@@ -112,8 +112,9 @@ class Coin(int):
         return self / self.type.rate
 
     @property
-    def valuestr(self) -> str:
-        return f"{self / self.type.rate} {self.base.prefix}"
+    @property
+    def uid(self):
+        return self.type.uid
 
     def update_types(self, coinconf: "CoinConfig" = None) -> bool:
         """Check if these coins types are outdated, if so, update them.
