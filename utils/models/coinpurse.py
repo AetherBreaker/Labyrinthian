@@ -89,6 +89,19 @@ class Coin(int):
         return self / self.type.rate
 
     @property
+    def histbaseval(self) -> float:
+        return self.hist / self.type.rate
+
+    @property
+    def full_display_str(self) -> str:
+        return f"{self.type.emoji} {int(self)} {self.type.prefix}"
+
+    @property
+    def full_operation_str(self) -> str:
+        return f"{self.type.emoji} {int(self)} {self.type.prefix}" + (
+            f" ({'+'*(self.hist>0)}{self.hist})" * (self.hist != 0)
+        )
+
     @property
     def uid(self):
         return self.type.uid
