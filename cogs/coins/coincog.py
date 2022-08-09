@@ -2,6 +2,7 @@ import re
 from typing import TYPE_CHECKING
 
 import disnake
+import inflect
 import rapidfuzz
 from disnake.ext import commands
 from utils.models.coinpurse import Coin, CoinPurse
@@ -27,15 +28,39 @@ class CoinsCog(commands.Cog):
         if len(amount) == 0:
             await inter.send("No matching currency types found", ephemeral=True)
             return
+
         uprefs = await self.bot.get_user_prefs(str(inter.author.id), validate=False)
-        if not str(inter.guild.id) in uprefs.activechar:
+        if not uprefs.has_valid_activechar(str(inter.guild.id)):
             await inter.send("You have no active character!", ephemeral=True)
             return
+
         char = await self.bot.get_char_by_oid(uprefs.activechar[str(inter.guild.id)].id)
+
         if amount.baseval < 0 and abs(amount.baseval) > char.coinpurse.baseval:
             await inter.send("You don't have enough money for that!", ephemeral=True)
             return
-        char.coinpurse = char.coinpurse + amount
+
+        if uprefs.coinconvert:
+            pass
+        else:
+            char.coinpurse = char.coinpurse.combine_batch(amount)
+
+        totalresult = char.coinpurse.baseval
+        totalchange = char.coinpurse.basechangeval
+        p = inflect.engine()
+        result = (
+            disnake.Embed(
+                title=f"{char.name}'s Coinpurse",
+                description=char.coinpurse.display_operation,
+                color=disnake.Colour.random(),
+            )
+            .add_field(name="Total Value", value=char.coinpurse.display_operation_total)
+            .set_thumbnail(
+                "https://www.dndbeyond.com/attachments/thumbnails/3/929/650/358/scag01-04.png"
+            )
+        )
+        await inter.send(embed=result)
+
         await char.commit(self.bot.dbcache)
 
     @coins.sub_command()
