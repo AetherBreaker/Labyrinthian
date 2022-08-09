@@ -59,7 +59,7 @@ class CoinsCog(commands.Cog):
         for x in items:
             prefix = re.sub(r"[0-9\-]", "", x)
             cointypematch = rapidfuzz.process.extract(
-                re.sub(r"[0-9]", "", x),
+                settings.coinconf.base.prefix if prefix == "" else prefix,
                 [x.name for x in settings.coinconf]
                 + [x.prefix for x in settings.coinconf],
                 limit=8,
