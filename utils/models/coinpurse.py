@@ -18,6 +18,7 @@ class Coin(int):
         base: "BaseCoin",
         type: Optional[CoinType] = None,
         supersettings: Optional["ServerSettings"] = None,
+        history: int = 0,
     ):
         return super().__new__(cls, count)
 
@@ -27,11 +28,13 @@ class Coin(int):
         base: "BaseCoin",
         type: Optional[CoinType] = None,
         supersettings: Optional["ServerSettings"] = None,
+        history: int = 0,
     ):
         self.base = base
         self.type = base if type is None else type
         self.isbase = True if type is None or isinstance(type, BaseCoin) else False
         self._supersettings: "ServerSettings" = supersettings
+        self.hist = history
 
     @property
     def supersettings(self):
@@ -43,59 +46,38 @@ class Coin(int):
 
     def __add__(self, other):
         res = super(Coin, self).__add__(other)
-        return Coin(res, self.base, self.type)
+        return Coin(res, self.base, self.type, history=self.hist + other)
 
     def __iadd__(self, other):
         res = super(Coin, self).__add__(other)
-        return Coin(res, self.base, self.type)
+        return Coin(res, self.base, self.type, history=self.hist + other)
 
     def __sub__(self, other):
         res = super(Coin, self).__sub__(other)
-        return Coin(res, self.base, self.type)
+        return Coin(res, self.base, self.type, history=self.hist - other)
 
     def __isub__(self, other):
         res = super(Coin, self).__sub__(other)
-        return Coin(res, self.base, self.type)
-
-    # def __mul__(self, other):
-    #     res = super(Coin, self).__mul__(other)
-    #     return Coin(res, self.base, self.type)
-
-    # def __imul__(self, other):
-    #     res = super(Coin, self).__imul__(other)
-    #     return Coin(res, self.base, self.type)
+        return Coin(res, self.base, self.type, history=self.hist - other)
 
     def __floordiv__(self, other):
         res = super(Coin, self).__floordiv__(other)
-        return Coin(res, self.base, self.type)
+        return Coin(res, self.base, self.type, history=self.hist)
 
-    def __ifloordiv__(self, other):
-        res = super(Coin, self).__ifloordiv__(other)
-        return Coin(res, self.base, self.type)
-
-    def __idiv__(self, other):
-        res = super(Coin, self).__idiv__(other)
-        return Coin(res, self.base, self.type)
-
-    def __itruediv__(self, other):
-        res = super(Coin, self).__itruediv__(other)
-        return Coin(res, self.base, self.type)
-
-    def __mod__(self, other):
-        res = super(Coin, self).__mod__(other)
-        return Coin(res, self.base, self.type)
-
-    def __imod__(self, other):
-        res = super(Coin, self).__imod__(other)
-        return Coin(res, self.base, self.type)
+    def __div__(self, other):
+        res = super(Coin, self).__div__(other)
+        return Coin(res, self.base, self.type, history=self.hist)
 
     def __str__(self) -> str:
         return "%d" % int(self)
 
     def __repr__(self):
-        return f"Coin(count={int(self)}, base={self.base!r}, type={self.type!r}, isbase={self.isbase!r})"
+        return f"Coin(count={int(self)}, hist={self.hist}, base={self.base!r}, type={self.type!r}, isbase={self.isbase!r})"
 
     def __deepcopy__(self, _):
+        return Coin(self, self.base, self.type, self.hist)
+
+    def copy_no_hist(self):
         return Coin(self, self.base, self.type)
 
     @property
