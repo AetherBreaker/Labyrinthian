@@ -368,7 +368,8 @@ class CoinPurse:
 
     @property
     def display_operation(self) -> str:
-        "\n".join(x.full_operation_str for x in self.coinlist)
+        return "\n".join(x.full_operation_str for x in self.coinlist)
+
 
     # ==== lifecycle ====
     @classmethod
