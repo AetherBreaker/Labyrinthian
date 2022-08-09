@@ -206,9 +206,9 @@ class Coin(int):
 
     @classmethod
     def __get_validators__(cls):
-        yield lambda cls, input: input if isinstance(input, Coin) else (
-            Coin.from_dict(input) if not isinstance(cls, Coin) else cls.from_dict(input)
-        )
+        yield lambda cls, input: input if isinstance(input, Coin) else Coin.from_dict(
+            input
+        ) if not isinstance(cls, Coin) else cls.from_dict(input)
 
 
 # ==== CoinPurse ====
