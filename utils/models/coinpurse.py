@@ -225,8 +225,8 @@ class CoinPurse:
     def __len__(self):
         return self.coinlist.__len__()
 
-    def __str__(self):
-        pass
+    def __repr__(self):
+        return f"CoinPurse(coinlist={self.coinlist!r}, errors={self.errors!r}, config={self.config!r})"
 
     def __iter__(self):
         for x in self.coinlist:
