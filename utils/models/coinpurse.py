@@ -361,10 +361,8 @@ class CoinPurse:
 
     @property
     def baseval(self) -> float:
-        total = 0.0
-        for x in self.coinlist:
-            total += x / x.type.rate
-        return total
+        return float(sum(x.value for x in self.coinlist))
+
 
     @property
     def display_operation(self) -> str:
