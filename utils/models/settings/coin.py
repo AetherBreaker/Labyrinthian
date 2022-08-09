@@ -21,11 +21,23 @@ class CoinType:
         yield self.name
         yield self.prefix
         yield self.rate
-            yield self.emoji
+        yield self.emoji
         yield self.uid
 
     def __setattr__(self, name, value):
         self.__dict__[name] = value
+
+    def __eq__(self, other) -> bool:
+        try:
+            return (
+                self.name == other.name
+                and self.prefix == other.prefix
+                and self.rate == other.rate
+                and self.emoji == other.emoji
+                and self.uid == other.uid
+            )
+        except:
+            return False
 
     @property
     def label(self):
@@ -62,11 +74,23 @@ class BaseCoin:
         yield self.name
         yield self.prefix
         yield self.rate
-            yield self.emoji
+        yield self.emoji
         yield self.uid
 
     def __setattr__(self, name, value):
         self.__dict__[name] = value
+
+    def __eq__(self, other) -> bool:
+        try:
+            return (
+                self.name == other.name
+                and self.prefix == other.prefix
+                and self.rate == other.rate
+                and self.emoji == other.emoji
+                and self.uid == other.uid
+            )
+        except:
+            return False
 
     @property
     def label(self):
@@ -106,11 +130,11 @@ class CoinConfig:
     def gen_coinpurse_dict(self) -> Generator[Dict, None, None]:
         for x in self:
             yield {
-                    "count": str(0),
-                    "base": self.base.to_dict(),
-                    "type": x.to_dict(),
-                    "isbase": True if isinstance(x, BaseCoin) else False,
-                }
+                "count": str(0),
+                "base": self.base.to_dict(),
+                "type": x.to_dict(),
+                "isbase": True if isinstance(x, BaseCoin) else False,
+            }
 
     @classmethod
     def from_dict(
