@@ -25,6 +25,13 @@ class UserPreferences(LabyrinthianBaseModel):
     activechar: Dict[GuildID, Optional[ActiveCharacter]] = {}
     characters: Dict[GuildID, Dict[CharacterName, ObjID]] = {}
     autoswap: bool = True
+    # ==== checks ====
+    def has_valid_activechar(self, guild_id: GuildID) -> bool:
+        if guild_id in self.activechar:
+            if isinstance(self.activechar[guild_id], ActiveCharacter):
+                if isinstance(self.activechar[guild_id].id, ObjectId):
+                    return True
+        return False
 
     # ==== lifecycle ====
     @staticmethod
