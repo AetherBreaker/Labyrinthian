@@ -232,8 +232,8 @@ class CoinPurse:
         for x in self.coinlist:
             yield x
 
-    def __add__(self, other: Union["CoinPurse", Coin, List[Coin]]):
-        newlist = deepcopy(self.coinlist)
+    # ==== methods ====
+    def combine_batch(self, other: Union["CoinPurse", Coin, List[Coin]]):
         if isinstance(other, Coin):
             other = [other]
         newlist = self.add_coin(newlist, other.coinlist)
