@@ -82,12 +82,7 @@ class Coin(int):
 
     @property
     def prefixed_count(self):
-        return f"{self} {self.type.prefix}"
-
-    @property
-    def named_count(self):
-        p = inflect.engine()
-        return f"{self} {p.plural(self.type.name, self)}"
+        return f"{int(self)} {self.type.prefix}"
 
     @property
     def value(self) -> float:
