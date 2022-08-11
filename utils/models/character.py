@@ -109,9 +109,11 @@ class Character(LabyrinthianBaseModel):
             char = {"settings": settings, **char}
             if "coinpurse" not in char:
                 char["coinpurse"] = {
-                    "coinlist": [settings.coinconf.gen_coinpurse_dict()]
+                    "coinlist": [settings.coinconf.gen_coinpurse_dict()],
+                    "uprefs": uprefs,
                 }
             char["coinpurse"]["config"] = deepcopy(settings.coinconf)
+            char["coinpurse"]["uprefs"] = uprefs
             return char
 
     async def commit(self, db: "MongoCache"):
