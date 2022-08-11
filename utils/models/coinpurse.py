@@ -262,11 +262,11 @@ class CoinPurse:
 
         Complete mismatches (i.e. the cointype is completely unrecognized) are passed off to
         a converter function to convert it into an equal value of valid currency."""
-        newcoins = []
-        unrecognized = []
-        uidset = {cointype.uid for cointype in self.config}
+        newcoins: List[Coin] = []
+        unrecognized: List[Coin] = []
+        uidset = [cointype.uid for cointype in self.config]
         for coin in self.coinlist:
-            coin = deepcopy(coin)
+            coin = coin.copy_no_hist()
 
             # if the uid isnt found in our set of valid uids for this server
             # we append the coin to our list of unrecognized coins to be processed later
@@ -317,10 +317,9 @@ class CoinPurse:
 
         # next we want to check to make sure the coinpurse has a Coin object for each
         # valid cointype in this server.
+        newcoin_names = [coin.type.name for coin in newcoins]
         for cointype in filter(
-            lambda cointype: not any(
-                cointype.name == coin.type.name for coin in newcoins
-            ),
+            lambda cointype: not cointype.name in newcoin_names,
             self.config,
         ):
             newcoins.append(Coin(0, self.config.base, cointype))
@@ -328,9 +327,9 @@ class CoinPurse:
         # now we want to process any of the unrecognized coins
         # that have piled up and add them to our coinlist
         if unrecognized:
-            pass
+            self._compensate(newcoins, unrecognized)
 
-        self.coinlist = newcoins
+        self.coinlist = self._sort_coins(x.copy_no_hist() for x in newcoins)
 
     def _compensate(
         self, coinlist: Union["CoinPurse", List[Coin]], oddcoinlist: List[Coin]
