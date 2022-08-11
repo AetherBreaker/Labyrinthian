@@ -29,22 +29,15 @@ class CoinsCog(commands.Cog):
         if len(amount) == 0:
             await inter.send("No matching currency types found", ephemeral=True)
             return
-
         uprefs = await self.bot.get_user_prefs(str(inter.author.id), validate=False)
         if not uprefs.has_valid_activechar(str(inter.guild.id)):
             await inter.send("You have no active character!", ephemeral=True)
             return
-
         char = await self.bot.get_char_by_oid(uprefs.activechar[str(inter.guild.id)].id)
-
         if amount.baseval < 0 and abs(amount.baseval) > char.coinpurse.baseval:
             await inter.send("You don't have enough money for that!", ephemeral=True)
             return
-
-        char.coinpurse = char.coinpurse.combine_batch(amount)
-
-        totalresult = char.coinpurse.baseval
-        totalchange = char.coinpurse.basechangeval
+        char.coinpurse.combine_batch(amount)
         p = inflect.engine()
         result = (
             disnake.Embed(
@@ -58,7 +51,6 @@ class CoinsCog(commands.Cog):
             )
         )
         await inter.send(embed=result)
-
         await char.commit(self.bot.dbcache)
 
     @coins.sub_command()
@@ -90,9 +82,6 @@ class CoinsCog(commands.Cog):
                 uprefs.activechar[str(inter.guild.id)].id
             )
             char.coinpurse.convert()
-            await char.commit(self.bot.dbcache)
-            totalresult = char.coinpurse.baseval
-            totalchange = char.coinpurse.basechangeval
             p = inflect.engine()
             result = (
                 disnake.Embed(
@@ -108,6 +97,7 @@ class CoinsCog(commands.Cog):
                 )
             )
             await inter.send(embed=result)
+            await char.commit(self.bot.dbcache)
 
     # ==== autocompletion ====
 
