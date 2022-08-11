@@ -68,6 +68,10 @@ class Coin(int):
         res = super(Coin, self).__div__(other)
         return Coin(res, self.base, self.type, history=self.hist)
 
+    def __mod__(self, other):
+        res = super(Coin, self).__mod__(other)
+        return Coin(res, self.base, self.type, history=self.hist)
+
     def __str__(self) -> str:
         return "%d" % int(self)
 
