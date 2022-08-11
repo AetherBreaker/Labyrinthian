@@ -1,3 +1,4 @@
+import itertools
 import re
 from typing import TYPE_CHECKING
 
@@ -40,7 +41,7 @@ class CoinsCog(commands.Cog):
             await inter.send("You don't have enough money for that!", ephemeral=True)
             return
 
-            char.coinpurse = char.coinpurse.combine_batch(amount)
+        char.coinpurse = char.coinpurse.combine_batch(amount)
 
         totalresult = char.coinpurse.baseval
         totalchange = char.coinpurse.basechangeval
@@ -111,41 +112,43 @@ class CoinsCog(commands.Cog):
     # ==== autocompletion ====
 
     # ==== helpers ====
-    async def process_to_coinpurse(self, guild_id: str, input: str):
+    async def process_to_coinpurse(
+        self, guild_id: str, input: str, coerce_positive: bool = False
+    ):
         settings: "ServerSettings" = await self.bot.get_server_settings(
             guild_id, validate=False
         )
-        result = []
-        items = re.split(r"[^a-zA-Z0-9'-]", input)
-        for x in items:
-            prefix = re.sub(r"[0-9\-]", "", x)
-            cointypematch = rapidfuzz.process.extract(
+        tables = []
+        result = {}
+        items = re.split(r"[^a-zA-Z0-9'\-\.]", input)
+        for enum, item in enumerate(items):
+            if re.search(r"-$", item):
+                if enum < (len(items) - 1) and not re.match(r"[-]+", items[enum + 1]):
+                    items[enum + 1] = "-" + items[enum + 1]
+            count = re.sub(r"[^\-\d\.\s]|[^\d]*$", "", item)
+            if coerce_positive:
+                count = abs(float(count))
+            prefix = re.sub(r"[0-9\-\.]", "", item)
+            cointypematch = rapidfuzz.process.extractOne(
                 settings.coinconf.base.prefix if prefix == "" else prefix,
-                [x.name for x in settings.coinconf]
-                + [x.prefix for x in settings.coinconf],
-                limit=8,
-            )
-            try:
-                result.append(
-                    Coin(
-                        int(re.sub(r"[^0-9\-]", "", x)),
-                        settings.coinconf.base,
-                        next(
-                            x
-                            for x in settings.coinconf
-                            if x.name == cointypematch[0][0]
-                            or x.prefix == cointypematch[0][0]
-                        ),
-                        settings,
-                    )
+                itertools.chain.from_iterable(
+                    (x.name, x.prefix) for x in settings.coinconf
+                ),
+            )[0]
+            tables.append(
+                CoinPurse.valuedict_from_count(
+                    count,
+                    disnake.utils.find(
+                        lambda ctype: ctype.name == cointypematch
+                        or ctype.prefix == cointypematch,
+                        settings.coinconf,
+                    ),
+                    settings.coinconf,
                 )
-            except StopIteration:
-                continue
-        result = sorted(result, key=lambda i: (i.type.rate, i.type.name, i.type.prefix))
-        return CoinPurse(result, settings.coinconf)
-
-    async def float_to_coinpurse(self):
-        pass
+            )
+        for tab in next(iter(tables)):
+            result[tab] = sum(x[tab] for x in tables if x[tab] != 0)
+        return CoinPurse.from_simple_dict(result, settings.coinconf)
 
 
 def setup(bot: "Labyrinthian"):
