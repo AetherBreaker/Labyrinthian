@@ -2,10 +2,12 @@ from copy import deepcopy
 from math import ceil
 from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
+import disnake
 from utils.models.settings.coin import BaseCoin, CoinType
 
 if TYPE_CHECKING:
     from utils.models.settings.coin import CoinConfig
+    from utils.models.settings.user import UserPreferences
 
     from settings.guild import ServerSettings
 
@@ -16,7 +18,7 @@ class Coin(int):
         cls,
         count: Union[int, str],
         base: "BaseCoin",
-        type: Optional[CoinType] = None,
+        type: Optional["CoinType"] = None,
         supersettings: Optional["ServerSettings"] = None,
         history: int = 0,
     ):
@@ -26,7 +28,7 @@ class Coin(int):
         self,
         count: int,
         base: "BaseCoin",
-        type: Optional[CoinType] = None,
+        type: Optional["CoinType"] = None,
         supersettings: Optional["ServerSettings"] = None,
         history: int = 0,
     ):
@@ -233,7 +235,7 @@ class CoinPurse:
         return self.coinlist.__len__()
 
     def __repr__(self):
-        return f"CoinPurse(coinlist={self.coinlist!r}, errors={self.errors!r}, config={self.config!r})"
+        return f"CoinPurse(coinlist={self.coinlist!r}, config={self.config!r})"
 
     def __iter__(self):
         for x in self.coinlist:
@@ -516,7 +518,7 @@ class CoinPurse:
             ]
         else:
             input["coinlist"] = [Coin.from_dict(x) for x in input["coinlist"]]
-        return CoinPurse(input["coinlist"], input["config"])
+        return CoinPurse(**input)
 
     def to_dict(self):
         return {"coinlist": [x.to_dict() for x in self.coinlist]}
