@@ -253,8 +253,20 @@ class CoinPurse:
             self._compaction_math()
         return CoinPurse(self.coinlist, self.config, self.prefs)
 
-    def set_coins(self):
-        pass
+    def set_coins(self, coins_to_set: Union["CoinPurse", Coin, List[Coin]]):
+        if isinstance(coins_to_set, Coin):
+            coins_to_set = [coins_to_set]
+        elif isinstance(coins_to_set, CoinPurse):
+            coins_to_set = coins_to_set.coinlist
+        self._validate_self()
+        for setcoin in coins_to_set:
+            targindex, targcoin = next(
+                (index, coin)
+                for index, coin in enumerate(self.coinlist)
+                if setcoin.type.name == coin.type.name
+            )
+            setcoin.hist = int(setcoin) - int(targcoin)
+            self.coinlist[targindex] = setcoin
 
     def convert(self):
         self._validate_self()
