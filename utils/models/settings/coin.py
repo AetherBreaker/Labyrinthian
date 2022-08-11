@@ -119,7 +119,16 @@ class CoinConfig:
 
     def __iter__(self):
         templist = sorted(
-            [self.base, *self.types], key=lambda i: (i.rate, i.name, i.prefix)
+            (self.base, *self.types), key=lambda i: (i.rate, i.name, i.prefix)
+        )
+        for x in templist:
+            yield x
+
+    def __reversed__(self):
+        templist = sorted(
+            (self.base, *self.types),
+            key=lambda i: (i.rate, i.name, i.prefix),
+            reverse=True,
         )
         for x in templist:
             yield x
