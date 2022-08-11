@@ -394,6 +394,17 @@ class CoinPurse:
             ),
         )
 
+    def _compaction_math(self):
+        typelist = list(reversed(self.config))[1:]
+        conlist = list(reversed(self.coinlist))
+        for index, (coin, ctype) in enumerate(zip(conlist, typelist)):
+            stepupcost = int((1 / ctype.rate) * coin.type.rate)
+            conlist[index + 1] += Coin(int(coin) // stepupcost, coin.base, ctype)
+            conlist[index] -= Coin(
+                int(coin) - (int(coin) % stepupcost), coin.base, coin.type
+            )
+        self.coinlist = self._sort_coins(conlist)
+
     @staticmethod
     def _sort_coins(coinlist: List[Coin]) -> List[Coin]:
         return sorted(
