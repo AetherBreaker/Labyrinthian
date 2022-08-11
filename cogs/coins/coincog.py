@@ -69,10 +69,49 @@ class CoinsCog(commands.Cog):
 
     @coins.sub_command()
     async def set(self, inter: disnake.ApplicationCommandInteraction, input: str):
-        amount = await self.process_to_coinpurse(str(inter.guild.id), input)
-        if len(amount) == 0:
-            await inter.send("No matching currency types found", ephemeral=True)
-        await inter.send(f"amount={amount.coinlist}")
+        pass
+
+    @coins.sub_command()
+    async def convert(
+        self,
+        inter: disnake.ApplicationCommandInteraction,
+        toggle: str = commands.Param(default=None, choices=["On", "Off"]),
+    ):
+        uprefs = await self.bot.get_user_prefs(str(inter.author.id))
+        if toggle:
+            uprefs.coinconvert = True if toggle == "On" else False
+            await uprefs.commit(self.bot.dbcache)
+            await inter.send(
+                f"Automatic coin conversion {'enabled' if toggle == 'On' else 'disabled'}"
+            )
+        else:
+            if not uprefs.has_valid_activechar(str(inter.guild.id)):
+                await inter.send("You have no active character!", ephemeral=True)
+                return
+            char = await self.bot.get_char_by_oid(
+                uprefs.activechar[str(inter.guild.id)].id
+            )
+            char.coinpurse.convert()
+            await char.commit(self.bot.dbcache)
+            totalresult = char.coinpurse.baseval
+            totalchange = char.coinpurse.basechangeval
+            p = inflect.engine()
+            result = (
+                disnake.Embed(
+                    title=f"{char.name}'s Coinpurse",
+                    description=char.coinpurse.display_operation,
+                    color=disnake.Colour.random(),
+                )
+                .add_field(
+                    name="Total Value", value=char.coinpurse.display_operation_total
+                )
+                .set_thumbnail(
+                    "https://www.dndbeyond.com/attachments/thumbnails/3/929/650/358/scag01-04.png"
+                )
+            )
+            await inter.send(embed=result)
+
+    # ==== autocompletion ====
 
     # ==== helpers ====
     async def process_to_coinpurse(self, guild_id: str, input: str):
