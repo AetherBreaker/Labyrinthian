@@ -113,7 +113,11 @@ class CoinsCog(commands.Cog):
 
     # ==== helpers ====
     async def process_to_coinpurse(
-        self, guild_id: str, input: str, coerce_positive: bool = False
+        self,
+        guild_id: str,
+        input: str,
+        coerce_positive: bool = False,
+        force_int: bool = False,
     ):
         settings: "ServerSettings" = await self.bot.get_server_settings(
             guild_id, validate=False
@@ -128,6 +132,8 @@ class CoinsCog(commands.Cog):
             count = re.sub(r"[^\-\d\.\s]|[^\d]*$", "", item)
             if coerce_positive:
                 count = abs(float(count))
+            if force_int:
+                count = int(count)
             prefix = re.sub(r"[0-9\-\.]", "", item)
             cointypematch = rapidfuzz.process.extractOne(
                 settings.coinconf.base.prefix if prefix == "" else prefix,
