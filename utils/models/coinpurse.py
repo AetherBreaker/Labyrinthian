@@ -394,6 +394,9 @@ class CoinPurse:
             ),
         )
 
+    def _set_coin(self):
+        pass
+
     def _compaction_math(self):
         typelist = list(reversed(self.config))[1:]
         conlist = list(reversed(self.coinlist))
