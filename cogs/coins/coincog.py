@@ -40,9 +40,6 @@ class CoinsCog(commands.Cog):
             await inter.send("You don't have enough money for that!", ephemeral=True)
             return
 
-        if uprefs.coinconvert:
-            pass
-        else:
             char.coinpurse = char.coinpurse.combine_batch(amount)
 
         totalresult = char.coinpurse.baseval
