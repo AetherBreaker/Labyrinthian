@@ -400,6 +400,31 @@ class CoinPurse:
             coinlist, key=lambda i: (i.type.rate, i.type.name, i.type.prefix, -i)
         )
 
+    @staticmethod
+    def valuedict_from_count(
+        count: Union[float, int, str],
+        type: Union["CoinType", "BaseCoin"],
+        config: "CoinConfig",
+        capped: bool = True,
+    ) -> Dict[str, int]:
+        count = float(count)  # JIC typecast
+        result = {}
+        smallestcoin = next(reversed(config))
+        minval = int((count / type.rate) * smallestcoin.rate)
+        found_start = False
+        for cointype in config:
+            if (
+                (not capped)
+                or found_start
+                or (found_start := (cointype.name == type.name))
+            ):
+                val_in_smallest = (1 / cointype.rate) * smallestcoin.rate
+                result[cointype.prefix], minval = divmod(minval, val_in_smallest)
+                minval *= -1 if count < 0 else 1
+            else:
+                result[cointype.prefix] = 0.0
+        return result
+
     # ==== properties ====
     @property
     def base(self) -> Coin:
