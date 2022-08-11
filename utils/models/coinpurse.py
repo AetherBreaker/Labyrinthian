@@ -435,6 +435,20 @@ class CoinPurse:
 
     # ==== lifecycle ====
     @classmethod
+    def from_simple_dict(cls, input: Dict[str, int], config: "CoinConfig"):
+        return cls(
+            cls._sort_coins(
+                Coin(
+                    y,
+                    config.base,
+                    disnake.utils.find(lambda ctype: ctype.prefix == x, config),
+                )
+                for x, y in input.items()
+            ),
+            config,
+        )
+
+    @classmethod
     def from_dict(cls, input: Dict[str, Union[List[Coin], "CoinConfig"]]):
         if "coinlist" not in input:
             input["coinlist"] = [
