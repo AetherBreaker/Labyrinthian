@@ -1,4 +1,4 @@
-from typing import Dict, Generator, List, Union
+from typing import Dict, Generator, Iterator, List, Union
 import uuid
 
 
@@ -9,13 +9,13 @@ class CoinType:
         prefix: str,
         rate: Union[float, int],
         emoji: str = None,
-        uid: str = str(uuid.uuid4()),
+        uid: str = None,
     ) -> None:
         self.name = name
         self.prefix = prefix
         self.rate = rate
         self.emoji = emoji
-        self.uid = uid
+        self.uid = uid or str(uuid.uuid4())
 
     def __iter__(self):
         yield self.name
@@ -61,14 +61,12 @@ class CoinType:
 
 
 class BaseCoin:
-    def __init__(
-        self, name: str, prefix: str, emoji: str = None, uid: str = str(uuid.uuid4())
-    ):
+    def __init__(self, name: str, prefix: str, emoji: str = None, uid: str = None):
         self.name = name
         self.prefix = prefix
         self.rate = 1.0
         self.emoji = emoji
-        self.uid = uid
+        self.uid = uid or str(uuid.uuid4())
 
     def __iter__(self):
         yield self.name
