@@ -217,10 +217,11 @@ class CoinPurse:
         self,
         coinlist: List[Coin],
         config: "CoinConfig",
+        uprefs: "UserPreferences" = None,
     ):
         self.coinlist = coinlist
         self.config = config
-        self.errors = []
+        self.prefs = uprefs
         self.events = []
 
     # ==== magic methods ====
