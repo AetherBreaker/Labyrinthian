@@ -242,16 +242,15 @@ class CoinPurse:
             yield x
 
     # ==== methods ====
-    def combine_batch(self, other: Union["CoinPurse", Coin, List[Coin]]):
-        if isinstance(other, Coin):
-            other = [other]
-        elif isinstance(other, CoinPurse):
-            other = other.coinlist
+    def combine_batch(self, coins_to_combine: Union["CoinPurse", Coin, List[Coin]]):
+        if isinstance(coins_to_combine, Coin):
+            coins_to_combine = [coins_to_combine]
+        elif isinstance(coins_to_combine, CoinPurse):
+            coins_to_combine = coins_to_combine.coinlist
         self._validate_self()
-        self.coinlist = self._start_math(other)
+        self.coinlist = self._start_math(coins_to_combine)
         if self.prefs.coinconvert:
             self._compaction_math()
-        return CoinPurse(self.coinlist, self.config, self.prefs)
 
     def set_coins(self, coins_to_set: Union["CoinPurse", Coin, List[Coin]]):
         if isinstance(coins_to_set, Coin):
@@ -429,9 +428,6 @@ class CoinPurse:
             ),
         )
 
-    def _set_coin(self):
-        pass
-
     def _compaction_math(self):
         typelist = list(reversed(self.config))[1:]
         conlist = list(reversed(self.coinlist))
@@ -468,10 +464,13 @@ class CoinPurse:
                 or (found_start := (cointype.name == type.name))
             ):
                 val_in_smallest = (1 / cointype.rate) * smallestcoin.rate
-                result[cointype.prefix], minval = divmod(minval, val_in_smallest)
+                tempvar, minval = (
+                    int(minval / val_in_smallest),
+                    minval % val_in_smallest,
+                )
+                if tempvar != 0:
+                    result[cointype.prefix] = tempvar
                 minval *= -1 if count < 0 else 1
-            else:
-                result[cointype.prefix] = 0.0
         return result
 
     # ==== properties ====
