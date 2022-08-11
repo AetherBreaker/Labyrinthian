@@ -246,6 +246,9 @@ class CoinPurse:
             self._compaction_math()
         return CoinPurse(self.coinlist, self.config, self.prefs)
 
+    def set_coins(self):
+        pass
+
     # ==== helpers ====
     def _start_math(self, other: Union["CoinPurse", Coin, List[Coin]]):
         freshcoins = self._sort_coins(x.copy_no_hist() for x in self.coinlist)
