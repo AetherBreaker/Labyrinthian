@@ -332,10 +332,22 @@ class CoinPurse:
 
         self.coinlist = newcoins
 
-    def _compensate(self, coinlist: Union["CoinPurse", List[Coin]], oddcoin: Coin):
+    def _compensate(
+        self, coinlist: Union["CoinPurse", List[Coin]], oddcoinlist: List[Coin]
+    ):
         """When an unrecognizable coin is found, this function is called to convert it
         into recognized currency as close to the original value as possible."""
-        pass
+        for oddcoin in oddcoinlist:
+            if targetcoin := disnake.utils.get(coinlist, type__name=oddcoin.type.name):
+                targetcoin += int(oddcoin)
+                continue
+            valdict = self.valuedict_from_count(
+                int(oddcoin) / oddcoin.type.rate,
+                self.config.base,
+                self.config,
+                capped=False,
+            )
+            oddcoinlist = self._start_math(self.from_simple_dict(valdict, self.config))
 
     def _add_coin(self, coinlist: List[Coin], other: Union["CoinPurse", List[Coin]]):
         for otherindex, othercoin in enumerate(other):
