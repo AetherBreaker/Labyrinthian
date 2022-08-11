@@ -236,23 +236,21 @@ class CoinPurse:
 
     # ==== methods ====
     def combine_batch(self, other: Union["CoinPurse", Coin, List[Coin]]):
-        freshcoins = self._sort_coins(x.copy_no_hist() for x in self.coinlist)
         if isinstance(other, Coin):
             other = [other]
         elif isinstance(other, CoinPurse):
             other = other.coinlist
-        for othercoin in list(other):
-            try:
-                next(coin for coin in self.config if othercoin.type.name == coin.name)
-            except StopIteration:
-                self.errors.append(
-                    f"Invalid Coin: {othercoin.type.name} isn't a valid currency in this server"
-                )
-                other.remove(othercoin)
-        freshcoins = self._add_coin(freshcoins, other)
-        return CoinPurse(freshcoins, self.config)
+        self._validate_self()
+        self.coinlist = self._start_math(other)
+        if self.prefs.coinconvert:
+            self._compaction_math()
+        return CoinPurse(self.coinlist, self.config, self.prefs)
 
     # ==== helpers ====
+    def _start_math(self, other: Union["CoinPurse", Coin, List[Coin]]):
+        freshcoins = self._sort_coins(x.copy_no_hist() for x in self.coinlist)
+        return self._add_coin(freshcoins, other)
+
     def _validate_self(self):
         """This function is called to check that all Coin type data matches that contained
         in self.config.
