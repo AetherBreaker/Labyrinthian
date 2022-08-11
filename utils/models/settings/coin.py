@@ -117,7 +117,7 @@ class CoinConfig:
         self.base = base
         self.types = sorted(types, key=lambda i: (i.rate, i.name, i.prefix))
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[CoinType | BaseCoin]:
         templist = sorted(
             (self.base, *self.types), key=lambda i: (i.rate, i.name, i.prefix)
         )
