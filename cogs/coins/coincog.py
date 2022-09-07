@@ -78,6 +78,9 @@ class CoinsCog(commands.Cog):
             char = await self.bot.get_char_by_oid(
                 uprefs.activechar[str(inter.guild.id)].id
             )
+            if not char:
+                await inter.send("You have no active character!", ephemeral=True)
+                return
             char.coinpurse.convert()
             p = inflect.engine()
             result = (
