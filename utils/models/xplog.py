@@ -55,11 +55,11 @@ class XPLogBook(LabyrinthianBaseModel):
             result = []
             for y in range(items_per_page):
                 if not data:
-                    yield result
                     break
                 else:
                     result.append(data[0])
                     data = data[1:]
+            if result:
+                yield result
             if not data:
                 break
-            yield result
