@@ -51,8 +51,38 @@ class CoinsCog(commands.Cog):
         await char.commit(self.bot.dbcache)
 
     @coins.sub_command()
-    async def pay(self, inter: disnake.ApplicationCommandInteraction):
-        pass
+    async def pay(
+        self,
+        inter: disnake.ApplicationCommandInteraction,
+        target_user: disnake.Member,
+        input: str,
+    ):
+        amount, authprefs, char = await self.run_prechecks(inter, input)
+        if not amount or not authprefs or not char:
+            return
+        if amount.baseval < 0 and abs(amount.baseval) > char.coinpurse.baseval:
+            await inter.send("You don't have enough money for that!", ephemeral=True)
+            return
+        targprefs = await self.bot.get_user_prefs(str(target_user.id), validate=False)
+        p = inflect.engine()
+        components = [
+            disnake.ui.Select(
+                custom_id="target_character_select",
+                placeholder=f"Select one of {p.plural(target_user.name)} characters.",
+                min_values=1,
+                max_values=1,
+                options=[
+                    disnake.SelectOption(label=character, value=str(objid))
+                    for character, objid in targprefs.characters[
+                        str(inter.guild.id)
+                    ].items()
+                ],
+            )
+        ]
+        prompt = UIPrompt.from_dict(self.bot, inter, components)
+        await prompt.send_prompt(inter)
+        data = await prompt.listen()
+        print(data)
 
     @coins.sub_command()
     async def set(self, inter: disnake.ApplicationCommandInteraction, input: str):
