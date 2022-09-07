@@ -136,11 +136,11 @@ class LogMenu(LogMenuBase):
         for x in self.log.paginate(4):
             toybox = []
             for y in x:
-                isneg = True if y.xpadded < 0 else False
+                notneg = False if y.xpadded < 0 else True
                 toybox.append(
                     f"{('<@'+y.user+'> at')*(self.char.user != y.user)} <t:{y.timestamp}:f>\n"
-                    f"`{y.name} {'lost' if isneg else 'gained'} "
-                    f"{y.prevxp}({'+'*isneg}{y.xpadded}) {p.plural(self.settings.xplabel)}` "
+                    f"`{y.name} {'gained' if notneg else 'lost'} "
+                    f"{y.prevxp}({'+'*notneg}{y.xpadded}) {p.plural(self.settings.xplabel)}` "
                     f"Approved by: <@{y.dm}>"
                 )
             pagelist.append("\n\n".join(toybox))
