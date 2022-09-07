@@ -128,6 +128,7 @@ class CoinsCog(commands.Cog):
         )
         tables = []
         result = {}
+        input = re.sub(r"((?<=-) +)|([ \.]+(?=[a-zA-Z\.]+))|((?<= ) +)", "", input)
         items = re.split(r"[^a-zA-Z0-9'\-\.]", input)
         for enum, item in enumerate(items):
             if re.search(r"-$", item):
