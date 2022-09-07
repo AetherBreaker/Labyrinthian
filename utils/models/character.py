@@ -47,7 +47,7 @@ class Character(LabyrinthianBaseModel):
     sheet: AnyUrl
     coinpurse: CoinPurse
     multiclasses: Dict[str, int] = {}
-    xp: int = 0
+    xp: float = 0
     lastlog: LastLog = LastLog()
 
     # ==== properties ====
