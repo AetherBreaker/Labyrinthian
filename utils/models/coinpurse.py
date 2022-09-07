@@ -50,17 +50,13 @@ class Coin(int):
         res = super(Coin, self).__add__(other)
         return Coin(res, self.base, self.type, history=self.hist + other)
 
-    def __iadd__(self, other):
-        res = super(Coin, self).__add__(other)
-        return Coin(res, self.base, self.type, history=self.hist + other)
+    __iadd__ = __add__
 
     def __sub__(self, other):
         res = super(Coin, self).__sub__(other)
         return Coin(res, self.base, self.type, history=self.hist - other)
 
-    def __isub__(self, other):
-        res = super(Coin, self).__sub__(other)
-        return Coin(res, self.base, self.type, history=self.hist - other)
+    __isub__ = __sub__
 
     def __floordiv__(self, other):
         res = super(Coin, self).__floordiv__(other)
