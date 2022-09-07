@@ -56,7 +56,24 @@ class CoinsCog(commands.Cog):
 
     @coins.sub_command()
     async def set(self, inter: disnake.ApplicationCommandInteraction, input: str):
-        pass
+        amount, uprefs, char = await self.run_prechecks(inter, input)
+        if not amount or not uprefs or not char:
+            return
+        char.coinpurse.set_coins(amount)
+        p = inflect.engine()
+        result = (
+            disnake.Embed(
+                title=f"{char.name}'s Coinpurse",
+                description=char.coinpurse.display_operation,
+                color=disnake.Colour.random(),
+            )
+            .add_field(name="Total Value", value=char.coinpurse.display_operation_total)
+            .set_thumbnail(
+                "https://www.dndbeyond.com/attachments/thumbnails/3/929/650/358/scag01-04.png"
+            )
+        )
+        await inter.send(embed=result)
+        await char.commit(self.bot.dbcache)
 
     @coins.sub_command()
     async def convert(
