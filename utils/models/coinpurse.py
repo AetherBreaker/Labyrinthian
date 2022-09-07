@@ -469,9 +469,10 @@ class CoinPurse:
                     int(minval / val_in_smallest),
                     minval % val_in_smallest,
                 )
-                if tempvar != 0:
-                    result[cointype.prefix] = tempvar
+                result[cointype.prefix] = tempvar
                 minval *= -1 if count < 0 else 1
+            else:
+                result[cointype.prefix] = 0
         return result
 
     # ==== properties ====
