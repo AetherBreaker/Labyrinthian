@@ -266,7 +266,7 @@ class CoinPurse:
                 if setcoin.type.name == coin.type.name
             )
             setcoin.hist = int(setcoin) - int(targcoin)
-            self.coinlist[targindex] = setcoin
+            self.coinlist[targindex] = abs(setcoin)
 
     def convert(self):
         self._validate_self()
