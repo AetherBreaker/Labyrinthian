@@ -28,15 +28,9 @@ class CoinsCog(commands.Cog):
     # ==== sub commands ====
     @coins.sub_command()
     async def mod(self, inter: disnake.ApplicationCommandInteraction, input: str):
-        amount = await self.process_to_coinpurse(str(inter.guild.id), input)
-        if len(amount) == 0:
-            await inter.send("No matching currency types found", ephemeral=True)
+        amount, uprefs, char = await self.run_prechecks(inter, input)
+        if not amount or not uprefs or not char:
             return
-        uprefs = await self.bot.get_user_prefs(str(inter.author.id), validate=False)
-        if not uprefs.has_valid_activechar(str(inter.guild.id)):
-            await inter.send("You have no active character!", ephemeral=True)
-            return
-        char = await self.bot.get_char_by_oid(uprefs.activechar[str(inter.guild.id)].id)
         if amount.baseval < 0 and abs(amount.baseval) > char.coinpurse.baseval:
             await inter.send("You don't have enough money for that!", ephemeral=True)
             return
@@ -105,6 +99,23 @@ class CoinsCog(commands.Cog):
     # ==== autocompletion ====
 
     # ==== helpers ====
+    async def run_prechecks(
+        self, inter: disnake.ApplicationCommandInteraction, input
+    ) -> Tuple["CoinPurse", "UserPreferences", "Character"]:
+        amount = await self.process_to_coinpurse(str(inter.guild.id), input)
+        if len(amount) == 0:
+            await inter.send("No matching currency types found", ephemeral=True)
+            return None, None, None
+        uprefs = await self.bot.get_user_prefs(str(inter.author.id), validate=False)
+        if not uprefs.has_valid_activechar(str(inter.guild.id)):
+            await inter.send("You have no active character!", ephemeral=True)
+            return None, None, None
+        char = await self.bot.get_char_by_oid(uprefs.activechar[str(inter.guild.id)].id)
+        if not char:
+            await inter.send("You have no active character!", ephemeral=True)
+            return None, None, None
+        return amount, uprefs, char
+
     async def process_to_coinpurse(
         self,
         guild_id: str,
