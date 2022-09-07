@@ -1,16 +1,19 @@
 import itertools
 import re
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Tuple
 
 import disnake
 import inflect
 import rapidfuzz
 from disnake.ext import commands
-from utils.models.coinpurse import Coin, CoinPurse
+from utils.models.coinpurse import CoinPurse
+from utils.ui.uiprompt import UIPrompt
 
 if TYPE_CHECKING:
     from bot import Labyrinthian
+    from utils.models.character import Character
     from utils.models.settings.guild import ServerSettings
+    from utils.models.settings.user import UserPreferences
 
 
 class CoinsCog(commands.Cog):
