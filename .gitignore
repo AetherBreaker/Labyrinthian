@@ -373,6 +373,7 @@ settings.json
 # Virtual Environment
 env/
 labyrinth-env/
+venv/
 
 # Logging
 LITdat/
