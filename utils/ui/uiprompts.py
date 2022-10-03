@@ -50,4 +50,4 @@ class CharacterSelectPrompt(MenuBase):
 
     # ==== content ====
     def get_content(self) -> dict:
-        return {}
+        return {"content": "Please select a character."}
