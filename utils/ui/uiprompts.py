@@ -42,8 +42,8 @@ class CharacterSelectPrompt(MenuBase):
         for char in reversed(
             self.targprefs.characters[str(self.guild.id)]
         ):  # display highest-first
-            selected = self.selval is not None and self.selval == char
-            self.select_char.add_option(label=char, default=selected)
+            selected: bool = self.selval is not None and self.selval == char
+            self.character_select.add_option(label=char, default=selected)
 
     async def _before_send(self) -> None:
         self._refresh_char_select()
