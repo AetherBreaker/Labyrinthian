@@ -209,11 +209,11 @@ class CharacterSelectPrompt(MenuBase):
     @disnake.ui.select()
     async def character_select(
         self, select: disnake.ui.Select, inter: disnake.MessageCommandInteraction
-    ):
+    ) -> None:
         pass
 
     # ==== helpers ====
-    def _refresh_char_select(self):
+    def _refresh_char_select(self) -> None:
         self.character_select.options.clear()
         for char in reversed(
             self.targprefs.characters[str(self.guild.id)]
@@ -221,9 +221,9 @@ class CharacterSelectPrompt(MenuBase):
             selected = self.selval is not None and self.selval == char
             self.select_char.add_option(label=char, default=selected)
 
-    async def _before_send(self):
+    async def _before_send(self) -> None:
         self._refresh_char_select()
 
     # ==== content ====
-    def get_content(self):
+    def get_content(self) -> dict:
         return {}
