@@ -17,13 +17,15 @@ class CharacterSelectPrompt(MenuBase):
         guild: disnake.Guild,
         author_prefs: "UserPreferences",
         target_prefs: "UserPreferences",
-        amount: "CoinPurse",
-    ):
-        self.owner = owner
-        self.guild = guild
-        self.authprefs = author_prefs
-        self.targprefs = target_prefs
-        self.amount = amount
+        success_func: Callable,
+        func_kwargs: dict[str, Any],
+    ) -> None:
+        self.owner: disnake.User = owner
+        self.guild: disnake.Guild = guild
+        self.authprefs: "UserPreferences" = author_prefs
+        self.targprefs: "UserPreferences" = target_prefs
+        self.func = success_func
+        self.kwargs: dict[str, Any] = func_kwargs
         super().__init__(timeout=180)
 
     # ==== components ====
