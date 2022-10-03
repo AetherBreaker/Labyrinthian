@@ -7,7 +7,7 @@ import inflect
 import rapidfuzz
 from disnake.ext import commands
 from utils.models.coinpurse import CoinPurse
-from utils.ui.uiprompt import UIPrompt
+from utils.ui.uiprompts import UIPrompt
 
 if TYPE_CHECKING:
     from bot import Labyrinthian
@@ -79,7 +79,7 @@ class CoinsCog(commands.Cog):
                 ],
             )
         ]
-        prompt = UIPrompt.from_dict(self.bot, inter, components)
+        prompt = UIPrompt.from_dict(self.bot, inter, components, wait_for_submit=True)
         await prompt.send_prompt(inter)
         data = await prompt.listen()
         print(data)

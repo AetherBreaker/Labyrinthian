@@ -53,7 +53,11 @@ extensions = (
 
 class Labyrinthian(commands.Bot):
     def __init__(
-        self, prefix: str, help_command: commands.HelpCommand = None, description: str = None, **options  # type: ignore
+        self,
+        prefix: str,
+        help_command: commands.HelpCommand = None,
+        description: str = None,
+        **options,
     ) -> None:
         super().__init__(
             prefix,
@@ -133,7 +137,6 @@ class Labyrinthian(commands.Bot):
 
 bot = Labyrinthian(
     prefix="'",
-    testing=config.TESTING,
     intents=intents,
     reload=True if config.TESTING else False,
 )
