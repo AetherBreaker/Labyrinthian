@@ -1,0 +1,23 @@
+pip install -U git+https://github.com/DisnakeDev/disnake
+
+
+invite link:
+https://discord.com/oauth2/authorize?client_id=980955381725556777&scope=bot&permissions=535260687424
+
+create env:
+python -m venv [name]
+
+env reqs:
+pip freeze > requirements.txt
+
+install reqs:
+pip install -r requirements.txt
+
+pipreqs:
+pipreqs --encoding=utf-8-sig --force
+
+cd Labyrinthian
+source labyrinth-env/bin/activate
+pm2 start bot
+
+pm2 stop bot
