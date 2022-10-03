@@ -1,5 +1,15 @@
 import asyncio
-from typing import TYPE_CHECKING, Any, Dict, List, Mapping, NewType, Optional, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    List,
+    Mapping,
+    NewType,
+    Optional,
+    Union,
+)
 
 import disnake
 from utils.ui.menu import MenuBase
