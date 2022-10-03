@@ -33,7 +33,8 @@ class CharacterSelectPrompt(MenuBase):
     async def character_select(
         self, select: disnake.ui.Select, inter: disnake.MessageCommandInteraction
     ) -> None:
-        pass
+        self._refresh_char_select()
+        await self.refresh_content(inter)
 
     # ==== helpers ====
     def _refresh_char_select(self) -> None:
