@@ -28,10 +28,19 @@ class CharacterSelectPrompt(MenuBase):
     # ==== components ====
     @disnake.ui.select()
     async def character_select(
-        self, select: disnake.ui.Select, inter: disnake.MessageCommandInteraction
+        self, select: disnake.ui.Select, inter: disnake.MessageInteraction
     ) -> None:
+        self.submit_selection.disabled = False
         self._refresh_char_select()
         await self.refresh_content(inter)
+
+    @disnake.ui.button(label="Submit", disabled=True, style=disnake.ButtonStyle.green)
+    async def submit_selection(
+        self, _: disnake.ui.Button, inter: disnake.MessageInteraction
+    ):
+        await inter.delete_original_response()
+        await self.func(self.character_select.options[0], **self.kwargs)
+        pass
 
     # ==== helpers ====
     def _refresh_char_select(self) -> None:
