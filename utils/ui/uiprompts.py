@@ -1,22 +1,9 @@
-import asyncio
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Dict,
-    List,
-    Mapping,
-    NewType,
-    Optional,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Callable
 
 import disnake
 from utils.ui.menu import MenuBase
 
 if TYPE_CHECKING:
-    from bot import Labyrinthian
-    from utils.models.coinpurse import CoinPurse
     from utils.models.settings.user import UserPreferences
 
 
