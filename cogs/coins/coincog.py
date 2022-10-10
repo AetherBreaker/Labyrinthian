@@ -77,25 +77,36 @@ class CoinsCog(commands.Cog):
         )
         await prompt.send_to(inter)
 
+    async def process_payment(
+        self,
+        inter: disnake.MessageInteraction,
+        payee: "Character",
+        recipient: CharacterName,
+    ):
+        
         p = inflect.engine()
-        components = [
-            disnake.ui.Select(
-                custom_id="target_character_select",
-                placeholder=f"Select one of {p.plural(target_user.name)} characters.",
-                min_values=1,
-                max_values=1,
-                options=[
-                    disnake.SelectOption(label=character, value=str(objid))
-                    for character, objid in targprefs.characters[
-                        str(inter.guild.id)
-                    ].items()
-                ],
+        result = (
+            disnake.Embed(
+                title=f"{char.name}'s Coinpurse",
+                description=char.coinpurse.display_operation,
+                color=disnake.Colour.random(),
             )
-        ]
-        prompt = UIPrompt.from_dict(self.bot, inter, components, wait_for_submit=True)
-        await prompt.send_prompt(inter)
-        data = await prompt.listen()
-        print(data)
+            .add_field(name="Total Value", value=char.coinpurse.display_operation_total)
+            .set_thumbnail(
+                "https://www.dndbeyond.com/attachments/thumbnails/3/929/650/358/scag01-04.png"
+            )
+            disnake.Embed(
+                title=f"{char.name}'s Coinpurse",
+                description=char.coinpurse.display_operation,
+                color=disnake.Colour.random(),
+            )
+            .add_field(name="Total Value", value=char.coinpurse.display_operation_total)
+            .set_thumbnail(
+                "https://www.dndbeyond.com/attachments/thumbnails/3/929/650/358/scag01-04.png"
+            )
+        )
+        await inter.send(embeds=result)
+        await char.commit(self.bot.dbcache)
 
     @coins.sub_command()
     async def set(self, inter: disnake.ApplicationCommandInteraction, input: str):
