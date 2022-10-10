@@ -62,10 +62,21 @@ class CoinsCog(commands.Cog):
         amount, authprefs, char = await self.run_prechecks(inter, input)
         if not amount or not authprefs or not char:
             return
+        amount.force_negative()
         if amount.baseval < 0 and abs(amount.baseval) > char.coinpurse.baseval:
             await inter.send("You don't have enough money for that!", ephemeral=True)
             return
         targprefs = await self.bot.get_user_prefs(str(target_user.id), validate=False)
+        prompt = CharacterSelectPrompt(
+            inter.author,
+            inter.guild,
+            authprefs,
+            targprefs,
+            self.process_payment,
+            {"payee": char},
+        )
+        await prompt.send_to(inter)
+
         p = inflect.engine()
         components = [
             disnake.ui.Select(
