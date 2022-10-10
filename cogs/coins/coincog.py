@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from utils.models.settings.guild import ServerSettings
     from utils.models.settings.user import UserPreferences
 
+CharacterName = NewType("CharacterName", str)
 
 class CoinsCog(commands.Cog):
     def __init__(self, bot: "Labyrinthian"):
