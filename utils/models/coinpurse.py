@@ -59,6 +59,10 @@ class Coin(int):
 
     __isub__ = __sub__
 
+    def __mul__(self, other):
+        res = super(Coin, self).__mul__(other)
+        return Coin(res, self.base, self.type, history=self.hist)
+
     def __floordiv__(self, other):
         res = super(Coin, self).__floordiv__(other)
         return Coin(res, self.base, self.type, history=self.hist)
@@ -268,6 +272,14 @@ class CoinPurse:
             )
             setcoin.hist = int(setcoin) - int(targcoin)
             self.coinlist[targindex] = abs(setcoin)
+
+    def force_positive(self):
+        for index, coin in enumerate(self.coinlist):
+            self.coinlist[index] = abs(coin)
+
+    def force_negative(self):
+        for index, coin in enumerate(self.coinlist):
+            self.coinlist[index] = -abs(coin)
 
     def convert(self):
         self._validate_self()
