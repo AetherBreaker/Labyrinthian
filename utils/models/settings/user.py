@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING, Any, Dict, NewType, Optional
 
 from bson import ObjectId
+
 from utils.models import LabyrinthianBaseModel
 
 if TYPE_CHECKING:

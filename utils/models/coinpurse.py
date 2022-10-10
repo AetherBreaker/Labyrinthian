@@ -3,13 +3,14 @@ from math import ceil
 from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 import disnake
+
 from utils.models.settings.coin import BaseCoin, CoinType
 
 if TYPE_CHECKING:
+    from settings.guild import ServerSettings
+
     from utils.models.settings.coin import CoinConfig
     from utils.models.settings.user import UserPreferences
-
-    from settings.guild import ServerSettings
 
 
 # ==== Coin Instance ====
