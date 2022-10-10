@@ -1,13 +1,14 @@
 import itertools
 import re
-from typing import TYPE_CHECKING, Tuple
+from typing import TYPE_CHECKING, NewType, Tuple
 
 import disnake
 import inflect
 import rapidfuzz
 from disnake.ext import commands
+
 from utils.models.coinpurse import CoinPurse
-from utils.ui.uiprompts import UIPrompt
+from utils.ui.uiprompts import CharacterSelectPrompt
 
 if TYPE_CHECKING:
     from bot import Labyrinthian
