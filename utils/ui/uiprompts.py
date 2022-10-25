@@ -1,4 +1,5 @@
 from typing import TYPE_CHECKING, Any, Callable
+from bson import ObjectId
 
 import disnake
 from utils.ui.menu import MenuBase
@@ -39,17 +40,17 @@ class CharacterSelectPrompt(MenuBase):
         self, _: disnake.ui.Button, inter: disnake.MessageInteraction
     ):
         await inter.delete_original_response()
-        await self.func(self.character_select.options[0], **self.kwargs)
+        await self.func(ObjectId(self.character_select.options[0].value), **self.kwargs)
         pass
 
     # ==== helpers ====
     def _refresh_char_select(self) -> None:
         self.character_select.options.clear()
-        for char in reversed(
-            self.targprefs.characters[str(self.guild.id)]
+        for char, oid in reversed(
+            self.targprefs.characters[str(self.guild.id)].items()
         ):  # display highest-first
             selected: bool = self.selval is not None and self.selval == char
-            self.character_select.add_option(label=char, default=selected)
+            self.character_select.add_option(label=char, value=str(oid), default=selected)
 
     async def _before_send(self) -> None:
         self._refresh_char_select()
