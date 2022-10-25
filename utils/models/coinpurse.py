@@ -281,6 +281,18 @@ class CoinPurse:
         for index, coin in enumerate(self.coinlist):
             self.coinlist[index] = -abs(coin)
 
+    def positive(self) -> "CoinPurse":
+        newpurse = CoinPurse(**self.__dict__)
+        for index, coin in enumerate(newpurse.coinlist):
+            newpurse.coinlist[index] = abs(coin)
+        return newpurse
+
+    def negative(self) -> "CoinPurse":
+        newpurse = CoinPurse(**self.__dict__)
+        for index, coin in enumerate(newpurse.coinlist):
+            newpurse.coinlist[index] = -abs(coin)
+        return newpurse
+
     def convert(self):
         self._validate_self()
         self._compaction_math()
