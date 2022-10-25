@@ -233,7 +233,7 @@ class CoinPurse:
     ):
         self.coinlist = coinlist
         self.config = config
-        self.prefs = uprefs
+        self.uprefs = uprefs
         self.events = []
 
     # ==== magic methods ====
@@ -255,7 +255,7 @@ class CoinPurse:
             coins_to_combine = coins_to_combine.coinlist
         self._validate_self()
         self.coinlist = self._start_math(coins_to_combine)
-        if self.prefs.coinconvert:
+        if self.uprefs.coinconvert:
             self._compaction_math()
 
     def set_coins(self, coins_to_set: Union["CoinPurse", Coin, List[Coin]]):
