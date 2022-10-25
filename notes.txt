@@ -14,7 +14,7 @@ install reqs:
 pip install -r requirements.txt
 
 pipreqs:
-pipreqs --encoding=utf-8-sig --force
+pipreqs --encoding=utf-8-sig --force --mode=compat
 
 cd Labyrinthian
 source labyrinth-env/bin/activate
