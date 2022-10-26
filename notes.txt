@@ -8,7 +8,7 @@ create env:
 python -m venv [name]
 
 env reqs:
-pip freeze > requirements.txt
+pip freeze > devrequirements.txt
 
 install reqs:
 pip install -r requirements.txt
