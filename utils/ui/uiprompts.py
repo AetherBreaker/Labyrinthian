@@ -62,5 +62,5 @@ class CharacterSelectPrompt(MenuBase):
         self._refresh_char_select()
 
     # ==== content ====
-    def get_content(self) -> dict:
+    async def get_content(self) -> dict:
         return {"content": "Please select a character."}
