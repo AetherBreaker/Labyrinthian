@@ -78,40 +78,6 @@ class CoinsCog(commands.Cog):
         )
         await prompt.send_to(inter)
 
-    async def process_payment(
-        self,
-        inter: disnake.MessageInteraction,
-        amount: "CoinPurse",
-        payee: "Character",
-        recipient: "ObjectId",
-    ):
-        recipient: "Character" = await self.bot.get_char_by_oid(recipient)
-        payee.coinpurse.combine_batch(amount.negative())
-        recipient.coinpurse.combine_batch(amount.positive())
-        result = (
-            disnake.Embed(
-                title=f"{payee.name}'s Coinpurse",
-                description=payee.coinpurse.display_operation,
-                color=disnake.Colour.random(),
-            )
-            .add_field(name="Total Value", value=payee.coinpurse.display_operation_total)
-            .set_thumbnail(
-                "https://www.dndbeyond.com/attachments/thumbnails/3/929/650/358/scag01-04.png"
-            ),
-            disnake.Embed(
-                title=f"{recipient.name}'s Coinpurse",
-                description=recipient.coinpurse.display_operation,
-                color=disnake.Colour.random(),
-            )
-            .add_field(name="Total Value", value=recipient.coinpurse.display_operation_total)
-            .set_thumbnail(
-                "https://www.dndbeyond.com/attachments/thumbnails/3/929/650/358/scag01-04.png"
-            )
-        )
-        await inter.send(embeds=result)
-        await payee.commit(self.bot.dbcache)
-        await recipient.commit(self.bot.dbcache)
-
     @coins.sub_command()
     async def set(self, inter: disnake.ApplicationCommandInteraction, input: str):
         amount, uprefs, char = await self.run_prechecks(inter, input)
@@ -238,6 +204,44 @@ class CoinsCog(commands.Cog):
         for tab in next(iter(tables)):
             result[tab] = sum(x[tab] for x in tables if x[tab] != 0)
         return CoinPurse.from_simple_dict(result, settings.coinconf)
+
+    async def process_payment(
+        self,
+        inter: disnake.MessageInteraction,
+        amount: "CoinPurse",
+        payee: "Character",
+        recipient: "ObjectId",
+    ):
+        recipient: "Character" = await self.bot.get_char_by_oid(recipient)
+        payee.coinpurse.combine_batch(amount.negative())
+        recipient.coinpurse.combine_batch(amount.positive())
+        result = (
+            disnake.Embed(
+                title=f"{payee.name}'s Coinpurse",
+                description=payee.coinpurse.display_operation,
+                color=disnake.Colour.random(),
+            )
+            .add_field(
+                name="Total Value", value=payee.coinpurse.display_operation_total
+            )
+            .set_thumbnail(
+                "https://www.dndbeyond.com/attachments/thumbnails/3/929/650/358/scag01-04.png"
+            ),
+            disnake.Embed(
+                title=f"{recipient.name}'s Coinpurse",
+                description=recipient.coinpurse.display_operation,
+                color=disnake.Colour.random(),
+            )
+            .add_field(
+                name="Total Value", value=recipient.coinpurse.display_operation_total
+            )
+            .set_thumbnail(
+                "https://www.dndbeyond.com/attachments/thumbnails/3/929/650/358/scag01-04.png"
+            ),
+        )
+        await inter.send(f"<@{payee.user}> <@{recipient.user}>", embeds=result)
+        await payee.commit(self.bot.dbcache)
+        await recipient.commit(self.bot.dbcache)
 
 
 def setup(bot: "Labyrinthian"):
