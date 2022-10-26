@@ -24,6 +24,7 @@ class CharacterSelectPrompt(MenuBase):
         self.targprefs: "UserPreferences" = target_prefs
         self.func = success_func
         self.kwargs: dict[str, Any] = func_kwargs
+        self.selval = None
         super().__init__(timeout=180, owner=owner)
 
     # ==== components ====
@@ -31,6 +32,7 @@ class CharacterSelectPrompt(MenuBase):
     async def character_select(
         self, select: disnake.ui.Select, inter: disnake.MessageInteraction
     ) -> None:
+        self.selval = self.character_select.values[0]
         self.submit_selection.disabled = False
         self._refresh_char_select()
         await self.refresh_content(inter)
@@ -53,7 +55,7 @@ class CharacterSelectPrompt(MenuBase):
         for char, oid in reversed(
             self.targprefs.characters[str(self.guild.id)].items()
         ):  # display highest-first
-            selected: bool = self.selval is not None and self.selval == char
+            selected: bool = self.selval is not None and self.selval == str(oid)
             self.character_select.add_option(
                 label=char, value=str(oid), default=selected
             )
