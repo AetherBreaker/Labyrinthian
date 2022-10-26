@@ -53,8 +53,8 @@ class CoinsCog(commands.Cog):
         await inter.send(embed=result)
         await char.commit(self.bot.dbcache)
 
-    @coins.sub_command()
-    async def pay(
+    @coins.sub_command(name="pay")
+    async def slashpay(
         self,
         inter: disnake.ApplicationCommandInteraction,
         target_user: disnake.Member,
@@ -139,6 +139,13 @@ class CoinsCog(commands.Cog):
             )
             await inter.send(embed=result)
             await char.commit(self.bot.dbcache)
+
+    # ==== user commands ====
+    @commands.user_command(name="pay")
+    async def userpay(self, inter: disnake.UserCommandInteraction):
+        pass
+
+    # ==== message commands ====
 
     # ==== autocompletion ====
 
