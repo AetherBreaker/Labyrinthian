@@ -19,13 +19,12 @@ class CharacterSelectPrompt(MenuBase):
         success_func: Callable,
         func_kwargs: dict[str, Any],
     ) -> None:
-        self.owner: disnake.User = owner
         self.guild: disnake.Guild = guild
         self.authprefs: "UserPreferences" = author_prefs
         self.targprefs: "UserPreferences" = target_prefs
         self.func = success_func
         self.kwargs: dict[str, Any] = func_kwargs
-        super().__init__(timeout=180)
+        super().__init__(timeout=180, owner=owner)
 
     # ==== components ====
     @disnake.ui.select()
