@@ -1,11 +1,11 @@
 import itertools
 import re
 from typing import TYPE_CHECKING, NewType, Tuple
-from bson import ObjectId
 
 import disnake
 import inflect
 import rapidfuzz
+from bson import ObjectId
 from disnake.ext import commands
 
 from utils.models.coinpurse import CoinPurse
@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from utils.models.settings.user import UserPreferences
 
 CharacterName = NewType("CharacterName", str)
+
 
 class CoinsCog(commands.Cog):
     def __init__(self, bot: "Labyrinthian"):
