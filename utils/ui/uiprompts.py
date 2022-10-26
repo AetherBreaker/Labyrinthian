@@ -39,8 +39,12 @@ class CharacterSelectPrompt(MenuBase):
     async def submit_selection(
         self, _: disnake.ui.Button, inter: disnake.MessageInteraction
     ):
-        await inter.delete_original_response()
-        await self.func(ObjectId(self.character_select.options[0].value), **self.kwargs)
+        await inter.message.delete()
+        await self.func(
+            inter,
+            recipient=ObjectId(self.character_select.options[0].value),
+            **self.kwargs
+        )
         pass
 
     # ==== helpers ====
