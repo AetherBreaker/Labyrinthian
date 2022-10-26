@@ -1,7 +1,8 @@
 from typing import TYPE_CHECKING, Any, Callable
-from bson import ObjectId
 
 import disnake
+from bson import ObjectId
+
 from utils.ui.menu import MenuBase
 
 if TYPE_CHECKING:
@@ -50,7 +51,9 @@ class CharacterSelectPrompt(MenuBase):
             self.targprefs.characters[str(self.guild.id)].items()
         ):  # display highest-first
             selected: bool = self.selval is not None and self.selval == char
-            self.character_select.add_option(label=char, value=str(oid), default=selected)
+            self.character_select.add_option(
+                label=char, value=str(oid), default=selected
+            )
 
     async def _before_send(self) -> None:
         self._refresh_char_select()
