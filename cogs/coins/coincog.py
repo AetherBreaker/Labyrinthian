@@ -1,19 +1,23 @@
 import itertools
 import re
-from typing import TYPE_CHECKING, Tuple
+from typing import TYPE_CHECKING, NewType, Tuple
 
 import disnake
 import inflect
 import rapidfuzz
+from bson import ObjectId
 from disnake.ext import commands
+
 from utils.models.coinpurse import CoinPurse
-from utils.ui.uiprompts import UIPrompt
+from utils.ui.uiprompts import CharacterSelectPrompt
 
 if TYPE_CHECKING:
     from bot import Labyrinthian
     from utils.models.character import Character
     from utils.models.settings.guild import ServerSettings
     from utils.models.settings.user import UserPreferences
+
+CharacterName = NewType("CharacterName", str)
 
 
 class CoinsCog(commands.Cog):
@@ -50,8 +54,8 @@ class CoinsCog(commands.Cog):
         await inter.send(embed=result)
         await char.commit(self.bot.dbcache)
 
-    @coins.sub_command()
-    async def pay(
+    @coins.sub_command(name="pay")
+    async def slashpay(
         self,
         inter: disnake.ApplicationCommandInteraction,
         target_user: disnake.Member,
@@ -60,29 +64,20 @@ class CoinsCog(commands.Cog):
         amount, authprefs, char = await self.run_prechecks(inter, input)
         if not amount or not authprefs or not char:
             return
+        amount.force_negative()
         if amount.baseval < 0 and abs(amount.baseval) > char.coinpurse.baseval:
             await inter.send("You don't have enough money for that!", ephemeral=True)
             return
         targprefs = await self.bot.get_user_prefs(str(target_user.id), validate=False)
-        p = inflect.engine()
-        components = [
-            disnake.ui.Select(
-                custom_id="target_character_select",
-                placeholder=f"Select one of {p.plural(target_user.name)} characters.",
-                min_values=1,
-                max_values=1,
-                options=[
-                    disnake.SelectOption(label=character, value=str(objid))
-                    for character, objid in targprefs.characters[
-                        str(inter.guild.id)
-                    ].items()
-                ],
-            )
-        ]
-        prompt = UIPrompt.from_dict(self.bot, inter, components, wait_for_submit=True)
-        await prompt.send_prompt(inter)
-        data = await prompt.listen()
-        print(data)
+        prompt = CharacterSelectPrompt(
+            inter.author,
+            inter.guild,
+            authprefs,
+            targprefs,
+            self.process_payment,
+            {"amount": amount, "payee": char},
+        )
+        await prompt.send_to(inter)
 
     @coins.sub_command()
     async def set(self, inter: disnake.ApplicationCommandInteraction, input: str):
@@ -145,6 +140,13 @@ class CoinsCog(commands.Cog):
             )
             await inter.send(embed=result)
             await char.commit(self.bot.dbcache)
+
+    # ==== user commands ====
+    @commands.user_command(name="pay")
+    async def userpay(self, inter: disnake.UserCommandInteraction):
+        pass
+
+    # ==== message commands ====
 
     # ==== autocompletion ====
 
@@ -210,6 +212,44 @@ class CoinsCog(commands.Cog):
         for tab in next(iter(tables)):
             result[tab] = sum(x[tab] for x in tables if x[tab] != 0)
         return CoinPurse.from_simple_dict(result, settings.coinconf)
+
+    async def process_payment(
+        self,
+        inter: disnake.MessageInteraction,
+        amount: "CoinPurse",
+        payee: "Character",
+        recipient: "ObjectId",
+    ):
+        recipient: "Character" = await self.bot.get_char_by_oid(recipient)
+        payee.coinpurse.combine_batch(amount.negative())
+        recipient.coinpurse.combine_batch(amount.positive())
+        result = (
+            disnake.Embed(
+                title=f"{payee.name}'s Coinpurse",
+                description=payee.coinpurse.display_operation,
+                color=disnake.Colour.random(),
+            )
+            .add_field(
+                name="Total Value", value=payee.coinpurse.display_operation_total
+            )
+            .set_thumbnail(
+                "https://www.dndbeyond.com/attachments/thumbnails/3/929/650/358/scag01-04.png"
+            ),
+            disnake.Embed(
+                title=f"{recipient.name}'s Coinpurse",
+                description=recipient.coinpurse.display_operation,
+                color=disnake.Colour.random(),
+            )
+            .add_field(
+                name="Total Value", value=recipient.coinpurse.display_operation_total
+            )
+            .set_thumbnail(
+                "https://www.dndbeyond.com/attachments/thumbnails/3/929/650/358/scag01-04.png"
+            ),
+        )
+        await inter.send(f"<@{payee.user}> <@{recipient.user}>", embeds=result)
+        await payee.commit(self.bot.dbcache)
+        await recipient.commit(self.bot.dbcache)
 
 
 def setup(bot: "Labyrinthian"):

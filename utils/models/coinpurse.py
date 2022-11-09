@@ -3,13 +3,14 @@ from math import ceil
 from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 import disnake
+
 from utils.models.settings.coin import BaseCoin, CoinType
 
 if TYPE_CHECKING:
+    from settings.guild import ServerSettings
+
     from utils.models.settings.coin import CoinConfig
     from utils.models.settings.user import UserPreferences
-
-    from settings.guild import ServerSettings
 
 
 # ==== Coin Instance ====
@@ -58,6 +59,10 @@ class Coin(int):
 
     __isub__ = __sub__
 
+    def __mul__(self, other):
+        res = super(Coin, self).__mul__(other)
+        return Coin(res, self.base, self.type, history=self.hist)
+
     def __floordiv__(self, other):
         res = super(Coin, self).__floordiv__(other)
         return Coin(res, self.base, self.type, history=self.hist)
@@ -73,6 +78,11 @@ class Coin(int):
     def __abs__(self):
         return Coin(
             super(Coin, self).__abs__(), self.base, self.type, history=self.hist
+        )
+
+    def __neg__(self):
+        return Coin(
+            super(Coin, self).__neg__(), self.base, self.type, history=self.hist
         )
 
     def __str__(self) -> str:
@@ -228,7 +238,7 @@ class CoinPurse:
     ):
         self.coinlist = coinlist
         self.config = config
-        self.prefs = uprefs
+        self.uprefs = uprefs
         self.events = []
 
     # ==== magic methods ====
@@ -250,7 +260,7 @@ class CoinPurse:
             coins_to_combine = coins_to_combine.coinlist
         self._validate_self()
         self.coinlist = self._start_math(coins_to_combine)
-        if self.prefs.coinconvert:
+        if self.uprefs.coinconvert:
             self._compaction_math()
 
     def set_coins(self, coins_to_set: Union["CoinPurse", Coin, List[Coin]]):
@@ -267,6 +277,26 @@ class CoinPurse:
             )
             setcoin.hist = int(setcoin) - int(targcoin)
             self.coinlist[targindex] = abs(setcoin)
+
+    def force_positive(self):
+        for index, coin in enumerate(self.coinlist):
+            self.coinlist[index] = abs(coin)
+
+    def force_negative(self):
+        for index, coin in enumerate(self.coinlist):
+            self.coinlist[index] = -abs(coin)
+
+    def positive(self) -> "CoinPurse":
+        newpurse = CoinPurse(self.coinlist, self.config, self.uprefs)
+        for index, coin in enumerate(newpurse.coinlist):
+            newpurse.coinlist[index] = abs(coin)
+        return newpurse
+
+    def negative(self) -> "CoinPurse":
+        newpurse = CoinPurse(self.coinlist, self.config, self.uprefs)
+        for index, coin in enumerate(newpurse.coinlist):
+            newpurse.coinlist[index] = -abs(coin)
+        return newpurse
 
     def convert(self):
         self._validate_self()

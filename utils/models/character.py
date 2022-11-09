@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any, Dict, NewType, Optional
 
 from bson import ObjectId
 from pydantic import AnyUrl, validator
+
 from utils.models import LabyrinthianBaseModel
 from utils.models.coinpurse import CoinPurse
 from utils.models.settings.guild import ServerSettings

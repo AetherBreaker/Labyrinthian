@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 import disnake
 import inflect
+
 from utils.models.errors import FormTimeoutError
 from utils.ui.menu import MenuBase
 

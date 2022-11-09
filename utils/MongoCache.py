@@ -102,9 +102,8 @@ class MongoCache(cachetools.TTLCache):
         # open our sessions lost in transit data file in read only mode
         # and store the contents in a variable
         # we then close the file
-        LITdat = open(self.path, "r")
-        data = LITdat.read(-1)
-        LITdat.close()
+        with open(self.path, "r") as LITdat:
+            data = LITdat.read(-1)
 
         # next we run split on the file contents to create a list separated by newlines
         # we then convert this back into a string to then strip the list "brackets" off
@@ -130,17 +129,15 @@ class MongoCache(cachetools.TTLCache):
         )
 
         # overwrite the contents of the original file, then close it.
-        LITdat = open(self.path, "w")
-        LITdat.write(data)
-        LITdat.close()
+        with open(self.path, "w") as LITdat:
+            LITdat.write(data)
 
     def removefromLITdat(self, key: str):
         # open our sessions lost in transit data file in read only mode
         # and store the contents in a variable
         # we then close the file
-        LITdat = open(self.path, "r")
-        data = LITdat.read(-1)
-        LITdat.close()
+        with open(self.path, "r") as LITdat:
+            data = LITdat.read(-1)
 
         # next we run split on the file contents to create a list separated by newlines
         # we then convert this back into a string to then strip the list "brackets" off
@@ -166,9 +163,8 @@ class MongoCache(cachetools.TTLCache):
         )
 
         # overwrite the contents of the original file, then close it.
-        LITdat = open(self.path, "w")
-        LITdat.write(data)
-        LITdat.close()
+        with open(self.path, "w") as LITdat:
+            LITdat.write(data)
 
     def _find_matches_in_self(
         self, collectionkey: str, searchfilter: Mapping[str, Any]

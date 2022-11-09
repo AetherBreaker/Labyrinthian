@@ -2,7 +2,6 @@ import asyncio
 import logging
 import os
 import traceback
-from copy import deepcopy
 from typing import Optional, Union
 
 import disnake
