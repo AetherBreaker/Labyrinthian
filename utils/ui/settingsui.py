@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Mapping, Optional, Union
 
 import disnake
 import inflect
+
 from utils.functions import (
     has_unicode_emote,
     natural_join,
@@ -556,13 +557,7 @@ class CoinPurseSettingsView(SettingsMenuBase, SelectandModify):
         values = (
             self.matched.to_dict()
             if editing
-            else {
-                {
-                    "name": "",
-                    "prefix": "",
-                    "emoji": "",
-                }
-            }
+            else {"name": "", "prefix": "", "emoji": "", "rate": ""}
         )
         is_base = isinstance(self.matched, BaseCoin)
         components = [
