@@ -152,10 +152,8 @@ async def on_ready():
                     channel, message = x["constid"]
                     channel: Union[
                         disnake.abc.GuildChannel, disnake.abc.Messageable
-                    ] = await bot.fetch_channel(
-                        int(channel)  # type: ignore
-                    )  # type: ignore
-                    message = await channel.fetch_message(int(message))  # type: ignore
+                    ] = await bot.fetch_channel(int(channel))
+                    message = await channel.fetch_message(int(message))
                     bot.add_view(ConstSender(), message_id=message.id)
                 except (InvalidData, HTTPException, NotFound, Forbidden) as e:
                     print(f"{e} trying again")
@@ -163,10 +161,8 @@ async def on_ready():
                         channel, message = x["constid"]
                         channel: Union[
                             disnake.abc.GuildChannel, disnake.abc.Messageable
-                        ] = await bot.fetch_channel(
-                            int(channel)
-                        )  # type: ignore
-                        message = await channel.fetch_message(int(message))  # type: ignore
+                        ] = await bot.fetch_channel(int(channel))
+                        message = await channel.fetch_message(int(message))
                         bot.add_view(ConstSender(), message_id=message.id)
                     except (InvalidData, HTTPException, NotFound, Forbidden) as e:
                         print(f"{e} deleting view IDs")
